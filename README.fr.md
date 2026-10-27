@@ -314,7 +314,8 @@ avec ces noms (`.mp3`, `.wav`, `.ogg` ou `.m4a`) :
 ## C'est sûr ?
 
 - Tout le code est ici. L'installeur est fabriqué à partir de lui avec `npm run dist` ; tu peux fabriquer le tien.
-- Rien ne quitte ton PC (voir plus bas) : elle ne parle à Claude Code que par un hook sur `127.0.0.1`.
+- Rien ne quitte ton PC (voir plus bas), sauf si tu la relies à ton propre bot Telegram : elle ne parle à Claude Code
+  que par un hook sur `127.0.0.1`.
 - Ce qu'elle change sur ton système : le hook dans `~/.claude/settings.json` (une sauvegarde est faite avant, et tu peux
   le retirer depuis son menu), et une entrée au démarrage seulement si tu coches « Lancer au démarrage ». Elle se
   désinstalle comme n'importe quelle app, depuis Paramètres Windows › Applications.
@@ -355,6 +356,14 @@ ne peut la manipuler.
 Son chat va à Ollama sur ton PC (`127.0.0.1:11434`, ou `OLLAMA_HOST`) avec ce qu'elle sait du moment (le nom du
 projet, la dernière action de Claude, les compteurs du jour). Son journal de mission reste dans son propre stockage,
 sur ton PC.
+
+Ses messages sur ton téléphone sont coupés tant que tu n'as pas créé ton propre bot Telegram (chez @BotFather) et ne
+l'as pas relié dans Mainframe, avec un code que seule cette fenêtre affiche. Ensuite, quand tu n'es pas devant le PC
+(ni clavier ni souris depuis quelques minutes, ou l'écran verrouillé), elle envoie à cette seule discussion sa réplique,
+le nom du projet et, si tu le choisis, un extrait du prompt ou de la réponse (400 caractères au plus, ce qui ressemble
+à une clé masqué), par les serveurs de Telegram : les discussions avec un bot ne sont pas chiffrées de bout en bout.
+Jamais tes fichiers. Le token du bot est chiffré avec ton compte Windows, et la seule chose qu'elle lit du bot, c'est
+ce code.
 
 ## Direction artistique
 
@@ -426,6 +435,7 @@ src/main/                Electron : fenêtre transparente plein écran, clic à 
   windows.js / .ps1      où sont les autres fenêtres (Windows), pour qu'elle s'assoie dessus
   ollama.js              son chat : le modèle local, via Ollama
   apps.js                fermer une appli que tu lui demandes de fermer (après ton clic)
+  phone.js               ses messages sur ton téléphone, par ton propre bot Telegram
 src/renderer/js/
   sprite.js              shader WebGL : tête, crinière, position assise, smears, images rémanentes, couleurs, glitch
   acting.js              les feuilles d'exposition : chaque mouvement, dessin par dessin

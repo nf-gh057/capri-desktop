@@ -16,6 +16,7 @@ const blank = () => ({
   longest: null, // { ms, project }
   projects: [],
   reported: false, // she already brought it to you on her own today
+  phoned: false,   // or sent it to your phone, you being away
 });
 
 export class Mission {
@@ -77,6 +78,11 @@ export class Mission {
 
   markReported() {
     this.day.reported = true;
+    this.save();
+  }
+
+  markPhoned() {
+    this.day.phoned = true;
     this.save();
   }
 }

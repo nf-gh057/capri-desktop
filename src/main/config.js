@@ -35,6 +35,10 @@ const DEFAULTS = {
   motionAsked: false, // she asked once, Windows' animations being off, whether to move anyway
   render: 'auto',   // how her window is drawn: 'auto', 'gl' (OpenGL) or 'software' (no graphics card), for PCs that show it black
   stowKey: 'Control+Alt+C', // the key that puts her away and brings her back (an Electron accelerator), null: none
+  telegram: null,    // her bot, paired in Mainframe: { token (sealed), bot, chat, user, name } (phone.js)
+  phoneOn: false,    // she writes to your phone when something happens while you're away
+  phoneAway: 5,      // away: this many minutes without a key or the mouse, or the screen locked (0: always)
+  phoneDetail: 'line', // what she writes: 'line' (her words and the project) or 'quote' (with a bit of what was said)
 };
 
 let cache = null;

@@ -19,6 +19,7 @@ const apps = require('./apps');
 const launch = require('./launch');
 const { ASSISTANTS, assistant } = require('./assistants');
 const { createMainframe } = require('./mainframe');
+const phone = require('./phone');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -46,6 +47,10 @@ let chatModels = null; // the provider's models, as last seen (null: not reached
 let chatError = null;  // why not, when the provider said
 let chatErrorCode = null; // 'nokey' or 'nourl': what her setup should ask for
 const chats = new Map(); // id -> AbortController of an answer being streamed
+// her messages to your phone (phone.js): the pairing she waits for, why the last try failed
+let phonePair = null; // { code, link, until, abort } until `/start <code>` comes
+let phoneError = null;
+const phoneLimit = phone.limiter();
 
 const userSoundsDir = () => path.join(app.getPath('userData'), 'sounds');
 
@@ -298,7 +303,7 @@ function resolveLang(setting) {
 
 // What the overlay gets: `lang` is the resolved one, `langSetting` what the user picked.
 function rendererConfig() {
-  const { apiKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
+  const { apiKeys, telegram, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
   return {
     ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang,
     floorGap: overlayArea().gap, screens: screen.getAllDisplays().length,
@@ -568,6 +573,15 @@ function mainframeState() {
       assistants: Object.entries(ASSISTANTS).map(([id, { name }]) => ({ id, label: name })),
       hooks: cfg.claude ? activeHooks().status().installed : null,
     },
+    phone: {
+      bot: cfg.telegram?.bot || null,
+      linked: cfg.telegram?.chat ? cfg.telegram.name : null,
+      pairing: phonePair?.code || null,
+      error: phoneError && (t[`phoneErr${phoneError[0].toUpperCase()}${phoneError.slice(1)}`] || phoneError),
+      on: Boolean(cfg.phoneOn),
+      away: String(cfg.phoneAway ?? 5),
+      detail: cfg.phoneDetail === 'quote' ? 'quote' : 'line',
+    },
     system: {
       lang: cfg.lang,
       langs: [['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])].map(([id, label]) => ({ id, label })),
@@ -611,8 +625,83 @@ async function mainframeAct(name, value) {
     case 'render': if (one(['auto', 'gl', 'software'])) pickRender(value); break;
     case 'startup': app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: Boolean(value) }); rebuildTray(); break;
     case 'menu': if (one(['full', 'compact'])) updateConfig({ menu: value }); break;
+    case 'phoneToken': if (typeof value === 'string') await phoneSetToken(value); break;
+    case 'phoneBotFather': shell.openExternal('https://t.me/BotFather'); break;
+    case 'phoneOpenChat': if (phonePair) shell.openExternal(phonePair.link); break;
+    case 'phonePair': startPairing(); break;
+    case 'phoneOn': updateConfig({ phoneOn: Boolean(value) && Boolean(config.load().telegram?.chat) }); break;
+    case 'phoneAway': if (one(['0', '5', '15'])) updateConfig({ phoneAway: Number(value) }); break;
+    case 'phoneDetail': if (one(['line', 'quote'])) updateConfig({ phoneDetail: value }); break;
+    case 'phoneTest': await phoneSend(trayLabels().phoneTestText, { always: true }); break;
+    case 'phoneForget': stopPairing(); phoneError = null; updateConfig({ telegram: null, phoneOn: false }); break;
     case 'quit': app.quit(); break;
     default: break;
+  }
+}
+
+// Her bot on Telegram (phone.js), set up in Mainframe: its token checked with Telegram, then sealed
+// like her API keys, and a pairing code to send it from your phone.
+const phoneToken = (cfg = config.load()) => setup.openKey(cfg.telegram?.token);
+
+async function phoneSetToken(value) {
+  stopPairing();
+  phoneError = null;
+  const token = value.trim();
+  try {
+    const { username } = await phone.bot(token);
+    updateConfig({ telegram: { token: setup.sealKey(token), bot: username }, phoneOn: false });
+    startPairing();
+  } catch (err) {
+    phoneError = err.message;
+  }
+}
+
+function stopPairing() {
+  phonePair?.abort.abort();
+  phonePair = null;
+}
+
+function startPairing() {
+  const cfg = config.load();
+  if (!cfg.telegram?.bot) return;
+  stopPairing();
+  phoneError = null;
+  const pair = { ...phone.pairing(cfg.telegram.bot), abort: new AbortController() };
+  phonePair = pair;
+  phone.waitForPair(phoneToken(cfg), pair.code, pair.abort.signal).then((who) => {
+    if (phonePair !== pair) return;
+    phonePair = null;
+    updateConfig({ telegram: { ...config.load().telegram, ...who }, phoneOn: true });
+    phoneSend(trayLabels().phoneLinked, { always: true });
+  }, (err) => {
+    if (phonePair !== pair) return;
+    phonePair = null;
+    if (err.message !== 'stopped') phoneError = err.message;
+    mainframe?.refresh();
+  });
+  mainframe?.refresh();
+}
+
+// You're away from this PC: its screen locked, or no key or mouse for `phoneAway` minutes (0: always)
+function phoneAway(cfg = config.load()) {
+  const minutes = Number(cfg.phoneAway ?? 5);
+  return !minutes || ['idle', 'locked'].includes(powerMonitor.getSystemIdleState(minutes * 60));
+}
+
+// To your phone, if it's paired and her messages are on (`always`: Mainframe's own, on or off), a few
+// a minute at most
+async function phoneSend(text, { always = false } = {}) {
+  const cfg = config.load();
+  if (!cfg.telegram?.chat || (!always && !cfg.phoneOn) || !phoneLimit(text)) return false;
+  try {
+    await phone.send(phoneToken(cfg), cfg.telegram.chat, text);
+    if (phoneError) mainframe?.refresh();
+    phoneError = null;
+    return true;
+  } catch (err) {
+    phoneError = err.message;
+    mainframe?.refresh();
+    return false;
   }
 }
 
@@ -781,6 +870,13 @@ function registerIpc() {
   ipcMain.handle('chat:memory', () => readMemory().history || []);
   ipcMain.on('chat:remember', (_e, history) => Array.isArray(history) && saveMemory({ history }));
   ipcMain.on('chat:ollama', () => shell.openExternal(OLLAMA_SITE));
+  // something worth telling you about (brain.js), sent to your phone only while you're away
+  ipcMain.handle('phone:notify', (_e, note) => {
+    const cfg = config.load();
+    if (!cfg.phoneOn || !cfg.telegram?.chat || !phoneAway(cfg)) return false;
+    const text = (key) => (typeof note?.[key] === 'string' ? note[key] : '');
+    return phoneSend(phone.compose({ line: text('line'), project: text('project'), quote: text('quote') }, cfg.phoneDetail));
+  });
   // setting her up with buttons (setup.js): Ollama and a model, or a key, or an address
   const progress = (payload) => overlay?.webContents.send('setup:progress', payload);
   let pulling = null; // AbortController of the model being fetched
@@ -969,7 +1065,8 @@ async function debugHandler(route, body) {
     // her settings window: opened, asked something as its page would ({ act, value }), captured ({ capture })
     const win = mainframe.open();
     if (body.act) await mainframeAct(body.act, body.value);
-    if (!body.capture) return { ok: true };
+    mainframe.refresh(); // as its page draws what its click brings back
+    if (!body.capture) return { ok: true, state: mainframeState() };
     await new Promise((resolve) => setTimeout(resolve, 800));
     // further down its page ({ scroll: px })
     if (Number.isFinite(body.scroll)) {
@@ -1010,6 +1107,7 @@ function applyRender() {
 
 function main() {
   applyRender();
+  if (DEV && process.env.CAPRI_TELEGRAM_API) phone.useApi(process.env.CAPRI_TELEGRAM_API); // a Telegram of your own, to try her with
   if (!app.requestSingleInstanceLock()) {
     app.quit();
     return;
@@ -1059,6 +1157,7 @@ function main() {
 
   app.on('will-quit', () => {
     llm.stopAgents();
+    stopPairing();
     globalShortcut.unregisterAll();
     windowWatch?.stop();
   });

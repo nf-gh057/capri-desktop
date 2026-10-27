@@ -60,4 +60,5 @@ contextBridge.exposeInMainWorld('host', {
   music: (query) => ipcRenderer.invoke('apps:music', query),
   openSite: (address) => ipcRenderer.invoke('apps:site', address),
   focusOverlay: (on) => ipcRenderer.send('overlay:focus', Boolean(on)),
+  phoneNotify: (note) => ipcRenderer.invoke('phone:notify', note),
 });

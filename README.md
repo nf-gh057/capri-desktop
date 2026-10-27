@@ -298,7 +298,8 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
 ## Is it safe?
 
 - All of the code is right here. The installer is built from it with `npm run dist`; you can build your own.
-- Nothing leaves your PC (see below): she only talks to Claude Code through a hook on `127.0.0.1`.
+- Nothing leaves your PC (see below), unless you pair her with a Telegram bot of your own: she only talks to Claude Code
+  through a hook on `127.0.0.1`.
 - What she changes on your system: the hook in `~/.claude/settings.json` (a backup is written first, and you can remove
   it from her menu), and a startup entry only if you tick "Start with Windows". She uninstalls like any app, from
   Windows Settings › Apps.
@@ -334,6 +335,13 @@ Her bridge only takes events that carry its token, a new one each time she start
 
 Her chat goes to Ollama on your PC (`127.0.0.1:11434`, or `OLLAMA_HOST`) with what she knows of the moment (the
 project's name, Claude's last action, today's counts). Her mission log stays in her own storage on your PC.
+
+Her messages to your phone are off until you make a Telegram bot of your own (at @BotFather) and pair it in Mainframe,
+with a code only that window shows. Then, while you're away from the PC (no key or mouse for a few minutes, or the
+screen locked), she sends that one chat her line, the project's name and, if you pick it, a snippet of the prompt or
+answer (400 characters at most, anything that looks like a key blanked out), through Telegram's servers: bot chats
+aren't end-to-end encrypted. Never your files. The bot token is kept encrypted with your Windows account, and the
+only thing she ever reads from the bot is that pairing code.
 
 ## Art direction
 
@@ -403,6 +411,7 @@ src/main/                Electron: full-screen transparent click-through window,
   windows.js / .ps1      where the other windows are (Windows only), so she can sit on them
   ollama.js              her chat: the local model, through Ollama
   apps.js                closing an app you asked her to close (after your click)
+  phone.js               her messages to your phone, through your own Telegram bot
 src/renderer/js/
   sprite.js              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
   acting.js              the exposure sheets: every move, drawing by drawing

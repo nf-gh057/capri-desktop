@@ -50,6 +50,14 @@ export const LINES = {
     ],
     interrupted: ['Interrompu. Changement de plan ?', 'Coupé net. Je reste là.'],
     crashed: ['Claude s’est arrêté en plein vol.', 'Grosse panne. Claude n’a pas pu finir.'],
+    // sur ton téléphone (Telegram), quand tu n'es pas devant le PC
+    phone: {
+      done: ['Choom, jette un œil à Claude. Il a bouclé le dernier contrat et il s’ennuie.', 'Claude a fini. Il t’attend.', 'Boulot terminé. Claude se tourne les pouces.'],
+      waiting: ['Claude attend ta réponse.', 'À toi de jouer, choom. Claude attend.'],
+      permission: ['Choom, Claude a besoin de ton accord. Ça se valide devant le PC.', 'Claude attend ton feu vert devant la porte.'],
+      crashed: ['Claude s’est arrêté en plein vol. Jette un œil en rentrant.', 'Grosse panne. Claude n’a pas pu finir.'],
+      report: 'Rapport du jour : {missions} contrats, {actions} actions, {files} fichiers, {errors} erreurs.',
+    },
     subagentStart: ['Sous-agent {agent} déployé.'],
     subagentStop: ['Sous-agent {agent} de retour.'],
     someTool: 'L’outil', someAgent: 'agent', // un outil, un sous-agent sans nom
@@ -295,6 +303,14 @@ export const LINES = {
     error: ['Ouch. {tool} crashed.', '{tool} flatlined. Claude will retry.', '{tool} failed. Nothing serious… I think.'],
     interrupted: ['Interrupted. Change of plans?', 'Cut off. I’ll stay put.'],
     crashed: ['Claude stopped mid-flight.', 'Hard crash. Claude couldn’t finish.'],
+    // on your phone (Telegram), when you're away from the PC
+    phone: {
+      done: ['Choom, check on Claude. Looks like it wrapped up the last gig and it’s bored.', 'Claude’s done. It’s waiting for you.', 'Job’s finished. Claude’s twiddling its thumbs.'],
+      waiting: ['Claude is waiting for your answer.', 'Your move, choom. Claude’s waiting.'],
+      permission: ['Choom, Claude needs your permission. That one’s approved at the PC.', 'Claude’s at the door, waiting on your green light.'],
+      crashed: ['Claude stopped mid-flight. Take a look when you’re back.', 'Hard crash. Claude couldn’t finish.'],
+      report: 'Today’s report: {missions} gigs, {actions} actions, {files} files, {errors} errors.',
+    },
     subagentStart: ['Subagent {agent} deployed.'],
     subagentStop: ['Subagent {agent} is back.'],
     someTool: 'The tool', someAgent: 'agent', // a tool, a subagent with no name
@@ -539,6 +555,14 @@ export const LINES = {
     error: ['Ay. {tool} falló.', '{tool} hizo flatline. Claude lo volverá a intentar.', 'Error en {tool}. Nada grave… creo.'],
     interrupted: ['Interrumpido. ¿Cambio de planes?', 'Cortado en seco. Me quedo aquí.'],
     crashed: ['Claude se detuvo en pleno vuelo.', 'Caída grave. Claude no pudo terminar.'],
+    // en tu teléfono (Telegram), cuando no estás frente al PC
+    phone: {
+      done: ['Choom, échale un ojo a Claude. Parece que cerró el último encargo y se aburre.', 'Claude terminó. Te está esperando.', 'Trabajo hecho. Claude está de brazos cruzados.'],
+      waiting: ['Claude espera tu respuesta.', 'Te toca, choom. Claude espera.'],
+      permission: ['Choom, Claude necesita tu permiso. Eso se aprueba frente al PC.', 'Claude espera tu luz verde en la puerta.'],
+      crashed: ['Claude se detuvo en pleno vuelo. Échale un ojo cuando vuelvas.', 'Caída grave. Claude no pudo terminar.'],
+      report: 'Informe de hoy: {missions} encargos, {actions} acciones, {files} archivos, {errors} errores.',
+    },
     subagentStart: ['Subagente {agent} desplegado.'],
     subagentStop: ['Subagente {agent} de vuelta.'],
     someTool: 'La herramienta', someAgent: 'agente', // una herramienta, un subagente sin nombre
@@ -782,6 +806,14 @@ export const LINES = {
     error: ['Ai. {tool} travou.', '{tool} deu flatline. O Claude vai tentar de novo.', 'Erro em {tool}. Nada grave… eu acho.'],
     interrupted: ['Interrompido. Mudança de planos?', 'Cortado na hora. Fico aqui.'],
     crashed: ['O Claude parou no meio do voo.', 'Pane feia. O Claude não conseguiu terminar.'],
+    // no seu celular (Telegram), quando você está longe do PC
+    phone: {
+      done: ['Choom, dá uma olhada no Claude. Parece que ele fechou o último trampo e tá entediado.', 'O Claude terminou. Tá te esperando.', 'Serviço feito. O Claude tá de braços cruzados.'],
+      waiting: ['O Claude tá esperando sua resposta.', 'Sua vez, choom. O Claude tá esperando.'],
+      permission: ['Choom, o Claude precisa da sua permissão. Isso se aprova no PC.', 'O Claude tá na porta esperando seu sinal verde.'],
+      crashed: ['O Claude parou no meio do voo. Dá uma olhada quando voltar.', 'Pane feia. O Claude não conseguiu terminar.'],
+      report: 'Relatório de hoje: {missions} trampos, {actions} ações, {files} arquivos, {errors} erros.',
+    },
     subagentStart: ['Subagente {agent} enviado.'],
     subagentStop: ['Subagente {agent} voltou.'],
     someTool: 'A ferramenta', someAgent: 'agente', // uma ferramenta, um subagente sem nome
@@ -1025,6 +1057,14 @@ export const LINES = {
     error: ['Ай. {tool} упал.', '{tool} отключился. Claude попробует ещё раз.', 'Ошибка в {tool}. Ничего страшного… наверное.'],
     interrupted: ['Прервано. Смена планов?', 'Оборвалось. Я остаюсь здесь.'],
     crashed: ['Claude остановился на полном ходу.', 'Серьёзный сбой. Claude не смог закончить.'],
+    // на твоём телефоне (Telegram), когда тебя нет у ПК
+    phone: {
+      done: ['Чумба, загляни к Claude. Похоже, он закрыл последний заказ и скучает.', 'Claude закончил. Ждёт тебя.', 'Работа сделана. Claude сидит без дела.'],
+      waiting: ['Claude ждёт твоего ответа.', 'Твой ход, чумба. Claude ждёт.'],
+      permission: ['Чумба, Claude нужно твоё разрешение. Подтверждается это у ПК.', 'Claude стоит у двери и ждёт зелёного света.'],
+      crashed: ['Claude остановился на полном ходу. Глянь, когда вернёшься.', 'Серьёзный сбой. Claude не смог закончить.'],
+      report: 'Отчёт за сегодня: заказов {missions}, действий {actions}, файлов {files}, ошибок {errors}.',
+    },
     subagentStart: ['Субагент {agent} отправлен.'],
     subagentStop: ['Субагент {agent} вернулся.'],
     someTool: 'Инструмент', someAgent: 'агент', // инструмент, субагент без имени
@@ -1275,6 +1315,14 @@ export const LINES = {
     error: ['Auć. {tool}: crash.', '{tool}: flatline. Claude spróbuje jeszcze raz.', 'Błąd: {tool}. Nic poważnego… chyba.'],
     interrupted: ['Przerwane. Zmiana planów?', 'Ucięło. Zostaję na miejscu.'],
     crashed: ['Claude stanął w pół drogi.', 'Twardy crash. Claude nie dał rady skończyć.'],
+    // na twoim telefonie (Telegram), kiedy nie ma cię przy komputerze
+    phone: {
+      done: ['Choom, zerknij na Claude. Chyba ogarnął ostatni gig i się nudzi.', 'Claude skończył. Czeka, aż wrócisz.', 'Robota zrobiona. Claude siedzi i kręci młynka.'],
+      waiting: ['Claude czeka na twoją odpowiedź.', 'Twój ruch, choom. Claude czeka.'],
+      permission: ['Choom, Claude potrzebuje twojej zgody. Zatwierdzisz przy komputerze.', 'Claude stoi pod drzwiami i czeka na zielone światło.'],
+      crashed: ['Claude stanął w pół drogi. Zerknij, jak wrócisz.', 'Twardy crash. Claude nie dał rady skończyć.'],
+      report: 'Raport z dziś: zlecenia {missions}, akcje {actions}, pliki {files}, błędy {errors}.',
+    },
     subagentStart: ['Subagent {agent} wysłany.'],
     subagentStop: ['Subagent {agent} wrócił.'],
     someTool: 'Narzędzie', someAgent: 'agent', // narzędzie, subagent bez nazwy

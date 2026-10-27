@@ -559,6 +559,10 @@ async function boot() {
   // at a quiet moment.
   setInterval(() => {
     const day = mission.day;
+    // not here to see it: to your phone instead, if it's paired and you're away (main.js says)
+    if (new Date().getHours() >= 18 && day.missions && !day.reported && !day.phoned) {
+      host.phoneNotify({ line: fmt(brain.t.phone.report, day) }).then((sent) => sent && mission.markPhoned(), () => {});
+    }
     const quiet = !brain.busySessions.length && !panel.visible && !guide.running && !capri.busy && !capri.act;
     if (new Date().getHours() < 18 || day.reported || day.missions < 3 || !quiet) return;
     if (capri.stowed || capri.dormant || capri.mode === 'sleep') return;

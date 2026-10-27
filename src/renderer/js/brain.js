@@ -236,6 +236,7 @@ export class Brain {
     const type = evt.notification_type;
     if (type === 'permission_prompt' || type === 'elicitation_dialog' || type === 'agent_needs_input') {
       s.waiting = true;
+      this.phone('permission', evt, s, evt.message);
       this.tally(evt)?.approval();
       this.capri.setMode('alert');
       this.voice.play('alert');
@@ -256,6 +257,8 @@ export class Brain {
       return;
     }
     if (type === 'idle_prompt') {
+      // right after she told your phone it was done, that's the same news
+      if (!(s.phonedDone > Date.now() - 15 * 60 * 1000)) this.phone('waiting', evt, s);
       this.voice.play('tick');
       this.say('info', pick(this.t.waiting), s, { face: 'smug', hold: 6000 });
       return;
@@ -275,6 +278,8 @@ export class Brain {
     const quote = cleanMarkdown(evt.last_assistant_message || '');
     if (wasWorking || s.count) {
       this.tally(evt)?.done({ files: s.files.size, ms: s.taskStart ? Date.now() - s.taskStart : 0, project: s.project });
+      this.phone('done', evt, s, quote);
+      s.phonedDone = Date.now();
     }
 
     if (!this.busySessions.length) {
@@ -330,6 +335,14 @@ export class Brain {
     this.voice.play('error');
     const detail = evt.error || evt.message || '';
     this.say('error', pick(this.t.crashed), s, { face: 'wide', quote: clip(String(detail), 120), hold: 9000 });
+    this.phone('crashed', evt, s, detail);
+  }
+
+  // The same news for your phone (main.js sends it only if it's paired and you're away from this PC)
+  phone(kind, evt, s, quote = '') {
+    if (evt.demo) return;
+    const project = s.project !== this.name ? s.project : '';
+    this.host.phoneNotify?.({ line: pick(this.t.phone[kind]), project, quote: String(quote || '') }).catch(() => {});
   }
 
   onSubagent(evt, s, starting) {
