@@ -34,6 +34,10 @@ const TRAY = {
     phoneLinked: 'Connectée. Je t’écris quand tu n’es pas devant le PC et qu’il se passe quelque chose.',
     phoneErrBadToken: 'Telegram ne reconnaît pas ce token.', phoneErrOffline: 'Telegram injoignable.', phoneErrTimeout: 'Telegram ne répond pas.',
     phoneErrConflict: 'Ce bot est déjà lu ailleurs (webhook ou autre programme).', phoneErrExpired: 'Code expiré : demandes-en un nouveau.',
+    sync: (percent, stage) => `Elle et toi : ${percent} % · ${stage}`, stages: ['Signal faible', 'Contact', 'Synchro', 'Lien', 'Fusion'],
+    reminders: 'Rappels', noReminders: 'Aucun rappel (demande-lui dans son chat)', cancelReminder: 'Annuler ce rappel',
+    follow: 'Me suivre d’un écran à l’autre', jealous: 'Jalouse des autres IA',
+    lookNow: 'Regarde mon écran', lookAuto: 'Regarder mon écran de temps en temps',
   },
   en: {
     name: 'English',
@@ -66,6 +70,10 @@ const TRAY = {
     phoneErrOffline: 'Can’t reach Telegram.', phoneErrTimeout: 'Telegram isn’t answering.',
     phoneErrConflict: 'This bot is already read somewhere else (a webhook or another program).',
     phoneErrExpired: 'The code expired: ask for a new one.',
+    sync: (percent, stage) => `You and her: ${percent}% · ${stage}`, stages: ['Faint signal', 'Contact', 'In sync', 'Linked', 'Fused'],
+    reminders: 'Reminders', noReminders: 'No reminders (ask her in her chat)', cancelReminder: 'Cancel this reminder',
+    follow: 'Follow me across screens', jealous: 'Jealous of other AIs',
+    lookNow: 'Look at my screen', lookAuto: 'Look at my screen now and then',
   },
   es: {
     name: 'Español',
@@ -97,6 +105,10 @@ const TRAY = {
     phoneLinked: 'Conectada. Te escribo cuando no estés frente al PC y pase algo.', phoneErrBadToken: 'Telegram no reconoce este token.',
     phoneErrOffline: 'No se puede llegar a Telegram.', phoneErrTimeout: 'Telegram no responde.',
     phoneErrConflict: 'Este bot ya se lee en otro sitio (un webhook u otro programa).', phoneErrExpired: 'El código caducó: pide uno nuevo.',
+    sync: (percent, stage) => `Ella y tú: ${percent} % · ${stage}`, stages: ['Señal débil', 'Contacto', 'Sincronía', 'Vínculo', 'Fusión'],
+    reminders: 'Recordatorios', noReminders: 'Ningún recordatorio (pídeselo en su chat)', cancelReminder: 'Cancelar este recordatorio',
+    follow: 'Seguirme de una pantalla a otra', jealous: 'Celosa de otras IA',
+    lookNow: 'Mira mi pantalla', lookAuto: 'Mirar mi pantalla de vez en cuando',
   },
   pt: {
     name: 'Português (Brasil)',
@@ -129,6 +141,10 @@ const TRAY = {
     phoneErrBadToken: 'O Telegram não reconhece este token.', phoneErrOffline: 'Não foi possível falar com o Telegram.',
     phoneErrTimeout: 'O Telegram não responde.', phoneErrConflict: 'Este bot já é lido em outro lugar (um webhook ou outro programa).',
     phoneErrExpired: 'O código expirou: peça um novo.',
+    sync: (percent, stage) => `Ela e você: ${percent} % · ${stage}`, stages: ['Sinal fraco', 'Contato', 'Sintonia', 'Vínculo', 'Fusão'],
+    reminders: 'Lembretes', noReminders: 'Nenhum lembrete (peça no chat dela)', cancelReminder: 'Cancelar este lembrete',
+    follow: 'Me seguir de uma tela pra outra', jealous: 'Com ciúmes de outras IAs',
+    lookNow: 'Olha minha tela', lookAuto: 'Olhar minha tela de vez em quando',
   },
   ru: {
     name: 'Русский',
@@ -159,6 +175,10 @@ const TRAY = {
     phoneLinked: 'Подключено. Напишу, когда тебя не будет у ПК и что-то случится.', phoneErrBadToken: 'Telegram не знает этот токен.',
     phoneErrOffline: 'Не достучаться до Telegram.', phoneErrTimeout: 'Telegram не отвечает.',
     phoneErrConflict: 'Этого бота уже читают в другом месте (webhook или другая программа).', phoneErrExpired: 'Код истёк: запроси новый.',
+    sync: (percent, stage) => `Вы с ней: ${percent} % · ${stage}`, stages: ['Слабый сигнал', 'Контакт', 'Синхрон', 'Связь', 'Слияние'],
+    reminders: 'Напоминания', noReminders: 'Напоминаний нет (попроси в её чате)', cancelReminder: 'Отменить напоминание',
+    follow: 'Следовать за мной с экрана на экран', jealous: 'Ревнует к другим ИИ',
+    lookNow: 'Посмотри на мой экран', lookAuto: 'Иногда смотреть на мой экран',
   },
   pl: {
     name: 'Polski',
@@ -190,6 +210,10 @@ const TRAY = {
     phoneLinked: 'Połączone. Napiszę, kiedy nie będzie cię przy komputerze, a coś się wydarzy.', phoneErrBadToken: 'Telegram nie zna tego tokena.',
     phoneErrOffline: 'Nie mogę połączyć się z Telegramem.', phoneErrTimeout: 'Telegram nie odpowiada.',
     phoneErrConflict: 'Ten bot jest już czytany gdzie indziej (webhook albo inny program).', phoneErrExpired: 'Kod wygasł: poproś o nowy.',
+    sync: (percent, stage) => `Ty i ona: ${percent}% · ${stage}`, stages: ['Słaby sygnał', 'Kontakt', 'Synchronizacja', 'Więź', 'Fuzja'],
+    reminders: 'Przypomnienia', noReminders: 'Brak przypomnień (poproś ją na czacie)', cancelReminder: 'Anuluj to przypomnienie',
+    follow: 'Chodź za mną z ekranu na ekran', jealous: 'Zazdrosna o inne AI',
+    lookNow: 'Popatrz na mój ekran', lookAuto: 'Zerkaj czasem na mój ekran',
   },
 };
 

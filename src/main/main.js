@@ -6,14 +6,16 @@ const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, protocol, net, shell, globalShortcut, nativeImage,
-  clipboard, ClipboardItem, dialog, powerMonitor,
+  clipboard, ClipboardItem, dialog, powerMonitor, desktopCapturer,
 } = require('electron');
+const { randomUUID } = require('node:crypto');
 
 const config = require('./config');
 const { TRAY, LANGS } = require('./labels');
 const { createBridge } = require('./bridge');
 const { startWindowWatch } = require('./windows');
 const llm = require('./llm');
+const ollama = require('./ollama');
 const setup = require('./setup');
 const apps = require('./apps');
 const launch = require('./launch');
@@ -90,28 +92,42 @@ function serveProtocol() {
   });
 }
 
-// The screen she's on: the one picked in her menu (Screen), until she teleports to another one.
-let currentDisplayId = null;
-function targetDisplay() {
-  const wanted = currentDisplayId ?? config.load().displayId;
-  return screen.getAllDisplays().find((d) => d.id === wanted) || screen.getPrimaryDisplay();
+// Your screens. In --dev with CAPRI_SCREENS=2 and only one screen, it's cut in two halves side by
+// side, to try her going from one to the other without a second monitor.
+function displays() {
+  const real = screen.getAllDisplays();
+  if (!DEV || process.env.CAPRI_SCREENS !== '2' || real.length > 1) return real;
+  const d = screen.getPrimaryDisplay();
+  const half = (r, i) => ({ x: r.x + Math.floor(r.width / 2) * i, y: r.y, width: Math.floor(r.width / 2), height: r.height });
+  return [0, 1].map((i) => ({ ...d, id: d.id * 10 + i + 1, bounds: half(d.bounds, i), workArea: half(d.workArea, i), size: { width: Math.floor(d.size.width / 2), height: d.size.height } }));
 }
 
-// Her teleport to another screen, picked at random: her window goes there while she's gone from
-// this one. What she gets back: the new size of her window, and the windows on that screen.
-function hopDisplay() {
-  if (!overlay || overlay.isDestroyed()) return null;
-  const others = screen.getAllDisplays().filter((d) => d.id !== targetDisplay().id);
-  if (!others.length) return null;
-  currentDisplayId = others[Math.floor(Math.random() * others.length)].id;
-  const { area, gap } = overlayArea();
+// The screen a point (DIP) is on, else the nearest one.
+function displayAt(p) {
+  const all = displays();
+  const inside = all.find(({ bounds: b }) => p.x >= b.x && p.y >= b.y && p.x < b.x + b.width && p.y < b.y + b.height);
+  if (inside) return inside;
+  const near = screen.getDisplayNearestPoint(p);
+  return all.find((d) => d.id === near.id) || all[0];
+}
+
+function targetDisplay() {
+  const { displayId } = config.load();
+  const all = displays();
+  return all.find((d) => d.id === displayId) || all.find((d) => d.id === screen.getPrimaryDisplay().id) || all[0];
+}
+
+// Her window over to another screen (she's on her way there, screens.js). Set twice: going to a
+// screen with another scale, Windows resizes the window once it lands there.
+function moveOverlay(id) {
+  if (!displays().some((d) => d.id === id)) return null;
+  config.save({ displayId: id });
+  fitOverlay();
+  const { area } = overlayArea();
   overlay.setBounds(area);
-  overlay.setBounds(area); // twice: between screens with different scaling, the first one can land off-size
-  overlay.setAlwaysOnTop(true, 'screen-saver');
-  overlay.webContents.send('overlay:resize', { width: area.width, height: area.height, gap });
-  windowWatch?.refresh(); // nothing changed for the watcher, but they're seen from somewhere else now
+  windowWatch?.refresh();
   rebuildTray();
-  return { width: area.width, height: area.height, gap, windows: lastWindows };
+  return area;
 }
 
 // Ctrl+Alt+C by default, or what was picked in her menu (null: none). On a Polish keyboard
@@ -306,13 +322,16 @@ function rendererConfig() {
   const { apiKeys, telegram, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
   return {
     ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang,
-    floorGap: overlayArea().gap, screens: screen.getAllDisplays().length,
+    floorGap: overlayArea().gap, screens: displays().length,
   };
 }
 
 function updateConfig(patch) {
   config.save(patch);
-  if ('rest' in patch) fitOverlay(); // the taskbar in her window or not
+  if ('rest' in patch) {
+    fitOverlay(); // the taskbar in her window or not
+    windowWatch?.refresh();
+  }
   const cfg = rendererConfig();
   overlay?.webContents.send('capri:config', cfg);
   rebuildTray();
@@ -326,12 +345,9 @@ function trayLabels(cfg = config.load()) {
     [key, typeof value === 'string' && watched.id !== 'claude' ? value.replaceAll('Claude Code', watched.name) : value]));
 }
 
+// a screen picked in Mainframe: she goes there herself, as from her menu
 function pickScreen(id) {
-  if (!screen.getAllDisplays().some((d) => d.id === id)) return;
-  config.save({ displayId: id });
-  currentDisplayId = id;
-  fitOverlay();
-  rebuildTray();
+  if (displays().some((d) => d.id === id) && id !== targetDisplay().id) sendCommand('goScreen', { id });
 }
 
 // the coding assistant she watches (a new one: she says hello and offers to plug herself in), or none
@@ -356,6 +372,26 @@ function pickRender(render) {
 
 const SIZES = [['small', 0.45], ['medium', 0.6], ['large', 0.8]];
 
+// How close she is to you (bond.js): STAGES there, 1000 xp is 100 %
+function syncLabel(cfg, t) {
+  const xp = cfg.bond?.xp || 0;
+  const stage = [0, 100, 300, 550, 850].filter((at) => xp >= at).length - 1;
+  return t.sync(Math.min(100, Math.floor(xp / 10)), t.stages[stage]);
+}
+
+// The reminders she keeps (reminders.js), soonest first: { id, label } with when, as she'd say it
+function reminderList(cfg) {
+  const when = (at) => {
+    const d = new Date(at);
+    const sameDay = d.toDateString() === new Date().toDateString();
+    return new Intl.DateTimeFormat(resolveLang(cfg.lang), sameDay ? { hour: '2-digit', minute: '2-digit' } : { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
+  };
+  return [...(cfg.reminders || [])].sort((a, b) => a.at - b.at)
+    .map((r) => ({ id: r.id, label: `${when(r.at)} · ${(r.text || '…').slice(0, 50)}` }));
+}
+
+const cancelReminder = (id) => updateConfig({ reminders: (config.load().reminders || []).filter((r) => r.id !== id) });
+
 function rebuildTray() {
   mainframe?.refresh();
   if (!tray) return;
@@ -364,18 +400,28 @@ function rebuildTray() {
   const watched = activeAssistant();
   const t = trayLabels(cfg);
 
-  const displays = screen.getAllDisplays();
+  const screens = displays();
   const current = targetDisplay().id;
+  const reminders = reminderList(cfg);
+
   const screenItem = {
     label: t.screen,
-    enabled: displays.length > 1,
-    submenu: displays.map((d, i) => ({
-      label: `${i + 1} — ${d.size.width}×${d.size.height}`, type: 'radio', checked: d.id === current, click: () => pickScreen(d.id),
-    })),
+    enabled: screens.length > 1,
+    submenu: [
+      ...screens.map((d, i) => ({
+        label: `${i + 1} — ${d.size.width}×${d.size.height}`,
+        type: 'radio',
+        checked: d.id === current,
+        click: () => d.id !== current && sendCommand('goScreen', { id: d.id }), // she goes over there herself
+      })),
+      { type: 'separator' },
+      { label: t.follow, type: 'checkbox', checked: cfg.follow !== false, click: (item) => updateConfig({ follow: item.checked }) },
+    ],
   };
   // what she does: first in both menus
   const actions = [
     { label: t.online(PORT), enabled: false },
+    { label: syncLabel(cfg, t), enabled: false },
     { type: 'separator' },
     { label: t.teleport, click: () => sendCommand('teleport') },
     { label: t.satellite, click: () => sendCommand('satellite') },
@@ -383,6 +429,13 @@ function rebuildTray() {
     { label: t.help, click: () => sendCommand('welcome') },
     ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
     { label: t.talk, click: () => sendCommand('chat') },
+    { label: t.lookNow, click: () => sendCommand('look') },
+    {
+      label: t.reminders,
+      submenu: reminders.length
+        ? reminders.map((r) => ({ label: r.label, submenu: [{ label: t.cancelReminder, click: () => cancelReminder(r.id) }] }))
+        : [{ label: t.noReminders, enabled: false }],
+    },
     { label: t.custom, click: () => sendCommand('customize') },
     { label: cfg.visible ? t.hide : t.show, ...(stowKey && { accelerator: stowKey }), click: () => toggleVisible() },
     { type: 'separator' },
@@ -469,6 +522,15 @@ function rebuildTray() {
     },
     { label: t.wander, type: 'checkbox', checked: cfg.wander, click: (item) => updateConfig({ wander: item.checked }) },
     { label: t.possess, type: 'checkbox', checked: cfg.possess, click: (item) => updateConfig({ possess: item.checked }) },
+    { label: t.jealous, type: 'checkbox', checked: cfg.jealous !== false, click: (item) => updateConfig({ jealous: item.checked }) },
+    {
+      // she asks first (what she'll send where), then turns it on herself
+      label: t.lookAuto, type: 'checkbox', checked: Boolean(cfg.watchScreen),
+      click: (item) => {
+        sendCommand('watchScreen', { on: item.checked });
+        rebuildTray(); // as it is until she's asked
+      },
+    },
     {
       label: t.rest,
       submenu: [['corner', t.restCorner], ['taskbar', t.restTaskbar]].map(([rest, label]) => ({
@@ -566,7 +628,12 @@ function mainframeState() {
       stowKey: cfg.stowKey,
       stowKeys: [...new Set([...STOW_KEYS, ...(cfg.stowKey ? [cfg.stowKey] : [])])].map((id) => ({ id, label: keyLabel(id) })),
       screen: current,
-      screens: screen.getAllDisplays().map((d, i) => ({ id: d.id, label: `${i + 1} — ${d.size.width}×${d.size.height}` })),
+      screens: displays().map((d, i) => ({ id: d.id, label: `${i + 1} — ${d.size.width}×${d.size.height}` })),
+      follow: cfg.follow !== false,
+      jealous: cfg.jealous !== false,
+      lookAuto: Boolean(cfg.watchScreen),
+      sync: syncLabel(cfg, t),
+      reminders: reminderList(cfg),
     },
     watch: {
       id: cfg.claude ? activeAssistant().id : 'none',
@@ -613,7 +680,10 @@ async function mainframeAct(name, value) {
     case 'custom': sendCommand('customize'); break;
     case 'help': sendCommand('welcome'); break;
     case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
-    case 'wander': case 'possess': case 'muted': updateConfig({ [name]: Boolean(value) }); break;
+    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': updateConfig({ [name]: Boolean(value) }); break;
+    case 'lookNow': sendCommand('look'); break;
+    case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
+    case 'cancelReminder': cancelReminder(value); break;
     case 'rest': if (one(['corner', 'taskbar'])) updateConfig({ rest: value }); break;
     case 'stowKey': if (value === null || STOW_KEYS.includes(value) || value === config.load().stowKey) setStowKey(value); break;
     case 'stowKeyCustom': sendCommand('stowKey'); break;
@@ -774,6 +844,51 @@ async function chatWithFallback(cfg, messages, send, signal, streamed) {
   }
 }
 
+// She looks at your screen (look.js): a picture of the screen she's on, kept here in memory a moment
+// for her AI to look at, never written anywhere. 1280 px wide at most: enough to read, light to send.
+const snaps = new Map(); // id -> the picture, base64 JPEG
+async function snapScreen() {
+  const d = targetDisplay();
+  const k = d.scaleFactor || 1;
+  const fit = Math.min(1, 1280 / (d.bounds.width * k));
+  const size = { width: Math.round(d.bounds.width * k * fit), height: Math.round(d.bounds.height * k * fit) };
+  const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: size });
+  const src = sources.find((s) => s.display_id === String(d.id)) || sources[0];
+  if (!src || src.thumbnail.isEmpty()) throw new Error('no picture of the screen');
+  return src.thumbnail.toJPEG(72).toString('base64');
+}
+
+// What her AI says about that picture, as her (`persona`), asked `prompt`. With a code when it can't:
+// 'noai' (nothing to ask), 'novision' (that model can't look at pictures).
+async function sayAboutSnap({ id, persona, prompt }) {
+  const image = snaps.get(id);
+  snaps.delete(id);
+  if (!image) return { ok: false, error: 'the picture is gone' };
+  const cfg = config.load();
+  if (!chatModels?.length) await refreshModels();
+  const model = pickModel(cfg);
+  if (!model) return { ok: false, code: 'noai' };
+  if (llm.isAgent(cfg.provider)) return { ok: false, code: 'novision', model: agentName(cfg) }; // Claude Code or Codex: text only
+  if (cfg.provider === 'ollama' && !(await ollama.canSee(model))) return { ok: false, code: 'novision', model };
+  const user = cfg.provider === 'ollama'
+    ? { role: 'user', content: prompt, images: [image] }
+    : { role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image}` } }] };
+  const messages = [{ role: 'system', content: persona }, user];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const text = await llm.chat(cfg.provider, llmConfig(cfg), { model, messages }, () => {}, AbortSignal.timeout(120000));
+      return { ok: true, text, model };
+    } catch (err) {
+      if (err.code === 'busy' && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+      const novision = /image|vision|multimodal|modalit|image_url|content.*(part|type)/i.test(err.message);
+      return { ok: false, error: err.message, code: novision ? 'novision' : err.code || null, model };
+    }
+  }
+}
+
 async function pickProvider(provider) {
   updateConfig({ provider });
   await refreshModels();
@@ -811,10 +926,27 @@ function registerIpc() {
   ipcMain.handle('overlay:cursor', () => {
     const p = screen.getCursorScreenPoint();
     const b = overlay.getBounds();
-    return { x: p.x - b.x, y: p.y - b.y, inside: p.x >= b.x && p.y >= b.y && p.x < b.x + b.width && p.y < b.y + b.height };
+    const inside = p.x >= b.x && p.y >= b.y && p.x < b.x + b.width && p.y < b.y + b.height;
+    return { x: p.x - b.x, y: p.y - b.y, inside, display: displayAt(p).id };
+  });
+  // your screens (their bounds), the one she's on, and where her window is
+  ipcMain.handle('screens:list', () => {
+    const o = overlay.getBounds();
+    return {
+      current: targetDisplay().id,
+      origin: { x: o.x, y: o.y },
+      list: displays().map(({ id, bounds: b }) => ({ id, x: b.x, y: b.y, w: b.width, h: b.height })),
+    };
+  });
+  ipcMain.handle('screens:move', async (_e, id) => {
+    const area = moveOverlay(id);
+    if (!area) return null;
+    await new Promise((r) => setTimeout(r, 60));
+    overlay.setBounds(area); // again, once Windows has settled it on its new screen
+    const o = overlay.getBounds();
+    return { origin: { x: o.x, y: o.y }, width: o.width, height: o.height, gap: overlayArea().gap };
   });
   ipcMain.handle('config:get', () => rendererConfig());
-  ipcMain.handle('overlay:hop', () => hopDisplay());
   // she sat down on the taskbar, or got up: her window over it, or back to the work area
   ipcMain.on('overlay:taskbar', (_e, on) => {
     if (Boolean(on) === onTaskbar) return;
@@ -867,6 +999,23 @@ function registerIpc() {
     }
   });
   ipcMain.on('chat:stop', (_e, id) => chats.get(id)?.abort());
+  // she looks at your screen (look.js): the picture first, then what her AI says about it
+  ipcMain.handle('look:snap', async () => {
+    try {
+      const id = randomUUID();
+      snaps.set(id, await snapScreen());
+      setTimeout(() => snaps.delete(id), 120000);
+      return { ok: true, id };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle('look:say', (_e, request) => sayAboutSnap(request || {}));
+  // where her AI runs, for what she tells you before she looks: { local, provider, model }
+  ipcMain.handle('look:where', () => {
+    const cfg = config.load();
+    return { local: llm.isLocal(cfg.provider, cfg), provider: llm.PROVIDERS[cfg.provider]?.label || cfg.provider, model: pickModel(cfg) };
+  });
   ipcMain.handle('chat:memory', () => readMemory().history || []);
   ipcMain.on('chat:remember', (_e, history) => Array.isArray(history) && saveMemory({ history }));
   ipcMain.on('chat:ollama', () => shell.openExternal(OLLAMA_SITE));
@@ -1037,6 +1186,25 @@ async function debugHandler(route, body) {
     }
     return { ok: true };
   }
+  if (route === 'eval') {
+    // a look inside the overlay (app.js puts what's there on window.dev in --dev)
+    return { ok: true, value: await overlay.webContents.executeJavaScript(String(body.js || 'null')) };
+  }
+  if (route === 'drag') {
+    // a drag over the overlay with a stand-in pointer, the real one untouched: the button goes down
+    // at the first point, follows the others (each `ms` after the one before), and comes up at the last
+    const points = Array.isArray(body.points) ? body.points : [];
+    if (!points.length) throw new Error('drag needs points');
+    const at = (p) => ({ x: Math.round(p.x), y: Math.round(p.y) });
+    overlay.webContents.sendInputEvent({ type: 'mouseMove', ...at(points[0]) });
+    overlay.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...at(points[0]) });
+    for (const p of points.slice(1)) {
+      await new Promise((r) => setTimeout(r, p.ms ?? 16));
+      overlay.webContents.sendInputEvent({ type: 'mouseMove', modifiers: ['leftButtonDown'], ...at(p) });
+    }
+    if (body.up !== false) overlay.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...at(points.at(-1)) });
+    return { ok: true };
+  }
   if (route === 'type') {
     // typing into the overlay (her chat), and Enter if asked
     if (body.text) await overlay.webContents.insertText(body.text);
@@ -1141,13 +1309,15 @@ function main() {
     llm.restoreAgents(readMemory());
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
-    screen.on('display-metrics-changed', fitOverlay);
-    // a screen plugged in or out: she knows how many she can teleport to (and leaves one that's gone)
+    // a screen plugged in, unplugged, or rearranged: her window fitted again, and she learns of it
     const screensChanged = () => {
       fitOverlay();
+      windowWatch?.refresh();
       rebuildTray();
-      overlay?.webContents.send('capri:config', rendererConfig());
+      sendCommand('screens');
+      overlay?.webContents.send('capri:config', rendererConfig()); // how many screens she has
     };
+    screen.on('display-metrics-changed', screensChanged);
     screen.on('display-added', screensChanged);
     screen.on('display-removed', screensChanged);
     // after sleep or a locked screen, once Windows has settled

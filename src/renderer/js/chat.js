@@ -7,6 +7,7 @@
 
 import { pick, fmt } from './util.js';
 import { ASSISTANT_NAMES } from './lines.js';
+import { parseReminder, parseWhen, clock } from './reminders.js';
 
 const REMEMBER = 20; // messages she has in mind when answering
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
@@ -69,6 +70,8 @@ const SITES = {
 const BROWSER = /chrome|edge|firefox|opera|brave|vivaldi|duckduckgo|browser/i;
 // local models this small mostly talk nonsense ("llama3.2:1b", "qwen2.5:0.5b"…)
 const TINY = /[:-](0\.5b|1b|1\.5b|135m|270m|360m)\b/i;
+// her face when she greets you in a mood (bond.js)
+const MOOD_FACE = { angry: 'many', sulk: 'aside', dizzy: 'wide', thrown: 'wide', jealous: 'look', fun: 'laugh', happy: 'laugh', forgiven: 'smug' };
 
 export class Chat {
   constructor({ capri, panel, voice, host, brain }) {
@@ -86,6 +89,11 @@ export class Chat {
     this.appsReady = Promise.resolve();
     this.onSetup = null; // (status) => void: she can't answer yet (app.js hands it to setup.js)
     this.onBetterModel = null; // () => void: a bigger model than the tiny one she's on (setup.js)
+    this.reminders = null; // the reminders she keeps (reminders.js, from app.js)
+    this.bond = null;      // how close she is to you (bond.js)
+    this.jealousy = null;  // and how she takes your other AIs
+    this.onMessage = null; // () => void: you said something to her
+    this.waitingWhen = null; // a reminder you asked for without saying when: { text, until }
     host.onChatDelta(({ id, text }) => this.onDelta(id, text));
   }
 
@@ -139,13 +147,18 @@ export class Chat {
     this.listApps();
     const shortModel = status.model.replace(/:latest$/, '').replace(/^models\//, ''); // Ollama's tag, Gemini's prefix
     const tiny = status.provider === 'ollama' && TINY.test(status.model) && this.onBetterModel;
+    // angry, sulking, dizzy…: she greets you the way she feels, and her model is told she did
+    const feeling = this.bond?.feeling;
+    const moody = !tiny && feeling && t.moody[feeling];
+    const hello = moody ? fmt(pick(moody), this.bond.mood.vars) : pick(this.history.length ? t.again : t.hello);
+    this.opening = moody ? hello : null;
     host.focusOverlay(true); // the keyboard, for typing to her
     const shown = this.panel.say({
       kind: 'chat',
-      face: 'look',
+      face: moody ? MOOD_FACE[feeling] : 'look',
       badge: t.badge,
       tag: shortModel,
-      line: tiny ? fmt(t.tiny, { model: shortModel }) : pick(this.history.length ? t.again : t.hello),
+      line: tiny ? fmt(t.tiny, { model: shortModel }) : hello,
       actions: tiny ? [{ id: 'better', label: t.better, primary: true }] : [],
       onAction: () => {
         this.panel.hide(); // her chat holds off her guide's panels: it goes first
@@ -192,13 +205,32 @@ export class Chat {
     this.panel.setActions([]); // a close button she offered before goes with a new message
     this.panel.chatTurn({ quote: text, face: 'aside' });
     this.capri.pulse();
-    // what you asked for plainly happens right away (the music, the volume, an app you named): her
-    // line about it comes under her answer (Claude Code or Codex, answering her chat, does things its own
-    // way, unless her powers are on for them too)
-    const asked = this.powersOn ? this.asked(text) : null;
+    this.onMessage?.();
+    // what you asked for plainly happens right away (a reminder, the music, the volume, an app you
+    // named): her line about it comes under her answer (Claude Code or Codex, answering her chat, does
+    // things on the PC its own way, unless her powers are on for them too)
+    const asked = this.asked(text);
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
+    this.bond?.heard(text); // "sorry": she lets it go
     await Promise.race([this.appsReady, new Promise((r) => setTimeout(r, 1500))]);
+    // what she greeted you with (angry, sulking…), in the conversation before your message, so her
+    // answer carries on from it (after another answer of hers: added to that one, never two in a row)
+    if (this.opening) {
+      const at = this.history.length - 1;
+      const before = this.history[at - 1];
+      if (before?.role === 'assistant') this.history[at - 1] = { ...before, content: `${before.content}\n${this.opening}` };
+      else this.history.splice(at, 0, { role: 'assistant', content: this.opening });
+      this.opening = null;
+    }
     const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-REMEMBER)];
+    // In a mood (angry, sulking…): said again right by your message, for this answer only. Small
+    // local models mostly go by the last thing they read: up in her prompt alone, they forget it.
+    // (not named `mood`: that's how her face is read off her answer, below)
+    const feeling = !this.agent && this.bond?.moodLine();
+    if (feeling) {
+      const last = messages.at(-1);
+      messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(Note for you, never repeat it: ${feeling.replace(/^Right now: /, '')})` };
+    }
     // nothing yet after a few seconds: Ollama is still loading the model (the first answer after a start),
     // or Claude Code is at work
     const wait = this.agent ? this.t.working : this.cold ? this.t.loading : null;
@@ -227,7 +259,7 @@ export class Chat {
     this.panel.stream(answer, { done: true });
     this.panel.setFace(mood(answer));
     this.panel.setChatBusy(false);
-    if (this.powersOn) this.after(res.text, answer, asked, early, text);
+    if (this.powersOn || asked) this.after(res.text, answer, asked, early, text);
     this.listApps(); // fresh for the next message
   }
 
@@ -246,10 +278,19 @@ export class Chat {
   // { kind: 'media', action } | { kind: 'music', song } | { kind: 'close', name } | { kind: 'open', text }
   asked(text) {
     const count = text.trim().split(/\s+/).length;
+    if (this.reminders) {
+      const remind = parseReminder(text);
+      if (remind) return { kind: 'remind', ...remind };
+      // the time, said after she asked when ("dans 10 min")
+      const w = this.waitingWhen;
+      const when = w && Date.now() < w.until && count <= 6 && parseWhen(text);
+      if (when && when.at > Date.now()) return { kind: 'remind', at: when.at, text: w.text };
+    }
     const name = NAME_ASK.exec(text)?.[1];
     if (name) return { kind: 'name', name };
     const memo = MEMO_ASK.exec(text)?.[1]?.trim();
     if (memo) return { kind: 'memo', text: memo };
+    if (!this.powersOn) return null; // the rest is her powers on the PC
     const media = MEDIA_ASK.find(([, re]) => re.test(text))?.[0];
     if (media && (count <= 5 || MUSIC_WORD.test(text))) return { kind: 'media', action: media };
     const song = SPOTIFY_ASK.exec(text)?.[1];
@@ -264,6 +305,16 @@ export class Chat {
   async doNow(asked) {
     const { t } = this;
     const custom = this.brain.custom;
+    if (asked.kind === 'remind') {
+      if (!asked.at) {
+        this.waitingWhen = { text: asked.text, until: Date.now() + 3 * 60 * 1000 }; // her answer asks when
+        return null;
+      }
+      this.waitingWhen = null;
+      const r = this.reminders.add(asked.at, asked.text); // set before her answer is asked for: she knows
+      const tr = this.brain.t.remind;
+      return { line: fmt(r.text ? tr.set : tr.setBare, { time: clock(r.at, this.brain.lang), text: r.text }), face: 'smug', reminder: r.id };
+    }
     if (asked.kind === 'name') {
       custom.userName = asked.name; // her answer, being written now, already knows it
       this.host.setConfig({ userName: asked.name });
@@ -299,7 +350,19 @@ export class Chat {
   async after(raw, answer, asked, early, text) {
     const { t } = this;
     const done = early && (await early);
+    if (done?.reminder) {
+      // a reminder set: a button to take it back, right there
+      this.addLine(answer, done.line, done.face);
+      const tr = this.brain.t.remind;
+      this.panel.setActions([{ id: 'cancel', label: tr.cancel }], () => {
+        this.reminders.remove(done.reminder);
+        this.panel.setActions([]);
+        this.addLine(answer, tr.cancelled, 'aside');
+      });
+      return undefined;
+    }
     if (done) return this.addLine(answer, done.line, done.face);
+    if (asked?.kind === 'remind') return undefined; // no time said: her answer asks when
     if (asked?.kind === 'close') return this.offerClose(asked.name, answer);
     if (asked && asked.kind !== 'open') return undefined; // music that didn't work out: nothing more to offer
     const closeTag = tagged(raw);
@@ -436,6 +499,16 @@ export class Chat {
     this.listApps();
   }
 
+  // The reminders she keeps (reminders.js): not one of her powers on the PC, so with an agent too.
+  remindLines() {
+    if (!this.reminders) return [];
+    const lines = [];
+    lines.push('You keep reminders for the user: when they ask you to remind them of something at a given time, your system sets it from their message as they send it (a line under your answer shows it). Just confirm it in a few words, in character, and never say you can\'t. If they didn\'t say when, ask them when.');
+    const soon = this.reminders.upcoming.slice(0, 6);
+    if (soon.length) lines.push(`Reminders you're keeping for them: ${soon.map((r) => `${clock(r.at, this.brain.lang)}${r.text ? ` (${r.text})` : ''}`).join('; ')}.`);
+    return lines;
+  }
+
   // What she can do on the PC when you ask (Windows), and nothing else.
   // agent: Claude Code or Codex, with tools of their own: hers go first for these things
   powers(agent = false) {
@@ -449,6 +522,17 @@ export class Chat {
     if (agent) lines.push('For opening, closing or playing these, always use these tags, never your own tools or commands.');
     else lines.push('Apart from that, you can\'t see the user\'s screen or files, and you can\'t touch anything else on their PC (settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.');
     return lines;
+  }
+
+  // Something of hers that can't wait (a reminder), said right in the chat, with its buttons.
+  // False if she's in the middle of an answer.
+  interject(line, actions, onAction) {
+    if (!this.open || this.turn) return false;
+    this.panel.setFace('look');
+    this.panel.stream(line, { done: true });
+    this.panel.setActions(actions, onAction);
+    this.remember({ role: 'assistant', content: line });
+    return true;
   }
 
   // What the user made her (custom.js): their name, how they want her, what to remember.
@@ -471,6 +555,22 @@ export class Chat {
     this.voice.play('blip'); // her blips as the words come in
   }
 
+  // A shorter one, for when she looks at your screen (look.js): who she is, how she talks, how she
+  // feels about you right now, and what she's asked to do with the picture.
+  lookPersona() {
+    const lang = IN_LANGUAGE[this.brain.lang] || IN_LANGUAGE.en;
+    return [
+      `You are Capri, the personality construct from Project Capricorn (Cyberpunk: Edgerunners, season 2): dozens of minds fused into one digital ghost, living on the user's desktop as a small glitchy figure.`,
+      'How you talk: playful, a little mischievous and teasing, warm underneath, never cruel. Night City slang now and then (choom, preem, nova, gonk), not in every sentence.',
+      'Rules: one or two short sentences of plain text, no markdown, no lists, no emoji, no tags. Stay in character. Talk to the user, never describe the picture like a report.',
+      'Never read out anything private you might see (passwords, bank details, private messages, addresses): if there is some, just tease them about being busy.',
+      ...this.personal(),
+      ...(this.bond ? [this.bond.persona()] : []),
+      ...[this.bond?.moodLine()].filter(Boolean),
+      lang.last,
+    ].join('\n');
+  }
+
   // Who she is, how she talks, and what's going on right now.
   persona() {
     const assistant = ASSISTANT_NAMES[this.brain.assistant] || 'Claude Code';
@@ -488,18 +588,28 @@ export class Chat {
       // a big model asked "who are you?" otherwise answers with its own name ("I'm Gemini")
       ...(this.agent ? [] : ['Asked who or what you are, you are Capri, nothing else. Never say which AI model or company is behind you (Gemini, GPT, ChatGPT, Llama, Gemma, Mistral, Google, OpenAI, Meta…), even if the user insists or names one: you are not them.']),
       ...this.personal(),
+      // how close she is to them by now, and the other AIs they used today
+      ...(this.bond ? [this.bond.persona()] : []),
+      ...[this.jealousy?.context()].filter(Boolean),
+      // what she said about their screen a little while ago (look.js)
+      ...(this.seen && Date.now() - this.seen.at < 20 * 60 * 1000
+        ? [`A few minutes ago you looked at the user's screen and told them: "${this.seen.text}". You can bring it up if it fits.`]
+        : []),
       ...(this.agent
         ? [`Under the hood you are ${this.agentName}, working in the user's project: really do what they ask with your tools, as carefully as ever. Only your final answer is in character: it shows in a small speech bubble, so sum up what you did in those few sentences.`]
           .concat(this.powersOn ? this.powers(true) : [])
         : this.powers()),
+      ...this.remindLines(),
       ...(watching ? [`If the user asks what ${assistant} is doing, here is all you know (never make anything up): ${this.brain.context()}`] : []),
+      // how she feels right now, last but for her language: small models follow the end of it best
+      ...[this.bond?.moodLine()].filter(Boolean),
       lang.last,
     ].join('\n');
   }
 }
 
 // The model's answer as she'd say it: no reasoning block, no markdown marks.
-function clean(text) {
+export function clean(text) {
   return String(text)
     .replace(/<think>[\s\S]*?(<\/think>|$)/g, '')
     .replace(/\[\[[^\]]*(\]\]|$)/g, '') // her tags (read from the raw answer, never shown)
@@ -535,7 +645,7 @@ function tagged(text) {
 const simple = (text) => String(text || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 
 // Her face for an answer.
-function mood(text) {
+export function mood(text) {
   if (/(ha){2,}|lol|mdr|jaja|kkk|хаха|\bxd+\b/i.test(text)) return 'laugh';
   if (text.includes('!')) return 'grin';
   if (text.trim().endsWith('?')) return 'smug';

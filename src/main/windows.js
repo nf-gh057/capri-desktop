@@ -2,7 +2,8 @@
 
 // Feeds the overlay with the position of the other windows (Windows only), so Capri can
 // sit on them. A small PowerShell helper does the Win32 calls; we turn its physical pixels
-// into the overlay's coordinates.
+// into the overlay's coordinates. It also says when the window in front is another AI (ChatGPT,
+// Gemini…: `ai`, the names it matched), for her jealousy; it never passes on a title.
 
 const path = require('node:path');
 const readline = require('node:readline');
@@ -13,12 +14,12 @@ const { screen } = require('electron');
 const SCRIPT = path.join(__dirname, 'windows.ps1').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 
 function startWindowWatch({ overlay, onUpdate }) {
-  if (process.platform !== 'win32') return { refresh() {}, stop() {} };
+  if (process.platform !== 'win32') return { stop() {}, refresh() {} };
 
   let child = null;
   let stopped = false;
   let restarts = 0;
-  let lastSnap = null; // what the helper last said: seen again from her new screen when she moves
+  let last = null; // the helper's last snapshot: it only speaks when something changes
 
   const handle = overlay.getNativeWindowHandle();
   const self = handle.length >= 8 ? handle.readBigUInt64LE(0) : BigInt(handle.readUInt32LE(0));
@@ -28,14 +29,15 @@ function startWindowWatch({ overlay, onUpdate }) {
     return { id: win.id, x: dip.x - bounds.x, y: dip.y - bounds.y, w: dip.width, h: dip.height, max: win.max };
   };
 
-  const update = () => {
-    if (!lastSnap || overlay.isDestroyed()) return;
+  // the snapshot as seen from her window, wherever it is now
+  const send = () => {
+    if (!last || overlay.isDestroyed()) return;
     const bounds = overlay.getBounds();
-    const wins = lastSnap.wins
+    const wins = last.wins
       .map((w) => toOverlay(w, bounds))
       // only what overlaps Capri's screen
       .filter((w) => w.x < bounds.width && w.x + w.w > 0 && w.y < bounds.height && w.y + w.h > 0);
-    onUpdate({ fg: lastSnap.fg, taskbar: Boolean(lastSnap.taskbar), wins });
+    onUpdate({ fg: last.fg, taskbar: Boolean(last.taskbar), ai: Array.isArray(last.ai) ? last.ai : [], wins });
   };
 
   const start = () => {
@@ -46,11 +48,11 @@ function startWindowWatch({ overlay, onUpdate }) {
 
     readline.createInterface({ input: child.stdout }).on('line', (line) => {
       try {
-        lastSnap = JSON.parse(line);
+        last = JSON.parse(line);
       } catch {
         return;
       }
-      update();
+      send();
     });
     child.stderr.on('data', (d) => console.error('[capri] window watch:', String(d).trim()));
     child.on('exit', () => {
@@ -61,11 +63,12 @@ function startWindowWatch({ overlay, onUpdate }) {
 
   start();
   return {
-    refresh: update,
     stop() {
       stopped = true;
       child?.kill();
     },
+    // her window moved (another screen, the taskbar in it or not): the same windows, from there
+    refresh: send,
   };
 }
 

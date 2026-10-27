@@ -88,6 +88,7 @@ function brain(s, t) {
 function capri(s, t) {
   const c = s.capri;
   return section(t.secCapri,
+    el('p', { class: 'note' }, c.sync),
     el('div', { class: 'trio' },
       button(c.visible ? t.hide : t.show, 'visible'),
       button(t.teleport, 'teleport'),
@@ -95,9 +96,16 @@ function capri(s, t) {
     row(t.size, choice('trio grow', [['small', t.small], ['medium', t.medium], ['large', t.large]], c.size, 'size')),
     check(t.wander, c.wander, 'wander'),
     check(t.possess, c.possess, 'possess'),
+    check(t.jealous, c.jealous, 'jealous'),
     check(t.mute, c.muted, 'muted'),
     row(t.rest, select([{ id: 'corner', label: t.restCorner }, { id: 'taskbar', label: t.restTaskbar }], c.rest, 'rest', { label: t.rest })),
     row(t.screen, select(c.screens, c.screen, 'screen', { disabled: c.screens.length < 2, label: t.screen })),
+    c.screens.length > 1 && check(t.follow, c.follow, 'follow'),
+    row(null, button(t.lookNow, 'lookNow', null, { class: 'grow' })),
+    check(t.lookAuto, c.lookAuto, 'lookAuto'),
+    row(t.reminders, c.reminders.length ? null : el('span', { class: 'note grow' }, t.noReminders)),
+    c.reminders.map((r) => row(null, el('span', { class: 'grow reminder' }, r.label),
+      button('✕', 'cancelReminder', r.id, { title: t.cancelReminder }))),
     row(t.stowKey, select([...c.stowKeys, { id: null, label: t.stowKeyOff }], c.stowKey, 'stowKey', { label: t.stowKey })),
     el('div', { class: 'split' }, button(t.stowKeyCustom, 'stowKeyCustom'), button(t.custom, 'custom')));
 }

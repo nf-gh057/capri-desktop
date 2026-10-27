@@ -39,6 +39,12 @@ const DEFAULTS = {
   phoneOn: false,    // she writes to your phone when something happens while you're away
   phoneAway: 5,      // away: this many minutes without a key or the mouse, or the screen locked (0: always)
   phoneDetail: 'line', // what she writes: 'line' (her words and the project) or 'quote' (with a bit of what was said)
+  follow: true,      // with several screens, she follows the pointer to the one you're on
+  jealous: true,     // she gets jealous when she sees you on another AI (bond.js)
+  reminders: [],     // the reminders she keeps: [{ id, at, text, made }] (reminders.js)
+  bond: null,        // how close she is to you: { xp, first, last, days, streak, caps } (bond.js)
+  watchScreen: false, // she looks at your screen now and then and says something about it (look.js)
+  lookAsked: false,  // she told you what looking means (where the picture goes) and you said yes
 };
 
 let cache = null;

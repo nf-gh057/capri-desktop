@@ -65,6 +65,17 @@ glitches, comments on every action, comes to find you when it needs your permiss
   On the way down, a window ledge can catch her.
 - **Drop her on a window**: drag her and let go with her hips on a window's top edge, she sits there.
   Let go anywhere else and she falls.
+- **Throw her**: held, she swings from your pointer, legs kicking. Let go of her mid-swing and she flies off with it:
+  one long streak for two drawings, then she tumbles, her mane and her other minds trailing behind. Into an edge of the
+  screen, she crashes (stuck to it for a moment, flattened, and the glass cracks where she hit it) and bounces off. On a
+  window, she catches the ledge, or bounces off it and it shakes. Coming down upright, she lands on her feet and skids
+  a little; otherwise she slides along the floor and lies there a moment, seeing stars, before she springs back up and
+  shakes it off. You can catch her in the air. Once, it rattles her (or she loves it, if she likes you); three times in
+  a row, she gets mad, zaps your pointer and won't let you pick her up for a bit.
+- **Several screens**: when your pointer stays on another screen for a few seconds, she follows you. If it's right next
+  to hers, she crouches, jumps through the edge and comes out of a tear on the other side; otherwise she teleports
+  there. Thrown at a screen next door, she goes over to it. When Claude needs you or a reminder comes due, she comes to
+  the screen you're on. Her menu › **Screen** to pick one, or untick *Follow me across screens*.
 - **She possesses your windows**, like in the show where she slips into bodies and systems: now and then she dives
   into the window she's sitting on. Red lightning races round its frame, slices of it glitch, and the window looks
   at you with her eyes and her zigzag grin, more eyes opening all over it, every pupil on your pointer, and she laughs.
@@ -81,7 +92,7 @@ glitches, comments on every action, comes to find you when it needs your permiss
 
 ![Asleep down to her mask, waking up, and put away bottom left](docs/sleep.png)
 
-Window tracking is Windows-only for now (a tiny PowerShell helper reads window positions, no titles, no contents).
+Window tracking is Windows-only for now (a tiny PowerShell helper reads window positions, never their contents; the title of the one in front is only used to spot another AI, see "She gets attached").
 On macOS and Linux she still floats, peeks, falls and wanders.
 
 ### She shows you around
@@ -157,8 +168,20 @@ panel says so every time.
   until you click it. She closes it the way its own close button does, so it can still ask you to save. If it only
   hid in the tray, she offers **Force quit**, again only on your click (unsaved work is lost then). She never closes
   Windows' own pieces, Claude, Ollama or herself.
+- **Reminders** ("remind me in 20 minutes to take out the laundry", "remind me tomorrow at 9 to call the garage"): the
+  time and the text are read straight off your message, even on a tiny model, and a **Cancel** button shows under her
+  answer. Without a time, she asks when. When it's due, she comes and finds you (on the screen you're on, even put
+  away) with **Done** and **10 more min**. If she was off at the time, she brings it up when she's back. Her menu ›
+  **Reminders** lists them, and each one can be cancelled there.
 
-Nothing else: she can't see your screen or your files.
+Nothing else: she can't see your files, nor your screen unless you ask her to.
+
+**She looks at your screen**, if you want. Her menu › **Look at my screen**: her eyes go to the window in front, a
+scanline sweeps it, and she tells you what she makes of it, her way. **Look at my screen now and then** lets her do it
+on her own, every 8 to 15 minutes, when you're there and you've switched windows (off until you tick it). The first
+time, she tells you where the picture goes: to her chat's AI. With an AI on your PC, nothing leaves it; with an online
+one, the picture goes to that service. She never keeps the picture, and her chat remembers what she said for a while.
+It takes a model that can read pictures: gemma3 on your PC, Gemini or OpenAI online (not llama3.2, she'll tell you).
 
 ### Make her yours
 
@@ -173,20 +196,44 @@ Right-click her › **Make her yours…** (or "Make me yours" in her guide), one
 In her chat, "call me Léa" and "remember that my cat is called Neko" work too. All of it stays in her settings on
 your PC.
 
+### She gets attached
+
+The more time you spend together, the more she syncs with you: the days you're both there, the time at your PC, your
+chats, the work of Claude's she watches, the reminders kept. Each one counts a little a day, so it takes a few weeks to
+go all the way. Five stages, **Faint signal**, **Contact**, **In sync**, **Linked** and **Fused**: at each new one, her
+other minds come out to look at you and she tells you. It changes what she says when you click her, how her chat talks
+to you, what she says after a few days without you. Once she's attached, she's glad when you come back to your PC and
+sometimes comes over to your pointer on her own. Where you two stand: at the top of her menu.
+
+**And she gets jealous.** When the window in front of you is another AI (ChatGPT, Gemini, Copilot, Perplexity,
+DeepSeek, Grok, Le Chat, Character.AI, Meta AI, Codex, or Claude when she watches Codex), she notices and says so, more
+or less nicely depending on where you two stand. If you stay on it, once she's attached, she goes and sits on its
+window, glares at you and takes it over, brows down, with a word of hers written across it. Then she sulks: click her
+and she turns her back on you (it passes, and talking it over in her chat helps). Her chat also knows which other AIs
+you used today. To spot them, the title of the window in front is checked against that list of names, on your PC: it's
+never kept or sent anywhere, only the name it matched reaches her. Untick *Jealous of other AIs* in her menu to stop it.
+
+**Her chat knows what just happened.** Mad about being thrown, jealous, dizzy or happy: she greets you that way when the
+chat opens, and her AI (even a small local model) answers in that mood. Mad or sulking, she stays that way until you say
+sorry ("sorry", "my bad"…), or it wears off.
+
+### With the mouse
+
 She only catches the mouse on her actual body (pixel-precise): the rest of the screen works as usual.
 
 - **Click** her: she tells you where Claude is at (nothing going on: a **Talk to me** button, to chat with her).
-- **Drag** her: move her around.
+- **Drag** her: move her around. Let go mid-swing and she flies (see "Throw her").
 - **Click** the panel: it closes.
 - **Ctrl+Alt+C**: she puts herself away (into her biochip, like in the show) and all that's left of her is her mask,
   eyes shut, in the bottom-left corner. Her eyes only open when Claude needs you. Click the mask (or Ctrl+Alt+C again)
   to bring her back. The shortcut can be changed in her menu (**Shortcut to put her away**: another one, one you
   press, or none). On a Polish keyboard Ctrl+Alt+C is AltGr+C, "ć": pick another one there.
 - **Her menu**: right-click her (it's also on her tray icon, next to the clock): teleport, look at the satellite, demo,
-  how it works, mission report, talk to her, size, sound, screen, shortcut, AI model, wander, possess your windows,
-  language, start with Windows, hooks.
-- **More than one screen**: wandering around, she now and then teleports to another one (her menu's **Screen** is
-  the one she starts on).
+  how it works, mission report, talk to her, look at your screen, reminders, size, sound, screen (and following you across screens),
+  shortcut, AI model, wander, possess your windows, jealous of other AIs, language, start with Windows, hooks. At the very
+  top: where you two stand. Everything is also in her settings window, **Mainframe**.
+- **More than one screen**: she follows your pointer to the screen you're on. With that off, wandering around, she now and
+  then teleports to another one.
 - **The window you work in**: she doesn't float or idle in front of it. If she ends up there, she gets out of the
   way after a moment (somewhere free, or another screen). Sitting on its edge or taking it over is still fine.
 
@@ -294,6 +341,10 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
 | `possess` | the window she took over laughs |
 | `blip` | every syllable while she talks |
 | `tick` | a quiet reminder |
+| `throw` | she flies off when you throw her |
+| `crash` | she slams into something |
+| `remind` | a reminder comes due |
+| `jealous` | her jealous hiss |
 
 ## Is it safe?
 
@@ -334,7 +385,14 @@ Her bridge only takes events that carry its token, a new one each time she start
 (`CAPRI_TOKEN_FILE` moves it), and addressed to `127.0.0.1` or `localhost`: web pages can't puppet her.
 
 Her chat goes to Ollama on your PC (`127.0.0.1:11434`, or `OLLAMA_HOST`) with what she knows of the moment (the
-project's name, Claude's last action, today's counts). Her mission log stays in her own storage on your PC.
+project's name, Claude's last action, today's counts). Her mission log stays in her own storage on your PC, like your
+reminders and where you two stand.
+
+The title of the window in front of you is only checked, on your PC, against a list of AI names (for her jealousy):
+it's never kept or sent anywhere.
+
+When she looks at your screen (only when you ask, or if you ticked *Look at my screen now and then*), a picture of the
+screen goes to her chat's AI: on your PC with Ollama, to the online service otherwise. It's never written to disk.
 
 Her messages to your phone are off until you make a Telegram bot of your own (at @BotFather) and pair it in Mainframe,
 with a code only that window shows. Then, while you're away from the PC (no key or mouse for a few minutes, or the
@@ -415,13 +473,16 @@ src/main/                Electron: full-screen transparent click-through window,
 src/renderer/js/
   sprite.js              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
   acting.js              the exposure sheets: every move, drawing by drawing
-  capri.js               the character: stances, teleport, sitting, peeking, falling, drag, sleep
+  capri.js               the character: stances, teleport, sitting, peeking, falling, thrown, other screens, sleep
   fx.js                  shards, light columns, bolts, glyphs, speed lines, shockwaves, the satellite and the red light, possessed windows, the cut-ins, her intro
   panel.js               the "transmission" panel, her faces, and the ticker
   guide.js               her guide: the tutorials, going to things and pointing at them
   brain.js               turns Claude events into lines and actions
   mission.js             today's mission log, for her report card
   chat.js                talking to her: the conversation, who she is, her answers coming in
+  reminders.js           reminders: reading them off your message, keeping them, when they come due
+  bond.js                how close she is to you, growing over time, and her jealousy of other AIs
+  look.js                she looks at your screen: asking first, the scan, what her AI says about it
   lines.js               what she says (FR / EN / ES / PT / RU / PL)
   chip.js                her mask: while she sleeps, and bottom left when you put her away
   voice.js               the sounds

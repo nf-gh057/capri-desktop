@@ -271,6 +271,13 @@ body {
   outline: 1px solid var(--cyan);
   outline-offset: 2px;
 }
+/* one reminder she keeps, with its ✕ */
+.reminder {
+  overflow-wrap: anywhere;
+}
+.row > .note {
+  margin: 0;
+}
 /* what you type on your phone: it can be selected and copied */
 .code {
   color: var(--cyan);
