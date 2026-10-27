@@ -2,7 +2,7 @@
 
 // Who she talks with: Ollama, any OpenAI-compatible server (local, cloud, or a keyless gateway),
 // or Claude Code itself (headless `claude -p`, so your messages become its prompts), or Codex
-// (headless `codex exec`, signed in with a ChatGPT plan: no API key, no paying per token).
+// (`codex app-server`, signed in with a ChatGPT plan: no API key, no paying per token).
 // Keys come from config.json's `apiKeys` ({ openai: "sk-..." }) or the provider's env variable.
 
 const os = require('node:os');
@@ -78,7 +78,7 @@ async function models(id, cfg) {
   const p = endpoint(id, cfg);
   if (p.kind === 'ollama') return ollama.models().catch(() => null);
   if (p.kind === 'claude') return claudeVersion().then(() => ['Claude Code']);
-  if (p.kind === 'codex') return codexVersion().then(() => ['Codex']); // the model set in Codex's own config
+  if (p.kind === 'codex') return codexModels();
   // what's missing has a code, so her setup knows what to ask for (setup.js)
   if (!p.url) throw Object.assign(new Error('no address set for this server'), { code: 'nourl' });
   if (p.env && !p.key) throw Object.assign(new Error(`no API key (or ${p.env})`), { code: 'nokey' });
@@ -92,6 +92,7 @@ async function models(id, cfg) {
 
 function warm(id, model) {
   if (PROVIDERS[id].kind === 'ollama') ollama.warm(model);
+  if (PROVIDERS[id].kind === 'codex') codexServer().catch(() => {}); // started while you type
 }
 
 // OpenAI-style streaming (server-sent events): onDelta(piece) as it comes, resolves with all of it.
@@ -201,22 +202,20 @@ function claudeChat(cfg, text, persona, onDelta, signal) {
 }
 
 // --- Codex ---------------------------------------------------------------------------------------
-// Run straight from codex.exe, no shell: her persona can go on the command line as an argument. An
-// npm install only has codex.cmd, which needs cmd: then the persona goes in on stdin with your
-// message, and the command line keeps fixed arguments only.
+// One `codex app-server` for all her answers (JSON-RPC, a message per line on stdio), started when
+// she first needs it and closed after a while unused: no new Codex for every message, and her words
+// stream into the bubble as they come. Its command line is fixed: everything else goes over stdio.
+
+const CODEX_EFFORTS = ['low', 'medium', 'high'];
+const CODEX_IDLE_MS = 15 * 60 * 1000;
 
 let codexThread = null; // its conversation, set by Codex's first answer
-// a thread id goes on the command line (through cmd for an npm install): nothing else than one passes
+let codexPersona = null; // her persona as that conversation last heard it
+let codex = null; // the server: { child, request, notify, handlers, loaded, idle }
+// a thread id is saved in her memory and comes back from it: nothing else than one passes
 const threadId = (id) => (typeof id === 'string' && /^[\w-]{1,100}$/.test(id) ? id : null);
 
-function codexVersion() {
-  return new Promise((resolve, reject) => {
-    execFile('codex', ['--version'], { shell: process.platform === 'win32', timeout: 10000 }, (err, out) => (
-      err ? reject(new Error('Codex not found (is `codex` on your PATH?)')) : resolve(out.trim())));
-  });
-}
-
-// Codex's error events carry the server's answer as JSON in a string: its message
+// Codex's error messages may carry the server's answer as JSON in a string: its message
 function codexError(message) {
   try {
     const parsed = JSON.parse(message);
@@ -226,54 +225,180 @@ function codexError(message) {
   }
 }
 
-function codexChat(cfg, text, persona, onDelta, signal) {
-  const run = (shell) => new Promise((resolve, reject) => {
-    const args = ['exec', ...(codexThread ? ['resume'] : []), '--json', '--skip-git-repo-check',
-      '-c', `sandbox_mode="${CODEX_SANDBOX[cfg.claudeMode] || 'read-only'}"`, '-c', 'approval_policy="never"',
-      ...(shell ? [] : ['-c', `developer_instructions=${JSON.stringify(persona)}`]), // a JSON string is a TOML one
-      ...(codexThread ? [codexThread] : []), '-'];
-    const child = spawn('codex', args, { cwd: cfg.claudeCwd || os.homedir(), shell, windowsHide: true });
-    const kill = () => (process.platform === 'win32'
-      ? execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], () => {})
-      : child.kill());
-    signal.addEventListener('abort', kill, { once: true });
-    let buffer = '';
-    let all = '';
-    let done = false;
-    let failed = null;
-    let errors = '';
-    child.stdout.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => {
-      buffer += chunk;
-      let nl;
-      while ((nl = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, nl).trim();
-        buffer = buffer.slice(nl + 1);
-        let msg;
-        try { msg = JSON.parse(line); } catch { continue; }
-        if (msg.type === 'thread.started') codexThread = threadId(msg.thread_id) || codexThread;
-        else if (msg.type === 'item.completed' && msg.item?.type === 'agent_message' && msg.item.text) {
-          const piece = (all ? '\n' : '') + msg.item.text;
-          all += piece;
-          onDelta(piece);
-        } else if (msg.type === 'error') failed = codexError(msg.message || '');
-        else if (msg.type === 'turn.failed') failed = codexError(msg.error?.message || failed || '');
-        else if (msg.type === 'turn.completed') done = true;
+function stopCodex() {
+  if (!codex) return;
+  const { child, idle } = codex;
+  codex = null;
+  clearTimeout(idle);
+  if (process.platform === 'win32') execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], () => {});
+  else child.kill();
+}
+
+// closed once unused for a while, never in the middle of an answer
+function idleLater(server) {
+  clearTimeout(server.idle);
+  server.idle = setTimeout(() => (server.handlers.size ? idleLater(server) : codex === server && stopCodex()), CODEX_IDLE_MS);
+}
+
+// The server, running and greeted: started on first use (through cmd on Windows, where an npm
+// install only has codex.cmd).
+function codexServer() {
+  if (codex) {
+    idleLater(codex);
+    return codex.ready;
+  }
+  const child = spawn('codex', ['app-server'], { cwd: os.homedir(), shell: process.platform === 'win32', windowsHide: true });
+  const pending = new Map();
+  let next = 0;
+  let buffer = '';
+  let errors = '';
+  const server = {
+    child,
+    handlers: new Set(), // notifications: (method, params)
+    loaded: null, // the thread this server has open
+    idle: null,
+    request: (method, params) => new Promise((resolve, reject) => {
+      const id = ++next;
+      pending.set(id, { resolve, reject });
+      child.stdin.write(`${JSON.stringify({ id, method, params })}\n`);
+    }),
+    notify: (method, params) => child.stdin.write(`${JSON.stringify({ method, params })}\n`),
+  };
+  codex = server;
+  idleLater(server);
+  child.stdin.on('error', () => {}); // gone: its exit says why
+  child.stderr.on('data', (chunk) => { errors = (errors + chunk).slice(-2000); });
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk;
+    let nl;
+    while ((nl = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      let msg;
+      try { msg = JSON.parse(line); } catch { continue; }
+      if (msg.method && msg.id !== undefined) {
+        // it asks something (approval is "never": nothing should come): no, to whatever it is
+        const approval = /requestApproval$|Approval$/.test(msg.method);
+        child.stdin.write(`${JSON.stringify(approval ? { id: msg.id, result: { decision: 'decline' } }
+          : { id: msg.id, error: { code: -32601, message: 'not supported' } })}\n`);
+      } else if (msg.method) {
+        server.handlers.forEach((handle) => handle(msg.method, msg.params || {}));
+      } else if (pending.has(msg.id)) {
+        const { resolve, reject } = pending.get(msg.id);
+        pending.delete(msg.id);
+        if (msg.error) reject(new Error(codexError(msg.error.message || 'Codex said no')));
+        else resolve(msg.result);
       }
-    });
-    child.stderr.on('data', (chunk) => { errors += chunk; });
-    child.stdin.end(shell ? `${persona}\n\n---\n\n${text}` : text);
-    child.on('error', reject);
-    child.on('close', () => {
-      if (signal.aborted) return reject(new Error('stopped'));
-      if (!done) return reject(new Error(failed || errors.trim().slice(0, 300) || 'Codex gave no answer'));
-      resolve(all);
-    });
+    }
   });
-  // no codex.exe to start (spawn's ENOENT): the npm one, through cmd
-  return run(false).catch((err) => {
-    if (err.code !== 'ENOENT' || process.platform !== 'win32') throw err;
-    return run(true);
+  const gone = (err) => {
+    if (codex === server) codex = null;
+    clearTimeout(server.idle);
+    const why = err || new Error(errors.trim().split('\n').at(-1)?.slice(0, 300) || 'Codex stopped');
+    pending.forEach(({ reject }) => reject(why));
+    pending.clear();
+    server.handlers.forEach((handle) => handle('capri/exit', { error: why }));
+  };
+  child.on('error', (err) => gone(new Error(`Codex not found (is \`codex\` on your PATH?) ${err.message}`)));
+  child.on('exit', (code) => gone(code === 1 && !buffer && /not recognized|not found/i.test(errors)
+    ? new Error('Codex not found (is `codex` on your PATH?)') : null));
+  server.ready = server.request('initialize', { clientInfo: { name: 'capri', title: 'Capri', version: '1' }, capabilities: null })
+    .then(() => {
+      server.notify('initialized', {});
+      return server;
+    });
+  server.ready.catch(() => stopCodex());
+  return server.ready;
+}
+
+// Its models you can pick, the one Codex uses by default first
+async function codexModels() {
+  const server = await codexServer();
+  const { data = [] } = await server.request('model/list', {});
+  return data.filter((m) => !m.hidden).sort((a, b) => b.isDefault - a.isDefault).map((m) => m.model);
+}
+
+// What changed in her persona since the conversation last heard it (what's open, what your assistant
+// is doing…): only those lines, said with your message. Codex keeps the persona a conversation
+// started with, whatever comes after.
+function personaNews(persona) {
+  if (codexPersona === persona) return '';
+  const known = new Set((codexPersona || '').split('\n'));
+  const news = persona.split('\n').filter((line) => line.trim() && !known.has(line));
+  return news.length ? `[Updated instructions: these lines replace your older ones on the same things]\n${news.join('\n')}\n\n[The user's message]\n` : '';
+}
+
+const sandboxPolicy = (mode) => (mode === 'workspace-write'
+  ? { type: 'workspaceWrite', writableRoots: [], networkAccess: false, excludeTmpdirEnvVar: false, excludeSlashTmp: false }
+  : { type: 'readOnly', networkAccess: false });
+
+async function codexChat(cfg, model, text, persona, onDelta, signal) {
+  const server = await codexServer();
+  const cwd = cfg.claudeCwd || os.homedir();
+  const sandbox = CODEX_SANDBOX[cfg.claudeMode] || 'read-only';
+  const effort = CODEX_EFFORTS.includes(cfg.codexEffort) ? cfg.codexEffort : 'low';
+  const settings = { cwd, sandbox, approvalPolicy: 'never', model };
+  // the conversation open on this server: the saved one picked up again, else a new one
+  if (codexThread && server.loaded !== codexThread) {
+    await server.request('thread/resume', { ...settings, threadId: codexThread, excludeTurns: true })
+      .then(() => { server.loaded = codexThread; })
+      .catch(() => { codexThread = null; }); // gone from Codex's history: a new one
+  }
+  let news = personaNews(persona);
+  if (!codexThread) {
+    const started = await server.request('thread/start', { ...settings, developerInstructions: persona });
+    codexThread = threadId(started.thread?.id);
+    if (!codexThread) throw new Error('Codex gave no conversation');
+    server.loaded = codexThread;
+    news = '';
+  }
+  codexPersona = persona;
+  if (signal.aborted) throw new Error('stopped');
+
+  return new Promise((resolve, reject) => {
+    let all = '';
+    let item = null;
+    let turn = null;
+    let failed = null;
+    const finish = (err, value) => {
+      server.handlers.delete(handle);
+      signal.removeEventListener('abort', stop);
+      if (err) reject(err);
+      else resolve(value);
+    };
+    const handle = (method, params) => {
+      if (method === 'capri/exit') return finish(params.error);
+      if (params.threadId && params.threadId !== codexThread) return;
+      if (method === 'item/agentMessage/delta' && params.delta) {
+        // its messages between two steps of work, one per line
+        const piece = (item && item !== params.itemId ? '\n' : '') + params.delta;
+        item = params.itemId;
+        all += piece;
+        onDelta(piece);
+      } else if (method === 'error' && !params.willRetry) {
+        failed = codexError(params.error?.message || '');
+      } else if (method === 'turn/completed') {
+        const { status, error } = params.turn || {};
+        if (signal.aborted || status === 'interrupted') finish(new Error('stopped'));
+        else if (status === 'failed') finish(new Error(codexError(error?.message || failed || 'Codex failed')));
+        else if (!all) finish(new Error(failed || 'Codex gave no answer'));
+        else finish(null, all);
+      }
+    };
+    const stop = () => {
+      if (turn) server.request('turn/interrupt', { threadId: codexThread, turnId: turn }).catch(() => {});
+      else finish(new Error('stopped'));
+    };
+    server.handlers.add(handle);
+    signal.addEventListener('abort', stop, { once: true });
+    server.request('turn/start', {
+      threadId: codexThread, cwd, model, effort, approvalPolicy: 'never', sandboxPolicy: sandboxPolicy(sandbox),
+      input: [{ type: 'text', text: news + text, text_elements: [] }],
+    }).then((res) => {
+      turn = res.turn?.id || null;
+      if (signal.aborted) stop();
+    }, (err) => finish(err));
   });
 }
 
@@ -281,14 +406,20 @@ function resetAgents() {
   claudeSession = null;
   claudeStarted = false;
   codexThread = null;
+  codexPersona = null;
 }
 
 // The terminal agents' conversations, to save and pick up again after a restart.
-const agentMemory = () => ({ claude: { session: claudeSession, started: claudeStarted }, codex: codexThread });
+const agentMemory = () => ({
+  claude: { session: claudeSession, started: claudeStarted },
+  codex: codexThread && { thread: codexThread, persona: codexPersona },
+});
 function restoreAgents(saved = {}) {
   claudeSession = saved.claude?.session || null;
   claudeStarted = Boolean(claudeSession && saved.claude.started);
-  codexThread = threadId(saved.codex);
+  // saved by an older Capri: the thread alone, its persona unknown (all of it goes with the next message)
+  codexThread = threadId(typeof saved.codex === 'string' ? saved.codex : saved.codex?.thread);
+  codexPersona = (codexThread && typeof saved.codex?.persona === 'string') ? saved.codex.persona : null;
 }
 
 // Codex's hooks send its thread as "codex:<thread>" (hooks/capri-codex-hook.js)
@@ -299,7 +430,7 @@ async function chat(id, cfg, { model, messages }, onDelta, signal) {
   if (p.kind === 'ollama') return ollama.chat({ model, messages }, onDelta, signal);
   // the terminal agents keep their own memory of the conversation: only her persona and your last message go
   if (p.kind === 'claude') return claudeChat(cfg, messages.at(-1).content, messages[0].content, onDelta, signal);
-  if (p.kind === 'codex') return codexChat(cfg, messages.at(-1).content, messages[0].content, onDelta, signal);
+  if (p.kind === 'codex') return codexChat(cfg, model || null, messages.at(-1).content, messages[0].content, onDelta, signal);
   return openaiChat(p, { model, messages }, onDelta, signal);
 }
 
@@ -311,5 +442,6 @@ function isLocal(id, cfg) {
 }
 
 module.exports = {
-  isLocal, isAgent, PROVIDERS, CLAUDE_MODES, CODEX_SANDBOX, models, warm, chat, resetAgents, isChatSession, agentMemory, restoreAgents,
+  isLocal, isAgent, PROVIDERS, CLAUDE_MODES, CODEX_SANDBOX, CODEX_EFFORTS, models, warm, chat, resetAgents, isChatSession, agentMemory,
+  restoreAgents, stopAgents: stopCodex,
 };

@@ -449,6 +449,12 @@ function rebuildTray() {
               type: 'radio', checked: cfg.claudeMode === mode, click: () => updateConfig({ claudeMode: mode }),
             })),
           },
+          ...(cfg.provider === 'codex' ? [{
+            label: t.effort,
+            submenu: llm.CODEX_EFFORTS.map((effort) => ({
+              label: effort, type: 'radio', checked: cfg.codexEffort === effort, click: () => updateConfig({ codexEffort: effort }),
+            })),
+          }] : []),
           { label: t.agentPowers, type: 'checkbox', checked: Boolean(cfg.agentPowers), click: (item) => updateConfig({ agentPowers: item.checked }) },
         ] : []),
         { label: t.forget, click: forgetChats },
@@ -541,6 +547,8 @@ function mainframeState() {
         mode: cfg.claudeMode,
         modes: llm.CLAUDE_MODES.map((id) => ({ id, label: cfg.provider === 'codex' ? llm.CODEX_SANDBOX[id] : id })),
         powers: Boolean(cfg.agentPowers),
+        effort: cfg.provider === 'codex' ? cfg.codexEffort : null,
+        efforts: llm.CODEX_EFFORTS.map((id) => ({ id, label: id })),
       },
     },
     capri: {
@@ -584,6 +592,7 @@ async function mainframeAct(name, value) {
     case 'folder': await pickClaudeFolder(); break;
     case 'mode': if (one(llm.CLAUDE_MODES)) updateConfig({ claudeMode: value }); break;
     case 'agentPowers': updateConfig({ agentPowers: Boolean(value) }); break;
+    case 'effort': if (one(llm.CODEX_EFFORTS)) updateConfig({ codexEffort: value }); break;
     case 'visible': toggleVisible(); break;
     case 'teleport': sendCommand('teleport'); break;
     case 'talk': sendCommand('chat'); break;
@@ -1049,6 +1058,7 @@ function main() {
   });
 
   app.on('will-quit', () => {
+    llm.stopAgents();
     globalShortcut.unregisterAll();
     windowWatch?.stop();
   });

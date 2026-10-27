@@ -61,6 +61,7 @@ function brain(s, t) {
       button(t.refresh, 'refresh')),
     b.agent && [
       row(t.permissions, select(b.agent.modes, b.agent.mode, 'mode', { label: t.permissions })),
+      b.agent.effort && row(t.effort, choice('trio grow', b.agent.efforts.map(({ id, label }) => [id, label]), b.agent.effort, 'effort')),
       row(null, button(b.agent.cwd, 'folder', null, { class: 'grow' })),
       check(t.agentPowers, b.agent.powers, 'agentPowers'),
     ],
