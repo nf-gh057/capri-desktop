@@ -18,6 +18,7 @@ const GRAVITY = 2600; // px/s²
 const THIGH = 73;     // hip to knee, sprite px (see sprite.js)
 
 const UPLINK_DAY = 'capri.uplinkDay'; // the last day she sent the red light up
+const HOP_CHANCE = 0.18; // more than one screen: how often wandering off takes her to another one
 
 const GREEN = [0.21, 1, 0.48];
 const INK = [0.08, 0.06, 0.11];
@@ -48,6 +49,10 @@ export class Capri {
     this.possessWindows = true; // tray: "Possess my windows"
     this.restOn = 'corner'; // where she rests when nothing's going on: her corner, or 'taskbar' (her menu)
     this.nextHome = 0;
+    this.screens = 1;     // how many screens there are to teleport between
+    this.onHop = null;    // async () => her window moved to another screen ({ width, height, gap, windows }), or null
+    this.onTaskbar = null; // (on): she sat down on the taskbar, or got up (her window goes over it, main.js)
+    this.dodgeAt = 0;     // standing in front of the window you work in: when she gets out of the way
     this.dragging = false;
 
     this.p = {
@@ -212,22 +217,56 @@ export class Capri {
     return this.view.floor - 6;
   }
 
+  // The window you're working in (the one in front), if it's on her screen.
+  focusWin() {
+    const { fg, wins } = this.windows;
+    return (fg && wins.find((w) => w.id === fg)) || null;
+  }
+
+  // Would she, standing at `at`, be in front of that window? Sitting on its edge is fine (it's not
+  // in the way); floating or idling over it is not.
+  overFocus(at, win = this.focusWin()) {
+    if (!win) return false;
+    const s = this.scale;
+    const half = 130 * s; // her mane and her reaching arm, whichever way she faces
+    const top = at.y - SPRITE.feet.y * s;
+    return at.x + half > win.x && at.x - half < win.x + win.w && at.y > win.y && top < win.y + win.h;
+  }
+
+  // A spot on her floor clear of the window you work in, the closest to `near` first; null if
+  // that window takes the whole width.
+  freeSpot(near = this.pos.x) {
+    const { w } = this.view;
+    const side = 150 * this.scale + 30;
+    const xs = [];
+    for (let x = side; x <= w - side; x += 40) xs.push(x);
+    xs.sort((a, b) => Math.abs(a - near) - Math.abs(b - near));
+    const x = xs.find((x) => !this.overFocus({ x, y: this.floor }));
+    return x === undefined ? null : { x, y: this.floor };
+  }
+
   spot(name) {
     const { w } = this.view;
     const s = this.scale;
     const side = 150 * s + 30;
     switch (name) {
-      case 'post':
-        return { x: w - side - 30, y: this.floor };
+      case 'post': {
+        const post = { x: w - side - 30, y: this.floor };
+        return this.overFocus(post) ? this.freeSpot(post.x) || post : post;
+      }
       case 'stage':
         return { x: w * 0.5 + rand(-w * 0.12, w * 0.12), y: this.floor };
       case 'chip': // next to her biochip, bottom left
         return { x: side + 30, y: this.floor };
       default: {
-        const y = Math.random() < 0.65 ? this.floor : rand(SPRITE.height * s + 200, this.floor);
-        let x = rand(side, w - side);
-        if (Math.abs(x - this.pos.x) < w * 0.2) x = clamp(w - x, side, w - side);
-        return { x, y };
+        // somewhere else, not in front of the window you work in
+        for (let i = 0; i < 12; i++) {
+          const y = Math.random() < 0.65 ? this.floor : rand(SPRITE.height * s + 200, this.floor);
+          let x = rand(side, w - side);
+          if (Math.abs(x - this.pos.x) < w * 0.2) x = clamp(w - x, side, w - side);
+          if (!this.overFocus({ x, y })) return { x, y };
+        }
+        return this.freeSpot(rand(side, w - side)) || { x: rand(side, w - side), y: this.floor };
       }
     }
   }
@@ -422,6 +461,18 @@ export class Capri {
       return;
     }
 
+    // standing in front of the window you work in (you clicked it, or she landed there): after a
+    // moment she gets out of the way
+    if ((this.mode === 'idle' || this.mode === 'work') && this.stance === 'stand' && !this.pointing && this.overFocus(this.pos)) {
+      if (!this.dodgeAt) this.dodgeAt = now + rand(1500, 4000);
+      else if (now > this.dodgeAt) {
+        this.dodgeAt = this.dodge() ? 0 : now + 20000; // nowhere to go: she tries again later
+        return;
+      }
+    } else {
+      this.dodgeAt = 0;
+    }
+
     if (this.mode === 'idle' && now > this.nextMove) {
       this.nextMove = now + rand(25000, 70000);
       this.wanderStep();
@@ -434,16 +485,52 @@ export class Capri {
     }
   }
 
+  // Out of the way of the window you work in: a free spot on this screen, else another screen. With
+  // just the one screen she may also sit on the taskbar or lean in from an edge (the only ways out
+  // when that window takes the whole screen).
+  dodge() {
+    const to = this.freeSpot();
+    if (this.screens > 1) {
+      if (to) this.teleport(to);
+      else this.hop();
+      return true;
+    }
+    const ways = ['taskbar', 'peek', ...(to ? ['free', 'free'] : [])];
+    const way = pick(ways);
+    if (way === 'free') {
+      this.teleport(to);
+    } else if (way === 'taskbar') {
+      this.sitOn({ win: this.ledge(), dx: this.taskbarDx() });
+    } else {
+      this.peek();
+    }
+    return true;
+  }
+
+  // Where along the taskbar she sits to get out of the way: beside the app icons in the middle,
+  // left of them, or right of them before the clock.
+  taskbarDx() {
+    const { w } = this.view;
+    const side = 150 * this.scale + 30;
+    return pick([rand(side, w * 0.3), clamp(w - 440, w * 0.6, w - side)]);
+  }
+
   // What she does with herself when nobody needs her.
   wanderStep() {
     if (!this.wander || this.stance === 'peek') {
       if (this.stance !== 'peek') this.flourish();
       return;
     }
+    if (this.screens > 1 && Math.random() < HOP_CHANCE) {
+      this.hop();
+      return;
+    }
     if (this.stance === 'sit' && this.perch?.id === 'taskbar') {
-      // nothing to hop off or take over down there: a flourish, or off for a bit (she comes back)
-      if (Math.random() < 0.6) this.flourish();
-      else this.teleport(this.spot('random'));
+      // nothing to hop off or take over down there: a flourish, or off for a bit (she comes back),
+      // not to float in front of the window you work in
+      const to = this.spot('random');
+      if (Math.random() < 0.6 || this.overFocus(to)) this.flourish();
+      else this.teleport(to);
       return;
     }
     if (this.stance === 'sit') {
@@ -494,6 +581,8 @@ export class Capri {
   }
 
   setStance(stance, { perch = null, peekSide = null, dir = 0 } = {}) {
+    const onTaskbar = stance === 'sit' && perch?.id === 'taskbar';
+    if (onTaskbar !== (this.perch?.id === 'taskbar' && this.stance === 'sit')) this.onTaskbar?.(onTaskbar);
     this.stance = stance;
     this.perch = perch;
     this.peekSide = peekSide;
@@ -1053,6 +1142,24 @@ export class Capri {
     await this.settle();
   }
 
+  // Teleport to another screen: gone from this one in a column of light, her window goes over
+  // (main.js), and she arrives on the other one, on a window there or somewhere free.
+  async hop() {
+    if (this.screens < 2 || !this.onHop || this.stowed || this.busy || this.dormant) return;
+    this.busy = true;
+    this.wake();
+    this.onTeleport?.('start');
+    await this.vanish();
+    await sleep(reducedMotion.matches ? 0 : 380); // the slit she leaves closes before her window goes
+    this.fx.clear();
+    const moved = await this.onHop().catch(() => null);
+    await sleep(70);
+    const seat = moved && this.wander && Math.random() < 0.35 ? this.pickSeat() : null;
+    if (seat) await this.arrive(this.seat(seat.win, seat.dx), { stance: 'sit', perch: { id: seat.win.id, dx: seat.dx } });
+    else await this.arrive(this.spot('random'));
+    await this.settle();
+  }
+
   // After a move: free again, stay put a while, the panel back, and the move that was waiting, if any.
   async settle() {
     this.busy = false;
@@ -1329,10 +1436,15 @@ export class Capri {
     this.busy = true;
     this.onTeleport?.('start');
     const seat = this.wander ? this.pickSeat() : null;
+    const to = this.spot('random');
     if (seat && Math.random() < 0.4) {
       await this.arrive(this.seat(seat.win, seat.dx), { stance: 'sit', perch: { id: seat.win.id, dx: seat.dx } });
+    } else if (this.overFocus(to)) {
+      // nowhere free in front of the window you work in: down on the taskbar instead
+      const dx = this.taskbarDx();
+      await this.arrive(this.seat(this.ledge(), dx), { stance: 'sit', perch: { id: 'taskbar', dx } });
     } else {
-      await this.arrive(this.spot('random'));
+      await this.arrive(to);
     }
     this.busy = false;
     this.onTeleport?.('end');

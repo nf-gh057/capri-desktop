@@ -30,6 +30,9 @@ export const reducedMotion = {
 // "{project} a fini" + {project: 'x'} -> "x a fini"
 export const fmt = (str, vars = {}) => str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
 
+// "Control+Alt+C" (Electron's way) as people write it: "Ctrl+Alt+C"
+export const keyLabel = (accelerator) => String(accelerator).replace(/\bControl\b/g, 'Ctrl').replace(/\bSuper\b/g, 'Win');
+
 export function duration(ms, lang = 'fr') {
   const ru = lang === 'ru';
   const s = Math.max(0, Math.round(ms / 1000));

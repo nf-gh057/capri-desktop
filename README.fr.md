@@ -193,10 +193,15 @@ Elle n'attrape la souris que sur son corps (au pixel près) : tout le reste de l
 - **Clic** sur le panneau : il se ferme.
 - **Ctrl+Alt+C** : elle se range (dans son biochip, comme dans la série) et il ne reste d'elle que son masque, les yeux
   fermés, en bas à gauche de l'écran. Ses yeux ne s'ouvrent que quand Claude a besoin de toi. Clique sur le masque
-  (ou refais Ctrl+Alt+C) pour la faire revenir.
+  (ou refais Ctrl+Alt+C) pour la faire revenir. Le raccourci se change dans son menu (**Raccourci pour la ranger** :
+  un autre, un que tu appuies, ou aucun). Sur un clavier polonais Ctrl+Alt+C, c'est AltGr+C, « ć » : choisis-en un autre.
 - **Son menu** : clic droit sur elle (il est aussi sur son icône près de l'horloge) : téléporter, regarder le satellite,
-  démo, comment ça marche, rapport de mission, lui parler, taille, son, écran, modèle IA, se balader,
+  démo, comment ça marche, rapport de mission, lui parler, taille, son, écran, raccourci, modèle IA, se balader,
   posséder tes fenêtres, langue, lancement au démarrage, hooks.
+- **Plusieurs écrans** : en se baladant, elle se téléporte de temps en temps sur un autre (**Écran** dans son menu, c'est
+  celui où elle démarre).
+- **La fenêtre où tu travailles** : elle ne flotte pas et ne traîne pas devant. Si elle s'y retrouve, elle s'écarte au
+  bout d'un moment (un coin libre, ou un autre écran). S'asseoir sur son bord ou la posséder, ça reste permis.
 
 Elle parle **français, anglais, espagnol, portugais du Brésil, russe et polonais**, et choisit toute seule la langue de ton
 système. Tu peux en choisir une autre dans son menu.

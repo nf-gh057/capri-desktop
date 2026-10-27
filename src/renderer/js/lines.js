@@ -1,6 +1,8 @@
 // What Capri says. She's a personality construct — dozens of minds in one — so she
 // sometimes talks as "we". Slang is Night City's: choom, preem, nova, flatline.
 
+import { keyLabel } from './util.js';
+
 export const LINES = {
   fr: {
     state: { work: 'EN COURS', done: 'TERMINÉ', alert: 'ATTENTE', error: 'ERREUR', info: 'SYNC', idle: 'VEILLE' },
@@ -243,6 +245,16 @@ export const LINES = {
     hooksOk: 'Hooks installés. Relance Claude Code et je verrai tout.',
     hooksRemoved: 'Hooks retirés. Je ne vois plus Claude.',
     hooksFail: 'Impossible de toucher aux hooks : {error}',
+    // her shortcut: what she says instead of it when there's none, and her panel to pick one (stowkey.js)
+    stowMenu: '« La ranger » dans mon menu',
+    stowKey: {
+      line: 'Appuie sur les touches qui doivent me ranger.',
+      how: 'Ctrl, Alt, Maj ou Win avec une lettre, un chiffre ou une touche F. Maintenant : {key}.',
+      picked: 'Celui-là : {key}. Enregistre, ou appuie sur un autre.',
+      altgr: 'Ctrl+Alt avec une lettre, c’est AltGr sur certains claviers : cette lettre-là ne s’écrirait plus.',
+      none: 'aucun', taken: '{key} est déjà pris par autre chose. Essaie un autre.',
+      saved: 'C’est noté : {key} me range maintenant.', save: 'Enregistrer', cancel: 'Annuler',
+    },
     verbs: {
       Read: 'Lit', Write: 'Écrit', Edit: 'Modifie', MultiEdit: 'Modifie', NotebookEdit: 'Modifie',
       Bash: 'Exécute', PowerShell: 'Exécute', Grep: 'Cherche', Glob: 'Fouille', WebFetch: 'Consulte',
@@ -478,6 +490,16 @@ export const LINES = {
     hooksOk: 'Hooks installed. Restart Claude Code and I’ll see everything.',
     hooksRemoved: 'Hooks removed. I can’t see Claude anymore.',
     hooksFail: 'Couldn’t change the hooks: {error}',
+    // her shortcut: what she says instead of it when there's none, and her panel to pick one (stowkey.js)
+    stowMenu: '“Put her away” in my menu',
+    stowKey: {
+      line: 'Press the keys that should put me away.',
+      how: 'Ctrl, Alt, Shift or Win with a letter, a digit or an F key. Now: {key}.',
+      picked: 'That one: {key}. Save it, or press another.',
+      altgr: 'Ctrl+Alt with a letter is AltGr on some keyboards: that letter couldn’t be typed anymore.',
+      none: 'none', taken: '{key} is already taken by something else. Try another one.',
+      saved: 'Got it: {key} puts me away now.', save: 'Save', cancel: 'Cancel',
+    },
     verbs: {
       Read: 'Reads', Write: 'Writes', Edit: 'Edits', MultiEdit: 'Edits', NotebookEdit: 'Edits',
       Bash: 'Runs', PowerShell: 'Runs', Grep: 'Greps', Glob: 'Scans', WebFetch: 'Fetches',
@@ -709,6 +731,16 @@ export const LINES = {
     hooksOk: 'Hooks instalados. Reinicia Claude Code y lo veré todo.',
     hooksRemoved: 'Hooks quitados. Ya no veo a Claude.',
     hooksFail: 'No pude tocar los hooks: {error}',
+    // her shortcut: what she says instead of it when there's none, and her panel to pick one (stowkey.js)
+    stowMenu: '«Guardarla» en mi menú',
+    stowKey: {
+      line: 'Pulsa las teclas que deben guardarme.',
+      how: 'Ctrl, Alt, Mayús o Win con una letra, un número o una tecla F. Ahora: {key}.',
+      picked: 'Esa: {key}. Guárdala, o pulsa otra.',
+      altgr: 'Ctrl+Alt con una letra es AltGr en algunos teclados: esa letra ya no se podría escribir.',
+      none: 'ninguno', taken: '{key} ya lo usa otra cosa. Prueba con otro.',
+      saved: 'Hecho: {key} me guarda ahora.', save: 'Guardar', cancel: 'Cancelar',
+    },
     verbs: {
       Read: 'Lee', Write: 'Escribe', Edit: 'Edita', MultiEdit: 'Edita', NotebookEdit: 'Edita',
       Bash: 'Ejecuta', PowerShell: 'Ejecuta', Grep: 'Busca', Glob: 'Explora', WebFetch: 'Consulta',
@@ -942,6 +974,16 @@ export const LINES = {
     hooksOk: 'Hooks instalados. Reinicie o Claude Code e eu vou ver tudo.',
     hooksRemoved: 'Hooks removidos. Não vejo mais o Claude.',
     hooksFail: 'Não consegui mexer nos hooks: {error}',
+    // her shortcut: what she says instead of it when there's none, and her panel to pick one (stowkey.js)
+    stowMenu: '“Guardar” no meu menu',
+    stowKey: {
+      line: 'Aperte as teclas que vão me guardar.',
+      how: 'Ctrl, Alt, Shift ou Win com uma letra, um número ou uma tecla F. Agora: {key}.',
+      picked: 'Essa: {key}. Salve, ou aperte outra.',
+      altgr: 'Ctrl+Alt com uma letra é AltGr em alguns teclados: essa letra não daria mais pra digitar.',
+      none: 'nenhum', taken: '{key} já é usado por outra coisa. Tente outro.',
+      saved: 'Feito: {key} me guarda agora.', save: 'Salvar', cancel: 'Cancelar',
+    },
     verbs: {
       Read: 'Lê', Write: 'Escreve', Edit: 'Edita', MultiEdit: 'Edita', NotebookEdit: 'Edita',
       Bash: 'Roda', PowerShell: 'Roda', Grep: 'Procura', Glob: 'Vasculha', WebFetch: 'Consulta',
@@ -1180,6 +1222,16 @@ export const LINES = {
     hooksOk: 'Хуки установлены. Перезапусти Claude Code, и я всё увижу.',
     hooksRemoved: 'Хуки удалены. Я больше не вижу Claude.',
     hooksFail: 'Не удалось изменить хуки: {error}',
+    // её сочетание клавиш: что она говорит вместо него, если его нет, и панель, чтобы выбрать (stowkey.js)
+    stowMenu: '«Спрятать» в моём меню',
+    stowKey: {
+      line: 'Нажми клавиши, которыми меня прятать.',
+      how: 'Ctrl, Alt, Shift или Win вместе с буквой, цифрой или клавишей F. Сейчас: {key}.',
+      picked: 'Вот эти: {key}. Сохрани или нажми другие.',
+      altgr: 'Ctrl+Alt с буквой — это AltGr на некоторых раскладках: эту букву больше не напечатать.',
+      none: 'нет', taken: '{key} уже занято чем-то другим. Попробуй другое.',
+      saved: 'Записала: теперь {key} прячет меня.', save: 'Сохранить', cancel: 'Отмена',
+    },
     verbs: {
       Read: 'Читает', Write: 'Пишет', Edit: 'Правит', MultiEdit: 'Правит', NotebookEdit: 'Правит',
       Bash: 'Запускает', PowerShell: 'Запускает', Grep: 'Ищет', Glob: 'Перебирает', WebFetch: 'Загружает',
@@ -1420,6 +1472,16 @@ export const LINES = {
     hooksOk: 'Hooki zainstalowane. Uruchom ponownie Claude Code, a zobaczę wszystko.',
     hooksRemoved: 'Hooki usunięte. Już nie widzę Claude.',
     hooksFail: 'Nie udało się zmienić hooków: {error}',
+    // jej skrót: co mówi zamiast niego, gdy go nie ma, i panel do wybrania nowego (stowkey.js)
+    stowMenu: '„Schowaj ją” w moim menu',
+    stowKey: {
+      line: 'Naciśnij klawisze, które mają mnie chować.',
+      how: 'Ctrl, Alt, Shift albo Win razem z literą, cyfrą lub klawiszem F. Teraz: {key}.',
+      picked: 'Ten: {key}. Zapisz albo naciśnij inny.',
+      altgr: 'Ctrl+Alt z literą to na polskiej klawiaturze AltGr: tej litery (ą, ć, ę…) nie dałoby się już wpisać.',
+      none: 'brak', taken: '{key} jest już zajęty przez coś innego. Spróbuj innego.',
+      saved: 'Zapisane: teraz {key} mnie chowa.', save: 'Zapisz', cancel: 'Anuluj',
+    },
     verbs: {
       Read: 'Czyta', Write: 'Pisze', Edit: 'Edytuje', MultiEdit: 'Edytuje', NotebookEdit: 'Edytuje',
       Bash: 'Uruchamia', PowerShell: 'Uruchamia', Grep: 'Przeszukuje', Glob: 'Skanuje', WebFetch: 'Pobiera',
@@ -1474,17 +1536,21 @@ const OTHERS = {
   },
 };
 const converted = new Map();
-export function linesFor(lang, assistant = 'claude') {
+// `stowKey`: her shortcut, as Electron writes it ("Control+Alt+C"), or null for none: her lines
+// name the one she has (or her menu's item, without one).
+export function linesFor(lang, assistant = 'claude', stowKey = 'Control+Alt+C') {
   const base = LINES[lang] || LINES.fr;
   const other = OTHERS[assistant];
-  if (!other) return base;
-  const key = `${assistant}:${lang}`;
+  const keyText = stowKey ? keyLabel(stowKey) : base.stowMenu;
+  if (!other && keyText === 'Ctrl+Alt+C') return base;
+  const key = `${assistant}:${lang}:${keyText}`;
   if (converted.has(key)) return converted.get(key);
   // French drops the e of "de" and "que" before a vowel: "la fenêtre d'Antigravity"
-  const elide = lang === 'fr' && /^[aeiouy]/i.test(other.name);
+  const elide = other && lang === 'fr' && /^[aeiouy]/i.test(other.name);
   const convert = (value) => {
     if (typeof value === 'string') {
-      let text = value;
+      let text = value.replaceAll('Ctrl+Alt+C', keyText);
+      if (!other) return text;
       if (elide) text = text.replace(/\b(d|qu)e (Claude Code|Claude)\b/g, `$1’${other.name}`);
       return text.replace(/Claude Code|Claude/g, other.name).replaceAll('CLAUDE', other.name.toUpperCase())
         .replaceAll('settings.json', other.file).replaceAll('.claude', other.dir);
@@ -1494,11 +1560,13 @@ export function linesFor(lang, assistant = 'claude') {
     return value;
   };
   const result = convert(base);
-  const after = other.after[lang] || other.after.en;
-  result.welcome.connect = other.ask[lang] || other.ask.en;
-  result.welcome.restart = after;
-  result.welcome.noClaude = result.welcome.about; // nothing to buy for these
-  result.hooksOk = after;
+  if (other) {
+    const after = other.after[lang] || other.after.en;
+    result.welcome.connect = other.ask[lang] || other.ask.en;
+    result.welcome.restart = after;
+    result.welcome.noClaude = result.welcome.about; // nothing to buy for these
+    result.hooksOk = after;
+  }
   converted.set(key, result);
   return result;
 }

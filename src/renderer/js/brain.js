@@ -23,6 +23,7 @@ export class Brain {
     this.mission = mission; // today's log, for her report card (mission.js)
     this.lang = lang;
     this.assistant = assistant; // 'claude', 'codex' or 'agy': whose events she follows
+    this.stowKey = 'Control+Alt+C'; // her shortcut, as her lines name it (app.js sets it from the config)
     this.custom = {};       // what you made her (custom.js): { userName, persona, myLines, memories }
     this.sessions = new Map();
     this.replyFor = null;    // the session whose answer she's holding up for you
@@ -36,7 +37,7 @@ export class Brain {
   }
 
   get t() {
-    return linesFor(this.lang, this.assistant);
+    return linesFor(this.lang, this.assistant, this.stowKey);
   }
 
   // the assistant she watches, as she calls it

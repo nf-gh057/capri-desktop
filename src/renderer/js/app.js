@@ -9,6 +9,7 @@ import { Mission } from './mission.js';
 import { Chat } from './chat.js';
 import { Setup } from './setup.js';
 import { Custom } from './custom.js';
+import { StowKey } from './stowkey.js';
 import { linesFor } from './lines.js';
 import { pick, fmt, reducedMotion } from './util.js';
 
@@ -71,7 +72,7 @@ async function boot() {
   const panel = new Panel({
     panel: document.getElementById('panel'),
     ticker: document.getElementById('ticker'),
-    labels: linesFor(config.lang, config.assistant),
+    labels: linesFor(config.lang, config.assistant, config.stowKey),
   });
 
   const capri = new Capri({
@@ -84,11 +85,13 @@ async function boot() {
   capri.wander = config.wander;
   capri.possessWindows = config.possess;
   capri.restOn = config.rest || 'corner';
+  capri.screens = config.screens || 1;
   capri.setView(innerWidth, innerHeight, innerHeight - floorGap);
   capri.setScale(config.scale);
 
   const mission = new Mission();
   const brain = new Brain({ capri, panel, voice, host, mission, lang: config.lang, assistant: config.assistant });
+  brain.stowKey = config.stowKey;
 
   // Click-through everywhere except on her body, the panel and her biochip.
   let interactive = false;
@@ -173,6 +176,19 @@ async function boot() {
   };
   capri.onTeleport = (phase) => (phase === 'start' ? panel.suspend() : panel.resume());
   capri.chipAt = () => chip.center();
+  capri.onTaskbar = (on) => host.sitOnTaskbar(on);
+  host.sitOnTaskbar(false); // (re)loaded standing: her window back to the work area if it was over the taskbar
+  // teleporting to another screen: her window goes there (main.js), and everything on it follows
+  capri.onHop = async () => {
+    const moved = await host.hopScreen();
+    if (!moved) return null;
+    floorGap = moved.gap;
+    fx.resize(moved.width, moved.height);
+    chip.place(moved.width, moved.height - moved.gap);
+    capri.setView(moved.width, moved.height, moved.height - moved.gap);
+    if (moved.windows) capri.setWindows(moved.windows);
+    return moved;
+  };
   capri.onStow = () => {
     chip.setMode(capri.mode);
     chip.show();
@@ -218,6 +234,7 @@ async function boot() {
   setup.onReady = () => chat.start();
   // What she calls you, how she is, your lines, what she remembers (custom.js)
   const custom = new Custom({ guide, host, brain, capri, voice });
+  const stowKey = new StowKey({ guide, panel, host, brain });
   guide.custom = custom;
   brain.custom = mine(config);
   // the first Claude Code event that ever reaches her: so you know it worked
@@ -329,6 +346,8 @@ async function boot() {
     capri.wander = cfg.wander;
     capri.possessWindows = cfg.possess;
     capri.restOn = cfg.rest || 'corner';
+    capri.screens = cfg.screens || 1;
+    brain.stowKey = cfg.stowKey;
     applyMotion(cfg.motion);
     if ((cfg.claude === false && brain.watching) || cfg.assistant !== brain.assistant) {
       guide.answer(null);
@@ -344,11 +363,11 @@ async function boot() {
     brain.watching = cfg.claude !== false;
     brain.custom = mine(cfg);
     brain.assistant = cfg.assistant;
-    panel.labels = linesFor(cfg.lang, cfg.assistant);
+    panel.labels = linesFor(cfg.lang, cfg.assistant, cfg.stowKey);
     if (cfg.scale !== capri.scale) capri.setScale(cfg.scale);
     if (cfg.lang !== brain.lang) {
       brain.lang = cfg.lang;
-      panel.labels = linesFor(cfg.lang, cfg.assistant);
+      panel.labels = linesFor(cfg.lang, cfg.assistant, cfg.stowKey);
       document.documentElement.lang = cfg.lang;
     }
   });
@@ -356,8 +375,12 @@ async function boot() {
   host.onCommand(async (cmd) => {
     const t = brain.t;
     switch (cmd.name) {
-      case 'teleport':
-        capri.teleport(capri.spot('random'));
+      case 'teleport': // with more than one screen, now and then to another one
+        if (capri.screens > 1 && Math.random() < 0.5) capri.hop();
+        else capri.teleport(capri.spot('random'));
+        break;
+      case 'stowKey': // "Another one…" in her menu's Shortcut to put her away
+        stowKey.open();
         break;
       case 'status':
         brain.status();
@@ -466,6 +489,9 @@ async function boot() {
         break;
       case 'config': // a setting, as if changed from her menu
         host.setConfig(cmd.patch || {});
+        break;
+      case 'screens': // --dev: as if that many screens were plugged in (until the next config)
+        capri.screens = cmd.count;
         break;
       case 'focus': // as if window `fg` had come to the front
         capri.windows = { ...capri.windows, fg: cmd.fg };

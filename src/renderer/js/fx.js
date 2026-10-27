@@ -277,6 +277,13 @@ export class FxLayer {
     };
   }
 
+  // Everything on it gone at once: her window is about to show another screen.
+  clear() {
+    for (const it of this.items) it.done?.();
+    this.items = [];
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
   add(item) {
     item.born = performance.now();
     this.items.push(item);

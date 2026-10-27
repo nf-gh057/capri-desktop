@@ -83,18 +83,72 @@ function serveProtocol() {
   });
 }
 
+// The screen she's on: the one picked in her menu (Screen), until she teleports to another one.
+let currentDisplayId = null;
 function targetDisplay() {
-  const { displayId } = config.load();
-  return screen.getAllDisplays().find((d) => d.id === displayId) || screen.getPrimaryDisplay();
+  const wanted = currentDisplayId ?? config.load().displayId;
+  return screen.getAllDisplays().find((d) => d.id === wanted) || screen.getPrimaryDisplay();
+}
+
+// Her teleport to another screen, picked at random: her window goes there while she's gone from
+// this one. What she gets back: the new size of her window, and the windows on that screen.
+function hopDisplay() {
+  if (!overlay || overlay.isDestroyed()) return null;
+  const others = screen.getAllDisplays().filter((d) => d.id !== targetDisplay().id);
+  if (!others.length) return null;
+  currentDisplayId = others[Math.floor(Math.random() * others.length)].id;
+  const { area, gap } = overlayArea();
+  overlay.setBounds(area);
+  overlay.setBounds(area); // twice: between screens with different scaling, the first one can land off-size
+  overlay.setAlwaysOnTop(true, 'screen-saver');
+  overlay.webContents.send('overlay:resize', { width: area.width, height: area.height, gap });
+  windowWatch?.refresh(); // nothing changed for the watcher, but they're seen from somewhere else now
+  rebuildTray();
+  return { width: area.width, height: area.height, gap, windows: lastWindows };
+}
+
+// Ctrl+Alt+C by default, or what was picked in her menu (null: none). On a Polish keyboard
+// Ctrl+Alt+C is AltGr+C, "ć": taken by her, it can't be typed anymore.
+const STOW_KEYS = ['Control+Alt+C', 'Control+Alt+H', 'Control+Shift+F12'];
+let stowKey = null; // the one registered
+function registerStowKey(accelerator = config.load().stowKey) {
+  if (stowKey) globalShortcut.unregister(stowKey);
+  stowKey = null;
+  if (!accelerator) return true;
+  let ok = false;
+  try {
+    ok = globalShortcut.register(accelerator, () => toggleVisible());
+  } catch {
+    ok = false; // not something Electron can register
+  }
+  if (ok) stowKey = accelerator;
+  return ok;
+}
+
+// A new one from her menu or her panel: kept only if Windows lets her have it; the old one back otherwise.
+function setStowKey(accelerator) {
+  const before = config.load().stowKey;
+  if (accelerator && !registerStowKey(accelerator)) {
+    registerStowKey(before);
+    return { ok: false, error: 'taken' };
+  }
+  if (!accelerator) registerStowKey(null);
+  updateConfig({ stowKey: accelerator || null });
+  return { ok: true };
 }
 
 // Her window: the work area, or the whole screen while she rests on the taskbar (her legs hang
 // over it), less its top row of pixels: a window on top covering the whole screen is a fullscreen
 // app to Windows (animated wallpapers pause, notifications wait). `gap`: how much of her window is
-// below the top of the taskbar (0, or its height).
+// below the top of the taskbar (0, or its height). Sitting on the taskbar while she rests in her
+// corner, her window goes down over it too, or her legs would be cut off at its top (less the
+// screen's last row of pixels, for the same reason).
+let onTaskbar = false; // she sits on the taskbar (the overlay says so)
 function overlayArea() {
   const { workArea, bounds } = targetDisplay();
-  const area = config.load().rest === 'taskbar' ? { ...bounds, y: bounds.y + 1, height: bounds.height - 1 } : workArea;
+  let area = workArea;
+  if (config.load().rest === 'taskbar') area = { ...bounds, y: bounds.y + 1, height: bounds.height - 1 };
+  else if (onTaskbar) area = { ...workArea, height: bounds.y + bounds.height - workArea.y - 1 };
   return { area, gap: area.y + area.height - (workArea.y + workArea.height) };
 }
 
@@ -243,7 +297,10 @@ function resolveLang(setting) {
 // What the overlay gets: `lang` is the resolved one, `langSetting` what the user picked.
 function rendererConfig() {
   const { apiKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
-  return { ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang, floorGap: overlayArea().gap };
+  return {
+    ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang,
+    floorGap: overlayArea().gap, screens: screen.getAllDisplays().length,
+  };
 }
 
 function updateConfig(patch) {
@@ -276,7 +333,7 @@ function rebuildTray() {
     ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
     { label: t.talk, click: () => sendCommand('chat') },
     { label: t.custom, click: () => sendCommand('customize') },
-    { label: cfg.visible ? t.hide : t.show, accelerator: 'Ctrl+Alt+C', click: () => toggleVisible() },
+    { label: cfg.visible ? t.hide : t.show, ...(stowKey && { accelerator: stowKey }), click: () => toggleVisible() },
     { type: 'separator' },
     {
       label: t.size,
@@ -305,8 +362,25 @@ function rebuildTray() {
         label: `${i + 1} — ${d.size.width}×${d.size.height}`,
         type: 'radio',
         checked: d.id === current,
-        click: () => { config.save({ displayId: d.id }); fitOverlay(); rebuildTray(); },
+        click: () => {
+          config.save({ displayId: d.id });
+          currentDisplayId = d.id;
+          fitOverlay();
+          rebuildTray();
+        },
       })),
+    },
+    // the key that puts her away and brings her back: one of these, one you press in her panel, or none
+    {
+      label: t.stowKey,
+      submenu: [
+        ...[...new Set([...STOW_KEYS, ...(cfg.stowKey ? [cfg.stowKey] : [])])].map((key) => ({
+          label: keyLabel(key), type: 'radio', checked: cfg.stowKey === key, click: () => setStowKey(key),
+        })),
+        { label: t.stowKeyOff, type: 'radio', checked: !cfg.stowKey, click: () => setStowKey(null) },
+        { type: 'separator' },
+        { label: t.stowKeyCustom, click: () => sendCommand('stowKey') },
+      ],
     },
     {
       label: t.chatModel,
@@ -407,6 +481,9 @@ function rebuildTray() {
   tray.setContextMenu(menu);
   trayMenu = menu;
 }
+
+// "Control+Alt+C" as people write it: "Ctrl+Alt+C"
+const keyLabel = (accelerator) => accelerator.replace(/\bControl\b/g, 'Ctrl').replace(/\bSuper\b/g, 'Win');
 
 // Run from a clone (`npm start`), electron.exe alone would open the default Electron app at login:
 // it needs the project folder as argument.
@@ -512,6 +589,18 @@ function registerIpc() {
     return { x: p.x - b.x, y: p.y - b.y, inside: p.x >= b.x && p.y >= b.y && p.x < b.x + b.width && p.y < b.y + b.height };
   });
   ipcMain.handle('config:get', () => rendererConfig());
+  ipcMain.handle('overlay:hop', () => hopDisplay());
+  // she sat down on the taskbar, or got up: her window over it, or back to the work area
+  ipcMain.on('overlay:taskbar', (_e, on) => {
+    if (Boolean(on) === onTaskbar) return;
+    onTaskbar = Boolean(on);
+    if (config.load().rest === 'taskbar') return; // her window covers it already
+    fitOverlay();
+    if (onTaskbar) raiseOverlay(); // over the taskbar, not under it
+  });
+  // her panel taking a new key: hers isn't listened for meanwhile (pressing it there just records it)
+  ipcMain.on('stowKey:pause', (_e, on) => registerStowKey(on ? null : config.load().stowKey));
+  ipcMain.handle('stowKey:set', (_e, accelerator) => setStowKey(typeof accelerator === 'string' ? accelerator : null));
   ipcMain.handle('hooks:status', () => activeHooks().status());
   ipcMain.handle('config:set', (_e, patch) => updateConfig(patch));
   ipcMain.handle('demo:window', (_e, open) => demoWindow(open));
@@ -726,6 +815,14 @@ async function debugHandler(route, body) {
     }
     return { ok: true };
   }
+  if (route === 'key') {
+    // a key pressed in the overlay, with its modifiers ({ key: 'H', modifiers: ['control', 'alt'] }),
+    // without the keyboard: nothing reaches any other window
+    const modifiers = Array.isArray(body.modifiers) ? body.modifiers : [];
+    overlay.webContents.sendInputEvent({ type: 'keyDown', keyCode: String(body.key), modifiers });
+    overlay.webContents.sendInputEvent({ type: 'keyUp', keyCode: String(body.key), modifiers });
+    return { ok: true };
+  }
   if (route === 'capture') {
     const image = await overlay.webContents.capturePage();
     // installed, the app's own folder is read-only: its data folder instead
@@ -771,7 +868,7 @@ function main() {
       overlay,
       onUpdate: (data) => {
         // a click on the taskbar brings it up over her: sitting on it, her legs would vanish behind it
-        if (data.taskbar && !lastWindows?.taskbar && config.load().rest === 'taskbar') raiseOverlay();
+        if (data.taskbar && !lastWindows?.taskbar && (config.load().rest === 'taskbar' || onTaskbar)) raiseOverlay();
         lastWindows = data;
         overlay?.webContents.send('windows:update', data);
       },
@@ -782,13 +879,19 @@ function main() {
       onEvent: (evt) => !llm.isChatSession(evt.session_id) && overlay?.webContents.send('claude:event', evt),
       onDebug: DEV ? debugHandler : null,
     });
-    globalShortcut.register('Control+Alt+C', () => toggleVisible());
+    registerStowKey();
     llm.restoreClaude(readMemory().claude);
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     screen.on('display-metrics-changed', fitOverlay);
-    screen.on('display-added', () => { fitOverlay(); rebuildTray(); });
-    screen.on('display-removed', () => { fitOverlay(); rebuildTray(); });
+    // a screen plugged in or out: she knows how many she can teleport to (and leaves one that's gone)
+    const screensChanged = () => {
+      fitOverlay();
+      rebuildTray();
+      overlay?.webContents.send('capri:config', rendererConfig());
+    };
+    screen.on('display-added', screensChanged);
+    screen.on('display-removed', screensChanged);
     // after sleep or a locked screen, once Windows has settled
     powerMonitor.on('resume', () => setTimeout(rearmOverlay, 2000));
     powerMonitor.on('unlock-screen', () => setTimeout(rearmOverlay, 1000));

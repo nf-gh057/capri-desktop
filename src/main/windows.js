@@ -13,11 +13,12 @@ const { screen } = require('electron');
 const SCRIPT = path.join(__dirname, 'windows.ps1').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 
 function startWindowWatch({ overlay, onUpdate }) {
-  if (process.platform !== 'win32') return { stop() {} };
+  if (process.platform !== 'win32') return { refresh() {}, stop() {} };
 
   let child = null;
   let stopped = false;
   let restarts = 0;
+  let lastSnap = null; // what the helper last said: seen again from her new screen when she moves
 
   const handle = overlay.getNativeWindowHandle();
   const self = handle.length >= 8 ? handle.readBigUInt64LE(0) : BigInt(handle.readUInt32LE(0));
@@ -27,6 +28,16 @@ function startWindowWatch({ overlay, onUpdate }) {
     return { id: win.id, x: dip.x - bounds.x, y: dip.y - bounds.y, w: dip.width, h: dip.height, max: win.max };
   };
 
+  const update = () => {
+    if (!lastSnap || overlay.isDestroyed()) return;
+    const bounds = overlay.getBounds();
+    const wins = lastSnap.wins
+      .map((w) => toOverlay(w, bounds))
+      // only what overlaps Capri's screen
+      .filter((w) => w.x < bounds.width && w.x + w.w > 0 && w.y < bounds.height && w.y + w.h > 0);
+    onUpdate({ fg: lastSnap.fg, taskbar: Boolean(lastSnap.taskbar), wins });
+  };
+
   const start = () => {
     child = spawn('powershell.exe', [
       '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
@@ -34,19 +45,12 @@ function startWindowWatch({ overlay, onUpdate }) {
     ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
 
     readline.createInterface({ input: child.stdout }).on('line', (line) => {
-      let snap;
       try {
-        snap = JSON.parse(line);
+        lastSnap = JSON.parse(line);
       } catch {
         return;
       }
-      if (overlay.isDestroyed()) return;
-      const bounds = overlay.getBounds();
-      const wins = snap.wins
-        .map((w) => toOverlay(w, bounds))
-        // only what overlaps Capri's screen
-        .filter((w) => w.x < bounds.width && w.x + w.w > 0 && w.y < bounds.height && w.y + w.h > 0);
-      onUpdate({ fg: snap.fg, taskbar: Boolean(snap.taskbar), wins });
+      update();
     });
     child.stderr.on('data', (d) => console.error('[capri] window watch:', String(d).trim()));
     child.on('exit', () => {
@@ -57,6 +61,7 @@ function startWindowWatch({ overlay, onUpdate }) {
 
   start();
   return {
+    refresh: update,
     stop() {
       stopped = true;
       child?.kill();

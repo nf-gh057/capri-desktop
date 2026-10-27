@@ -180,10 +180,15 @@ She only catches the mouse on her actual body (pixel-precise): the rest of the s
 - **Click** the panel: it closes.
 - **Ctrl+Alt+C**: she puts herself away (into her biochip, like in the show) and all that's left of her is her mask,
   eyes shut, in the bottom-left corner. Her eyes only open when Claude needs you. Click the mask (or Ctrl+Alt+C again)
-  to bring her back.
+  to bring her back. The shortcut can be changed in her menu (**Shortcut to put her away**: another one, one you
+  press, or none). On a Polish keyboard Ctrl+Alt+C is AltGr+C, "ć": pick another one there.
 - **Her menu**: right-click her (it's also on her tray icon, next to the clock): teleport, look at the satellite, demo,
-  how it works, mission report, talk to her, size, sound, screen, AI model, wander, possess your windows,
+  how it works, mission report, talk to her, size, sound, screen, shortcut, AI model, wander, possess your windows,
   language, start with Windows, hooks.
+- **More than one screen**: wandering around, she now and then teleports to another one (her menu's **Screen** is
+  the one she starts on).
+- **The window you work in**: she doesn't float or idle in front of it. If she ends up there, she gets out of the
+  way after a moment (somewhere free, or another screen). Sitting on its edge or taking it over is still fine.
 
 She speaks **French, English, Spanish, Brazilian Portuguese, Russian and Polish**, and picks the language of your system on her
 own. You can choose another one in her menu.
