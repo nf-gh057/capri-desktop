@@ -6,6 +6,7 @@
 // Rule #1: never get in Claude's way. No output, always exit 0, give up fast.
 
 const http = require('node:http');
+const { HEADER, readToken } = require('./capri-token');
 
 const PORT = Number(process.env.CAPRI_PORT) || 47823;
 
@@ -72,7 +73,7 @@ function run(adapt = (evt) => evt) {
       port: PORT,
       path: '/event',
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) },
+      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body), [HEADER]: readToken() },
       timeout: 800,
     }, (res) => {
       res.resume();

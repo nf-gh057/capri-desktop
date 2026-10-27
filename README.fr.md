@@ -343,6 +343,9 @@ Rien. Le hook ne garde que ce qui sert à l'affichage (nom de l'outil, chemin du
 début de ton prompt, dernier message de Claude jusqu'à 6 000 caractères pour pouvoir te l'afficher, le tout tronqué)
 et l'envoie à `127.0.0.1` uniquement.
 Le contenu de tes fichiers n'est jamais transmis : pour une écriture, seule sa taille passe.
+Son bridge n'accepte que les événements qui portent son jeton, un nouveau à chaque démarrage, gardé dans
+`~/.capri/bridge-token` (`CAPRI_TOKEN_FILE` pour le déplacer), et adressés à `127.0.0.1` ou `localhost` : aucune page web
+ne peut la manipuler.
 
 Son chat va à Ollama sur ton PC (`127.0.0.1:11434`, ou `OLLAMA_HOST`) avec ce qu'elle sait du moment (le nom du
 projet, la dernière action de Claude, les compteurs du jour). Son journal de mission reste dans son propre stockage,

@@ -324,6 +324,8 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
 Nothing. The hook only keeps what the display needs (tool name, file path, command, the start of your prompt,
 Claude's last message up to 6,000 characters so she can show it to you, all truncated) and sends it to `127.0.0.1` only.
 Your file contents are never sent: for a write, only its size goes through.
+Her bridge only takes events that carry its token, a new one each time she starts, kept in `~/.capri/bridge-token`
+(`CAPRI_TOKEN_FILE` moves it), and addressed to `127.0.0.1` or `localhost`: web pages can't puppet her.
 
 Her chat goes to Ollama on your PC (`127.0.0.1:11434`, or `OLLAMA_HOST`) with what she knows of the moment (the
 project's name, Claude's last action, today's counts). Her mission log stays in her own storage on your PC.

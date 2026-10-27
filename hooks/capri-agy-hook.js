@@ -9,6 +9,7 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { HEADER, readToken } = require("./capri-token");
 
 const PORT = Number(process.env.CAPRI_PORT) || 47823;
 const HOOK_TYPE = process.argv[2] || "PreToolUse";
@@ -295,6 +296,7 @@ function postEvent(evt) {
         headers: {
           "content-type": "application/json",
           "content-length": Buffer.byteLength(body),
+          [HEADER]: readToken(),
         },
         timeout: 600,
       },

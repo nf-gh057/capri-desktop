@@ -6,8 +6,37 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
+const http = require('node:http');
 const { createBridge } = require('../src/main/bridge');
+const { HEADER, readToken } = require('../hooks/capri-token');
 const { configure, EVENTS } = require('../scripts/install-codex-hooks');
+
+// a bridge token of their own (the hooks they run inherit it): the running Capri's stays as it is
+process.env.CAPRI_TOKEN_FILE = path.join(os.tmpdir(), `capri-test-token-${process.pid}`);
+process.on('exit', () => fs.rmSync(process.env.CAPRI_TOKEN_FILE, { force: true }));
+
+test('the bridge only takes events from whoever has its token, addressed to 127.0.0.1', async (t) => {
+  const events = [];
+  const server = createBridge({ port: 0, onEvent(evt) { events.push(evt); } });
+  await once(server, 'listening');
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const { port } = server.address();
+  const post = (headers) => new Promise((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port, path: '/event', method: 'POST', headers: { 'content-type': 'application/json', ...headers } },
+      (res) => { res.resume(); res.on('end', () => resolve(res.statusCode)); });
+    req.on('error', reject);
+    req.end(JSON.stringify({ hook_event_name: 'Stop', session_id: 's' }));
+  });
+  const token = readToken();
+  assert.equal(token.length, 64);
+  assert.equal(await post({}), 401);
+  assert.equal(await post({ [HEADER]: 'nope' }), 401);
+  assert.equal(await post({ [HEADER]: token, host: `evil.example:${port}` }), 403); // DNS rebinding
+  assert.equal(await post({ [HEADER]: token, origin: 'https://evil.example' }), 403);
+  assert.equal(await post({ [HEADER]: token }), 200);
+  assert.equal(await post({ [HEADER]: token, host: `localhost:${port}` }), 200);
+  assert.equal(events.length, 2);
+});
 
 function invoke(script, input, port) {
   return new Promise((resolve, reject) => {

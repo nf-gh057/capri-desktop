@@ -1,11 +1,19 @@
 'use strict';
 
 // Local HTTP bridge. Claude Code hooks POST their event JSON to /event,
-// we hand it to the overlay. Bound to 127.0.0.1 only.
+// we hand it to the overlay. Bound to 127.0.0.1 only, and only for whoever has its token.
 
 const http = require('node:http');
+const { timingSafeEqual } = require('node:crypto');
+const { HEADER, createToken } = require('../../hooks/capri-token');
 
 const MAX_BODY = 512 * 1024;
+
+const sameToken = (given, token) => {
+  const a = Buffer.from(String(given || ''));
+  const b = Buffer.from(token);
+  return a.length === b.length && timingSafeEqual(a, b);
+};
 
 function send(res, status, body) {
   const json = JSON.stringify(body);
@@ -37,17 +45,25 @@ function readJson(req) {
   });
 }
 
-function createBridge({ port, onEvent, onDebug }) {
+// `token`: what hooks must send in the x-capri-token header (a new one, written for them, by default)
+function createBridge({ port, onEvent, onDebug, token = createToken() }) {
   const server = http.createServer(async (req, res) => {
     // Browsers always send an Origin header on cross-site requests; hooks never do.
     // Refusing those keeps random web pages from puppeting Capri.
     if (req.headers.origin) return send(res, 403, { ok: false });
+    // A page whose name was pointed at 127.0.0.1 (DNS rebinding) still says its own name in Host
+    const { port: bound } = server.address();
+    if (![`127.0.0.1:${bound}`, `localhost:${bound}`].includes(String(req.headers.host).toLowerCase())) {
+      return send(res, 403, { ok: false });
+    }
 
     const url = new URL(req.url, 'http://127.0.0.1');
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return send(res, 200, { ok: true, name: 'capri', pid: process.pid });
+      return send(res, 200, { ok: true, name: 'capri' });
     }
+
+    if (!sameToken(req.headers[HEADER], token)) return send(res, 401, { ok: false, error: 'bad token' });
 
     if (req.method === 'POST' && url.pathname === '/event') {
       try {

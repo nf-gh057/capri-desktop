@@ -7,6 +7,7 @@
 
 const http = require('node:http');
 const steps = require('./demo-sequence')(process.argv[2]);
+const { HEADER, readToken } = require('../hooks/capri-token');
 
 const PORT = Number(process.env.CAPRI_PORT) || 47823;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -16,8 +17,11 @@ function post(evt) {
     const body = JSON.stringify(evt);
     const req = http.request({
       host: '127.0.0.1', port: PORT, path: '/event', method: 'POST',
-      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) },
-    }, (res) => { res.resume(); res.on('end', resolve); });
+      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body), [HEADER]: readToken() },
+    }, (res) => {
+      res.resume();
+      res.on('end', () => (res.statusCode === 401 ? reject(Object.assign(new Error('bad token'), { code: 'TOKEN' })) : resolve()));
+    });
     req.on('error', reject);
     req.end(body);
   });
@@ -29,8 +33,10 @@ function post(evt) {
     process.stdout.write(`→ ${evt.hook_event_name}${evt.tool_name ? ' ' + evt.tool_name : ''}\n`);
     try {
       await post(evt);
-    } catch {
-      console.error(`Capri is not running (nothing on 127.0.0.1:${PORT}). Start it with: npm start`);
+    } catch (err) {
+      console.error(err.code === 'TOKEN'
+        ? `Capri refused the event: her bridge token (${require('../hooks/capri-token').tokenFile()}) doesn't match. Restart her.`
+        : `Capri is not running (nothing on 127.0.0.1:${PORT}). Start it with: npm start`);
       process.exit(1);
     }
   }
