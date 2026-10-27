@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'">
+  <title>Capri — Mainframe</title>
+  <link rel="stylesheet" href="styles/mainframe.css">
+  <script type="module" src="js/mainframe.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <h1 class="bar__title">MAINFRAME</h1>
+    <span class="bar__version" id="version"></span>
+    <button class="bar__button" id="minimize" type="button" aria-label="Minimize">—</button>
+    <button class="bar__button" id="close" type="button" aria-label="Close">✕</button>
+  </header>
+  <main id="sections" class="sections"></main>
+</body>
+</html>

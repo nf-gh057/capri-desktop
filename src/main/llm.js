@@ -1,7 +1,8 @@
 'use strict';
 
 // Who she talks with: Ollama, any OpenAI-compatible server (local, cloud, or a keyless gateway),
-// or Claude Code itself (headless `claude -p`, so your messages become its prompts).
+// or Claude Code itself (headless `claude -p`, so your messages become its prompts), or Codex
+// (headless `codex exec`, signed in with a ChatGPT plan: no API key, no paying per token).
 // Keys come from config.json's `apiKeys` ({ openai: "sk-..." }) or the provider's env variable.
 
 const os = require('node:os');
@@ -26,10 +27,15 @@ const PROVIDERS = {
   mistral: { label: 'Mistral', url: 'https://api.mistral.ai/v1', env: 'MISTRAL_API_KEY' },
   custom: { label: 'Custom (customUrl in config)' },
   claude: { label: 'Claude Code (sends to the terminal agent)', kind: 'claude' },
+  codex: { label: 'Codex (ChatGPT plan, sends to the terminal agent)', kind: 'codex' },
 };
 
 // no bypassPermissions: a chat bubble on the desktop shouldn't run anything without asking
 const CLAUDE_MODES = ['default', 'acceptEdits'];
+// the same two for Codex, as its sandboxes: it reads, or it also edits in its folder
+const CODEX_SANDBOX = { default: 'read-only', acceptEdits: 'workspace-write' };
+// the terminal agents: they keep the conversation themselves and really work in a folder
+const isAgent = (id) => ['claude', 'codex'].includes(PROVIDERS[id]?.kind);
 
 function endpoint(id, cfg) {
   const p = PROVIDERS[id];
@@ -72,6 +78,7 @@ async function models(id, cfg) {
   const p = endpoint(id, cfg);
   if (p.kind === 'ollama') return ollama.models().catch(() => null);
   if (p.kind === 'claude') return claudeVersion().then(() => ['Claude Code']);
+  if (p.kind === 'codex') return codexVersion().then(() => ['Codex']); // the model set in Codex's own config
   // what's missing has a code, so her setup knows what to ask for (setup.js)
   if (!p.url) throw Object.assign(new Error('no address set for this server'), { code: 'nourl' });
   if (p.env && !p.key) throw Object.assign(new Error(`no API key (or ${p.env})`), { code: 'nokey' });
@@ -193,25 +200,106 @@ function claudeChat(cfg, text, persona, onDelta, signal) {
   });
 }
 
-function resetClaude() {
+// --- Codex ---------------------------------------------------------------------------------------
+// Run straight from codex.exe, no shell: her persona can go on the command line as an argument. An
+// npm install only has codex.cmd, which needs cmd: then the persona goes in on stdin with your
+// message, and the command line keeps fixed arguments only.
+
+let codexThread = null; // its conversation, set by Codex's first answer
+// a thread id goes on the command line (through cmd for an npm install): nothing else than one passes
+const threadId = (id) => (typeof id === 'string' && /^[\w-]{1,100}$/.test(id) ? id : null);
+
+function codexVersion() {
+  return new Promise((resolve, reject) => {
+    execFile('codex', ['--version'], { shell: process.platform === 'win32', timeout: 10000 }, (err, out) => (
+      err ? reject(new Error('Codex not found (is `codex` on your PATH?)')) : resolve(out.trim())));
+  });
+}
+
+// Codex's error events carry the server's answer as JSON in a string: its message
+function codexError(message) {
+  try {
+    const parsed = JSON.parse(message);
+    return parsed.error?.message || parsed.message || message;
+  } catch {
+    return message;
+  }
+}
+
+function codexChat(cfg, text, persona, onDelta, signal) {
+  const run = (shell) => new Promise((resolve, reject) => {
+    const args = ['exec', ...(codexThread ? ['resume'] : []), '--json', '--skip-git-repo-check',
+      '-c', `sandbox_mode="${CODEX_SANDBOX[cfg.claudeMode] || 'read-only'}"`, '-c', 'approval_policy="never"',
+      ...(shell ? [] : ['-c', `developer_instructions=${JSON.stringify(persona)}`]), // a JSON string is a TOML one
+      ...(codexThread ? [codexThread] : []), '-'];
+    const child = spawn('codex', args, { cwd: cfg.claudeCwd || os.homedir(), shell, windowsHide: true });
+    const kill = () => (process.platform === 'win32'
+      ? execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], () => {})
+      : child.kill());
+    signal.addEventListener('abort', kill, { once: true });
+    let buffer = '';
+    let all = '';
+    let done = false;
+    let failed = null;
+    let errors = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      buffer += chunk;
+      let nl;
+      while ((nl = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        let msg;
+        try { msg = JSON.parse(line); } catch { continue; }
+        if (msg.type === 'thread.started') codexThread = threadId(msg.thread_id) || codexThread;
+        else if (msg.type === 'item.completed' && msg.item?.type === 'agent_message' && msg.item.text) {
+          const piece = (all ? '\n' : '') + msg.item.text;
+          all += piece;
+          onDelta(piece);
+        } else if (msg.type === 'error') failed = codexError(msg.message || '');
+        else if (msg.type === 'turn.failed') failed = codexError(msg.error?.message || failed || '');
+        else if (msg.type === 'turn.completed') done = true;
+      }
+    });
+    child.stderr.on('data', (chunk) => { errors += chunk; });
+    child.stdin.end(shell ? `${persona}\n\n---\n\n${text}` : text);
+    child.on('error', reject);
+    child.on('close', () => {
+      if (signal.aborted) return reject(new Error('stopped'));
+      if (!done) return reject(new Error(failed || errors.trim().slice(0, 300) || 'Codex gave no answer'));
+      resolve(all);
+    });
+  });
+  // no codex.exe to start (spawn's ENOENT): the npm one, through cmd
+  return run(false).catch((err) => {
+    if (err.code !== 'ENOENT' || process.platform !== 'win32') throw err;
+    return run(true);
+  });
+}
+
+function resetAgents() {
   claudeSession = null;
   claudeStarted = false;
+  codexThread = null;
 }
 
-// Claude Code's conversation, to save and pick up again after a restart.
-const claudeMemory = () => ({ session: claudeSession, started: claudeStarted });
-function restoreClaude(saved) {
-  claudeSession = saved?.session || null;
-  claudeStarted = Boolean(claudeSession && saved.started);
+// The terminal agents' conversations, to save and pick up again after a restart.
+const agentMemory = () => ({ claude: { session: claudeSession, started: claudeStarted }, codex: codexThread });
+function restoreAgents(saved = {}) {
+  claudeSession = saved.claude?.session || null;
+  claudeStarted = Boolean(claudeSession && saved.claude.started);
+  codexThread = threadId(saved.codex);
 }
 
-const isChatSession = (id) => Boolean(id) && id === claudeSession;
+// Codex's hooks send its thread as "codex:<thread>" (hooks/capri-codex-hook.js)
+const isChatSession = (id) => Boolean(id) && (id === claudeSession || (Boolean(codexThread) && id === `codex:${codexThread}`));
 
 async function chat(id, cfg, { model, messages }, onDelta, signal) {
   const p = endpoint(id, cfg);
   if (p.kind === 'ollama') return ollama.chat({ model, messages }, onDelta, signal);
-  // Claude Code keeps its own memory of the conversation: only her persona and your last message go
+  // the terminal agents keep their own memory of the conversation: only her persona and your last message go
   if (p.kind === 'claude') return claudeChat(cfg, messages.at(-1).content, messages[0].content, onDelta, signal);
+  if (p.kind === 'codex') return codexChat(cfg, messages.at(-1).content, messages[0].content, onDelta, signal);
   return openaiChat(p, { model, messages }, onDelta, signal);
 }
 
@@ -222,4 +310,6 @@ function isLocal(id, cfg) {
   return Boolean(PROVIDERS[id].local);
 }
 
-module.exports = { isLocal, PROVIDERS, CLAUDE_MODES, models, warm, chat, resetClaude, isChatSession, claudeMemory, restoreClaude };
+module.exports = {
+  isLocal, isAgent, PROVIDERS, CLAUDE_MODES, CODEX_SANDBOX, models, warm, chat, resetAgents, isChatSession, agentMemory, restoreAgents,
+};

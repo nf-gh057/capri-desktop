@@ -19,6 +19,9 @@ const TRAY = {
     possess: 'Posséder mes fenêtres', lang: 'Langue', auto: 'Automatique (système)', startup: 'Lancer au démarrage',
     hooksOn: 'Hooks Claude Code : installés', hooksOff: 'Installer les hooks Claude Code',
     hooksRemove: 'Retirer les hooks Claude Code', forget: 'Oublier nos conversations', quit: 'Quitter',
+    settings: 'Réglages…', menuMode: 'Menu', menuFull: 'Complet', menuCompact: 'Compact', refresh: 'Actualiser', permissions: 'Permissions',
+    agentPowers: 'Ses pouvoirs avec un agent (apps, sites, musique)', local: 'Tourne sur ce PC', cloud: 'En ligne', agentIn: 'Agent du terminal, dans',
+    secBrain: 'CERVEAU', secCapri: 'CAPRI', secWatch: 'SURVEILLE', secSystem: 'SYSTÈME',
   },
   en: {
     name: 'English',
@@ -35,6 +38,9 @@ const TRAY = {
     possess: 'Possess my windows', lang: 'Language', auto: 'Automatic (system)', startup: 'Start with Windows',
     hooksOn: 'Claude Code hooks: installed', hooksOff: 'Install Claude Code hooks',
     hooksRemove: 'Remove Claude Code hooks', forget: 'Forget our conversations', quit: 'Quit',
+    settings: 'Settings…', menuMode: 'Tray menu', menuFull: 'Full', menuCompact: 'Compact', refresh: 'Refresh', permissions: 'Permissions',
+    agentPowers: 'Her powers with an agent (apps, sites, music)', local: 'Running on this PC', cloud: 'Online', agentIn: 'Terminal agent, in',
+    secBrain: 'BRAIN', secCapri: 'CAPRI', secWatch: 'WATCH', secSystem: 'SYSTEM',
   },
   es: {
     name: 'Español',
@@ -51,6 +57,9 @@ const TRAY = {
     possess: 'Poseer mis ventanas', lang: 'Idioma', auto: 'Automático (sistema)', startup: 'Iniciar con Windows',
     hooksOn: 'Hooks de Claude Code: instalados', hooksOff: 'Instalar los hooks de Claude Code',
     hooksRemove: 'Quitar los hooks de Claude Code', forget: 'Olvidar nuestras conversaciones', quit: 'Salir',
+    settings: 'Ajustes…', menuMode: 'Menú', menuFull: 'Completo', menuCompact: 'Compacto', refresh: 'Actualizar', permissions: 'Permisos',
+    agentPowers: 'Sus poderes con un agente (apps, webs, música)', local: 'Funciona en este PC', cloud: 'En línea', agentIn: 'Agente de terminal, en',
+    secBrain: 'CEREBRO', secCapri: 'CAPRI', secWatch: 'VIGILA', secSystem: 'SISTEMA',
   },
   pt: {
     name: 'Português (Brasil)',
@@ -67,6 +76,9 @@ const TRAY = {
     possess: 'Possuir minhas janelas', lang: 'Idioma', auto: 'Automático (sistema)', startup: 'Iniciar com o Windows',
     hooksOn: 'Hooks do Claude Code: instalados', hooksOff: 'Instalar os hooks do Claude Code',
     hooksRemove: 'Remover os hooks do Claude Code', forget: 'Esquecer nossas conversas', quit: 'Sair',
+    settings: 'Configurações…', menuMode: 'Menu', menuFull: 'Completo', menuCompact: 'Compacto', refresh: 'Atualizar', permissions: 'Permissões',
+    agentPowers: 'Os poderes dela com um agente (apps, sites, música)', local: 'Roda neste PC', cloud: 'Online', agentIn: 'Agente de terminal, em',
+    secBrain: 'CÉREBRO', secCapri: 'CAPRI', secWatch: 'VIGIA', secSystem: 'SISTEMA',
   },
   ru: {
     name: 'Русский',
@@ -83,6 +95,9 @@ const TRAY = {
     possess: 'Вселяться в мои окна', lang: 'Язык', auto: 'Автоматически (системный)', startup: 'Запускать вместе с Windows',
     hooksOn: 'Хуки Claude Code: установлены', hooksOff: 'Установить хуки Claude Code',
     hooksRemove: 'Удалить хуки Claude Code', forget: 'Забыть наши разговоры', quit: 'Выйти',
+    settings: 'Настройки…', menuMode: 'Меню', menuFull: 'Полное', menuCompact: 'Краткое', refresh: 'Обновить', permissions: 'Права',
+    agentPowers: 'Её силы с агентом (приложения, сайты, музыка)', local: 'Работает на этом ПК', cloud: 'В сети', agentIn: 'Агент терминала, в папке',
+    secBrain: 'МОЗГ', secCapri: 'CAPRI', secWatch: 'НАБЛЮДЕНИЕ', secSystem: 'СИСТЕМА',
   },
   pl: {
     name: 'Polski',
@@ -99,6 +114,9 @@ const TRAY = {
     possess: 'Opętuj moje okna', lang: 'Język', auto: 'Automatycznie (systemowy)', startup: 'Uruchamiaj z Windowsem',
     hooksOn: 'Hooki Claude Code: zainstalowane', hooksOff: 'Zainstaluj hooki Claude Code',
     hooksRemove: 'Usuń hooki Claude Code', forget: 'Zapomnij nasze rozmowy', quit: 'Zakończ',
+    settings: 'Ustawienia…', menuMode: 'Menu w zasobniku', menuFull: 'Pełne', menuCompact: 'Skrócone', refresh: 'Odśwież', permissions: 'Uprawnienia',
+    agentPowers: 'Moce Capri z agentem (aplikacje, strony, muzyka)', local: 'Działa na tym PC', cloud: 'W sieci', agentIn: 'Agent terminala, w folderze',
+    secBrain: 'MÓZG', secCapri: 'CAPRI', secWatch: 'OBSERWACJA', secSystem: 'SYSTEM',
   },
 };
 

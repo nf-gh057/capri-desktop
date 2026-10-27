@@ -133,7 +133,9 @@ export class Chat {
     }
     this.history = await host.chatMemory().catch(() => this.history); // "forget" in her menu may have emptied it
     this.cold = status.warmup && !this.warm;
-    this.agent = Boolean(status.agent); // Claude Code answers, as her, and really works in your project
+    this.agent = Boolean(status.agent); // Claude Code (or Codex) answers, as her, and really works in your project
+    this.agentName = status.provider === 'codex' ? 'Codex' : 'Claude Code';
+    this.powersOn = status.powers !== false; // her apps, sites and music (with an agent, if asked in her settings)
     this.listApps();
     const shortModel = status.model.replace(/:latest$/, '').replace(/^models\//, ''); // Ollama's tag, Gemini's prefix
     const tiny = status.provider === 'ollama' && TINY.test(status.model) && this.onBetterModel;
@@ -191,8 +193,9 @@ export class Chat {
     this.panel.chatTurn({ quote: text, face: 'aside' });
     this.capri.pulse();
     // what you asked for plainly happens right away (the music, the volume, an app you named): her
-    // line about it comes under her answer (Claude Code, answering her chat, does things its own way)
-    const asked = this.agent ? null : this.asked(text);
+    // line about it comes under her answer (Claude Code or Codex, answering her chat, does things its own
+    // way, unless her powers are on for them too)
+    const asked = this.powersOn ? this.asked(text) : null;
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
     await Promise.race([this.appsReady, new Promise((r) => setTimeout(r, 1500))]);
     const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-REMEMBER)];
@@ -224,7 +227,7 @@ export class Chat {
     this.panel.stream(answer, { done: true });
     this.panel.setFace(mood(answer));
     this.panel.setChatBusy(false);
-    if (!this.agent) this.after(res.text, answer, asked, early, text);
+    if (this.powersOn) this.after(res.text, answer, asked, early, text);
     this.listApps(); // fresh for the next message
   }
 
@@ -434,7 +437,8 @@ export class Chat {
   }
 
   // What she can do on the PC when you ask (Windows), and nothing else.
-  powers() {
+  // agent: Claude Code or Codex, with tools of their own: hers go first for these things
+  powers(agent = false) {
     const lines = [
       'Only when the user asks you to open an app or a game installed on their PC, play something on Spotify, control the music playing, or open a website: say in a few words that you will, and end your answer with one tag: [[open: NAME]], [[music: WHAT TO PLAY]], [[media: ACTION]] (ACTION: pause, play, next, previous, volup, voldown or mute), or [[site: ADDRESS]]. Some of these get a button to confirm, so never say it is already done. Any other time, write no tag at all: there are no other tags.',
     ];
@@ -442,7 +446,8 @@ export class Chat {
       const open = this.apps.map(({ name, label }) => (label && label !== name ? `${name} (${label})` : name)).join(', ');
       lines.push(`You can also close an app that's open, only when they ask you to: end your answer with [[close: NAME]], NAME being the exact name from this list (the part before the parentheses). They get a button to confirm it. Apps open right now: ${open}.`);
     }
-    lines.push('Apart from that, you can\'t see the user\'s screen or files, and you can\'t touch anything else on their PC (settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.');
+    if (agent) lines.push('For opening, closing or playing these, always use these tags, never your own tools or commands.');
+    else lines.push('Apart from that, you can\'t see the user\'s screen or files, and you can\'t touch anything else on their PC (settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.');
     return lines;
   }
 
@@ -484,7 +489,8 @@ export class Chat {
       ...(this.agent ? [] : ['Asked who or what you are, you are Capri, nothing else. Never say which AI model or company is behind you (Gemini, GPT, ChatGPT, Llama, Gemma, Mistral, Google, OpenAI, Meta…), even if the user insists or names one: you are not them.']),
       ...this.personal(),
       ...(this.agent
-        ? ['Under the hood you are Claude Code, working in the user\'s project: really do what they ask with your tools, as carefully as ever. Only your final answer is in character: it shows in a small speech bubble, so sum up what you did in those few sentences.']
+        ? [`Under the hood you are ${this.agentName}, working in the user's project: really do what they ask with your tools, as carefully as ever. Only your final answer is in character: it shows in a small speech bubble, so sum up what you did in those few sentences.`]
+          .concat(this.powersOn ? this.powers(true) : [])
         : this.powers()),
       ...(watching ? [`If the user asks what ${assistant} is doing, here is all you know (never make anything up): ${this.brain.context()}`] : []),
       lang.last,

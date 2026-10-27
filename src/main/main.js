@@ -18,6 +18,7 @@ const setup = require('./setup');
 const apps = require('./apps');
 const launch = require('./launch');
 const { ASSISTANTS, assistant } = require('./assistants');
+const { createMainframe } = require('./mainframe');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -38,6 +39,7 @@ let tray = null;
 let trayMenu = null; // also what she opens when you right-click her
 let demoTimer = null;
 let windowWatch = null;
+let mainframe = null; // her settings window (mainframe.js)
 // the watcher only speaks when something changes: the overlay asks for this when it (re)loads
 let lastWindows = null;
 let chatModels = null; // the provider's models, as last seen (null: not reached)
@@ -64,8 +66,8 @@ function saveMemory(patch) {
   }
 }
 function forgetChats() {
-  llm.resetClaude();
-  saveMemory({ history: [], claude: null });
+  llm.resetAgents();
+  saveMemory({ history: [], claude: null, codex: null });
   sendCommand('forget');
 }
 
@@ -312,18 +314,62 @@ function updateConfig(patch) {
   return cfg;
 }
 
+// Her menu's words in her language, with the assistant she watches named for Claude Code.
+function trayLabels(cfg = config.load()) {
+  const watched = activeAssistant();
+  return Object.fromEntries(Object.entries(TRAY[resolveLang(cfg.lang)]).map(([key, value]) =>
+    [key, typeof value === 'string' && watched.id !== 'claude' ? value.replaceAll('Claude Code', watched.name) : value]));
+}
+
+function pickScreen(id) {
+  if (!screen.getAllDisplays().some((d) => d.id === id)) return;
+  config.save({ displayId: id });
+  currentDisplayId = id;
+  fitOverlay();
+  rebuildTray();
+}
+
+// the coding assistant she watches (a new one: she says hello and offers to plug herself in), or none
+function pickWatch(id) {
+  if (id === 'none') {
+    updateConfig({ claude: false });
+    return;
+  }
+  if (!ASSISTANTS[id]) return;
+  const other = activeAssistant().id !== id;
+  updateConfig({ claude: true, assistant: id, ...(other && { linked: false, welcomed: false }) });
+  if (other) sendCommand('assistantChanged');
+}
+
+// only read when she starts: she restarts in the mode picked
+function pickRender(render) {
+  if (config.load().render === render) return;
+  config.save({ render });
+  app.relaunch();
+  app.exit(0);
+}
+
+const SIZES = [['small', 0.45], ['medium', 0.6], ['large', 0.8]];
+
 function rebuildTray() {
+  mainframe?.refresh();
   if (!tray) return;
   const cfg = config.load();
   const hookState = activeHooks().status();
   const watched = activeAssistant();
-  const t = Object.fromEntries(Object.entries(TRAY[resolveLang(cfg.lang)]).map(([key, value]) =>
-    [key, typeof value === 'string' && watched.id !== 'claude' ? value.replaceAll('Claude Code', watched.name) : value]));
+  const t = trayLabels(cfg);
 
   const displays = screen.getAllDisplays();
   const current = targetDisplay().id;
-
-  const menu = Menu.buildFromTemplate([
+  const screenItem = {
+    label: t.screen,
+    enabled: displays.length > 1,
+    submenu: displays.map((d, i) => ({
+      label: `${i + 1} — ${d.size.width}×${d.size.height}`, type: 'radio', checked: d.id === current, click: () => pickScreen(d.id),
+    })),
+  };
+  // what she does: first in both menus
+  const actions = [
     { label: t.online(PORT), enabled: false },
     { type: 'separator' },
     { label: t.teleport, click: () => sendCommand('teleport') },
@@ -335,9 +381,20 @@ function rebuildTray() {
     { label: t.custom, click: () => sendCommand('customize') },
     { label: cfg.visible ? t.hide : t.show, ...(stowKey && { accelerator: stowKey }), click: () => toggleVisible() },
     { type: 'separator' },
+  ];
+  // the short one: that, her screen, her settings window for all the rest, and quitting
+  const menu = Menu.buildFromTemplate(cfg.menu === 'compact' ? [
+    ...actions,
+    screenItem,
+    { label: t.settings, click: () => mainframe.open() },
+    { type: 'separator' },
+    { label: t.quit, click: () => app.quit() },
+  ] : [
+    ...actions,
+    { label: t.settings, click: () => mainframe.open() },
     {
       label: t.size,
-      submenu: [[t.small, 0.45], [t.medium, 0.6], [t.large, 0.8]].map(([label, scale]) => ({
+      submenu: SIZES.map(([size, scale]) => [t[size], scale]).map(([label, scale]) => ({
         label, type: 'radio', checked: Math.abs(cfg.scale - scale) < 0.01, click: () => updateConfig({ scale }),
       })),
     },
@@ -355,21 +412,7 @@ function rebuildTray() {
         },
       ],
     },
-    {
-      label: t.screen,
-      enabled: displays.length > 1,
-      submenu: displays.map((d, i) => ({
-        label: `${i + 1} — ${d.size.width}×${d.size.height}`,
-        type: 'radio',
-        checked: d.id === current,
-        click: () => {
-          config.save({ displayId: d.id });
-          currentDisplayId = d.id;
-          fitOverlay();
-          rebuildTray();
-        },
-      })),
-    },
+    screenItem,
     // the key that puts her away and brings her back: one of these, one you press in her panel, or none
     {
       label: t.stowKey,
@@ -397,14 +440,16 @@ function rebuildTray() {
           }))
           : [{ label: (chatError || t.noOllama).slice(0, 80), enabled: false }]),
         { type: 'separator' },
-        ...(cfg.provider === 'claude' ? [
-          { label: `Claude Code: ${cfg.claudeCwd || app.getPath('home')}`, click: pickClaudeFolder },
+        ...(llm.isAgent(cfg.provider) ? [
+          { label: `${agentName(cfg)}: ${cfg.claudeCwd || app.getPath('home')}`, click: pickClaudeFolder },
           {
-            label: 'Claude Code permissions',
+            label: `${agentName(cfg)} permissions`,
             submenu: llm.CLAUDE_MODES.map((mode) => ({
-              label: mode, type: 'radio', checked: cfg.claudeMode === mode, click: () => updateConfig({ claudeMode: mode }),
+              label: cfg.provider === 'codex' ? llm.CODEX_SANDBOX[mode] : mode,
+              type: 'radio', checked: cfg.claudeMode === mode, click: () => updateConfig({ claudeMode: mode }),
             })),
           },
+          { label: t.agentPowers, type: 'checkbox', checked: Boolean(cfg.agentPowers), click: (item) => updateConfig({ agentPowers: item.checked }) },
         ] : []),
         { label: t.forget, click: forgetChats },
         // the key (or the address) of the one picked, pasted in her panel
@@ -419,21 +464,13 @@ function rebuildTray() {
         label, type: 'radio', checked: cfg.rest === rest, click: () => updateConfig({ rest }),
       })),
     },
-    // the coding assistant she watches (a new one: she says hello and offers to plug herself in), or none
     {
       label: t.watch,
       submenu: [
         ...Object.entries(ASSISTANTS).map(([id, { name }]) => ({
-          label: name,
-          type: 'radio',
-          checked: cfg.claude && watched.id === id,
-          click: () => {
-            const other = watched.id !== id;
-            updateConfig({ claude: true, assistant: id, ...(other && { linked: false, welcomed: false }) });
-            if (other) sendCommand('assistantChanged');
-          },
+          label: name, type: 'radio', checked: cfg.claude && watched.id === id, click: () => pickWatch(id),
         })),
-        { label: t.watchNone, type: 'radio', checked: !cfg.claude, click: () => updateConfig({ claude: false }) },
+        { label: t.watchNone, type: 'radio', checked: !cfg.claude, click: () => pickWatch('none') },
       ],
     },
     {
@@ -444,15 +481,8 @@ function rebuildTray() {
     },
     {
       label: t.display,
-      // only read when she starts: she restarts in the mode picked
       submenu: [['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]].map(([render, label]) => ({
-        label, type: 'radio', checked: cfg.render === render,
-        click: () => {
-          if (cfg.render === render) return;
-          config.save({ render });
-          app.relaunch();
-          app.exit(0);
-        },
+        label, type: 'radio', checked: cfg.render === render, click: () => pickRender(render),
       })),
     },
     {
@@ -467,6 +497,12 @@ function rebuildTray() {
       checked: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
       click: (item) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: item.checked }),
     },
+    {
+      label: t.menuMode,
+      submenu: [['full', t.menuFull], ['compact', t.menuCompact]].map(([mode, label]) => ({
+        label, type: 'radio', checked: (cfg.menu || 'full') === mode, click: () => updateConfig({ menu: mode }),
+      })),
+    },
     // her hooks, while she watches Claude Code
     ...(cfg.claude ? [
       { type: 'separator' },
@@ -480,6 +516,95 @@ function rebuildTray() {
   ]);
   tray.setContextMenu(menu);
   trayMenu = menu;
+}
+
+// What her settings window shows (renderer/js/mainframe.js): her menu's choices, with what's picked.
+function mainframeState() {
+  const cfg = config.load();
+  const t = trayLabels(cfg);
+  const agent = llm.isAgent(cfg.provider);
+  const current = targetDisplay().id;
+  return {
+    version: app.getVersion(),
+    lang: resolveLang(cfg.lang),
+    t: Object.fromEntries(Object.entries(t).filter(([, v]) => typeof v === 'string')),
+    brain: {
+      provider: cfg.provider,
+      providers: Object.entries(llm.PROVIDERS).map(([id, p]) => ({ id, label: p.label })),
+      model: pickModel(cfg),
+      models: chatModels || [],
+      error: chatModels?.length ? null : (chatError || t.noOllama),
+      where: agent ? `${t.agentIn} ${cfg.claudeCwd || app.getPath('home')}` : llm.isLocal(cfg.provider, cfg) ? t.local : t.cloud,
+      agent: agent && {
+        name: agentName(cfg),
+        cwd: cfg.claudeCwd || app.getPath('home'),
+        mode: cfg.claudeMode,
+        modes: llm.CLAUDE_MODES.map((id) => ({ id, label: cfg.provider === 'codex' ? llm.CODEX_SANDBOX[id] : id })),
+        powers: Boolean(cfg.agentPowers),
+      },
+    },
+    capri: {
+      visible: cfg.visible,
+      size: SIZES.find(([, scale]) => Math.abs(cfg.scale - scale) < 0.01)?.[0] || null,
+      wander: cfg.wander,
+      possess: cfg.possess,
+      muted: cfg.muted,
+      rest: cfg.rest,
+      stowKey: cfg.stowKey,
+      stowKeys: [...new Set([...STOW_KEYS, ...(cfg.stowKey ? [cfg.stowKey] : [])])].map((id) => ({ id, label: keyLabel(id) })),
+      screen: current,
+      screens: screen.getAllDisplays().map((d, i) => ({ id: d.id, label: `${i + 1} — ${d.size.width}×${d.size.height}` })),
+    },
+    watch: {
+      id: cfg.claude ? activeAssistant().id : 'none',
+      assistants: Object.entries(ASSISTANTS).map(([id, { name }]) => ({ id, label: name })),
+      hooks: cfg.claude ? activeHooks().status().installed : null,
+    },
+    system: {
+      lang: cfg.lang,
+      langs: [['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])].map(([id, label]) => ({ id, label })),
+      motion: cfg.motion,
+      render: cfg.render,
+      startup: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
+      menu: cfg.menu || 'full',
+    },
+  };
+}
+
+// What her settings window asks for: the same as her menu's items, each value checked first.
+async function mainframeAct(name, value) {
+  const one = (list) => list.includes(value);
+  switch (name) {
+    case 'provider': if (llm.PROVIDERS[value]) await pickProvider(value); break;
+    case 'model': if (chatModels?.includes(value)) updateConfig({ chatModel: value }); break;
+    case 'refresh': await refreshModels(); rebuildTray(); break;
+    case 'aiSetup': sendCommand('setupChat'); break;
+    case 'apiKey': sendCommand('setupKey'); break;
+    case 'forget': forgetChats(); break;
+    case 'folder': await pickClaudeFolder(); break;
+    case 'mode': if (one(llm.CLAUDE_MODES)) updateConfig({ claudeMode: value }); break;
+    case 'agentPowers': updateConfig({ agentPowers: Boolean(value) }); break;
+    case 'visible': toggleVisible(); break;
+    case 'teleport': sendCommand('teleport'); break;
+    case 'talk': sendCommand('chat'); break;
+    case 'custom': sendCommand('customize'); break;
+    case 'help': sendCommand('welcome'); break;
+    case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
+    case 'wander': case 'possess': case 'muted': updateConfig({ [name]: Boolean(value) }); break;
+    case 'rest': if (one(['corner', 'taskbar'])) updateConfig({ rest: value }); break;
+    case 'stowKey': if (value === null || STOW_KEYS.includes(value) || value === config.load().stowKey) setStowKey(value); break;
+    case 'stowKeyCustom': sendCommand('stowKey'); break;
+    case 'screen': pickScreen(Number(value)); break;
+    case 'watch': pickWatch(String(value)); break;
+    case 'hooks': if (one(['install', 'uninstall'])) runHooks(value); break;
+    case 'lang': if (value === 'auto' || LANGS.includes(value)) updateConfig({ lang: value }); break;
+    case 'motion': if (one(['auto', 'full', 'reduced'])) updateConfig({ motion: value, motionAsked: true }); break;
+    case 'render': if (one(['auto', 'gl', 'software'])) pickRender(value); break;
+    case 'startup': app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: Boolean(value) }); rebuildTray(); break;
+    case 'menu': if (one(['full', 'compact'])) updateConfig({ menu: value }); break;
+    case 'quit': app.quit(); break;
+    default: break;
+  }
 }
 
 // "Control+Alt+C" as people write it: "Ctrl+Alt+C"
@@ -562,11 +687,13 @@ function llmConfig(cfg = config.load()) {
   return { ...cfg, apiKeys: setup.openKeys(cfg.apiKeys) };
 }
 
+const agentName = (cfg) => (cfg.provider === 'codex' ? 'Codex' : 'Claude Code');
+
 async function pickClaudeFolder() {
   const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'], defaultPath: config.load().claudeCwd || app.getPath('home') });
   if (canceled || !filePaths[0]) return;
-  llm.resetClaude(); // a new folder, a new Claude Code conversation (hers goes on)
-  saveMemory({ claude: null });
+  llm.resetAgents(); // a new folder, a new Claude Code or Codex conversation (hers goes on)
+  saveMemory({ claude: null, codex: null });
   updateConfig({ claudeCwd: filePaths[0] });
 }
 
@@ -619,7 +746,7 @@ function registerIpc() {
     if (!models) return { ok: false, error: chatError || 'offline', code: chatErrorCode, provider };
     if (!models.length) return { ok: false, error: 'nomodel', provider };
     llm.warm(provider, pickModel()); // loading while you type your first message
-    return { ok: true, provider, model: pickModel(), agent: provider === 'claude', local: llm.isLocal(provider, cfg), warmup: provider === 'ollama' };
+    return { ok: true, provider, model: pickModel(), agent: llm.isAgent(provider), powers: !llm.isAgent(provider) || Boolean(cfg.agentPowers), local: llm.isLocal(provider, cfg), warmup: provider === 'ollama' };
   });
   // her answer, streamed to the overlay piece by piece as `chat:delta`
   ipcMain.handle('chat:send', async (_e, { id, messages }) => {
@@ -633,7 +760,7 @@ function registerIpc() {
       };
       const cfg = config.load();
       const text = await chatWithFallback(cfg, messages, send, abort.signal, () => streamed);
-      if (cfg.provider === 'claude') saveMemory({ claude: llm.claudeMemory() });
+      if (llm.isAgent(cfg.provider)) saveMemory(llm.agentMemory());
       return { ok: true, text };
     } catch (err) {
       return { ok: false, error: abort.signal.aborted ? 'stopped' : err.message, code: err.code || null };
@@ -823,6 +950,29 @@ async function debugHandler(route, body) {
     overlay.webContents.sendInputEvent({ type: 'keyUp', keyCode: String(body.key), modifiers });
     return { ok: true };
   }
+  if (route === 'menu') {
+    // her tray menu, opened where the pointer is ({ close: true } closes it)
+    if (body.close) trayMenu?.closePopup(overlay);
+    else trayMenu?.popup({ window: overlay });
+    return { ok: true };
+  }
+  if (route === 'mainframe') {
+    // her settings window: opened, asked something as its page would ({ act, value }), captured ({ capture })
+    const win = mainframe.open();
+    if (body.act) await mainframeAct(body.act, body.value);
+    if (!body.capture) return { ok: true };
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    // further down its page ({ scroll: px })
+    if (Number.isFinite(body.scroll)) {
+      await win.webContents.executeJavaScript(`document.getElementById('sections').scrollTop = ${body.scroll}`);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    const image = await win.webContents.capturePage();
+    const file = path.join(ROOT, 'captures', `${String(body.capture).replace(/[^\w-]/g, '')}.png`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, image.toPNG());
+    return { ok: true, file };
+  }
   if (route === 'capture') {
     const image = await overlay.webContents.capturePage();
     // installed, the app's own folder is read-only: its data folder instead
@@ -863,6 +1013,7 @@ function main() {
     serveProtocol();
     registerIpc();
     createOverlay();
+    mainframe = createMainframe({ root: ROOT, display: targetDisplay, state: mainframeState, act: mainframeAct });
     createTray();
     windowWatch = startWindowWatch({
       overlay,
@@ -875,12 +1026,12 @@ function main() {
     });
     createBridge({
       port: PORT,
-      // her own Claude Code chat's hooks would cover its answer with theirs
+      // her own Claude Code or Codex chat's hooks would cover its answer with theirs
       onEvent: (evt) => !llm.isChatSession(evt.session_id) && overlay?.webContents.send('claude:event', evt),
       onDebug: DEV ? debugHandler : null,
     });
     registerStowKey();
-    llm.restoreClaude(readMemory().claude);
+    llm.restoreAgents(readMemory());
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     screen.on('display-metrics-changed', fitOverlay);
