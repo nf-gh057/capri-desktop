@@ -198,7 +198,7 @@ Elle n'attrape la souris que sur son corps (au pixel près) : tout le reste de l
   démo, comment ça marche, rapport de mission, lui parler, taille, son, écran, modèle IA, se balader,
   posséder tes fenêtres, langue, lancement au démarrage, hooks.
 
-Elle parle **français, anglais, espagnol, portugais du Brésil et russe**, et choisit toute seule la langue de ton
+Elle parle **français, anglais, espagnol, portugais du Brésil, russe et polonais**, et choisit toute seule la langue de ton
 système. Tu peux en choisir une autre dans son menu.
 
 ## Installation
@@ -281,7 +281,7 @@ permission, fin), puis montre tout ce qu'elle fait toute seule, une phrase avant
 l'éclair sur ta souris, la grande séquence du satellite, la possession d'une fenêtre (un petit terminal s'ouvre
 pour elle, puis se ferme sous elle et elle tombe), le sommeil jusqu'à son masque, et le rangement en bas à gauche.
 C'est aussi dans le menu de l'icône, dans sa langue ; en ligne de commande c'est en anglais, ou précise la langue :
-`npm run demo -- fr` (ou `es`, `pt`, `ru`).
+`npm run demo -- fr` (ou `es`, `pt`, `ru`, `pl`).
 
 ## Sons
 
@@ -428,7 +428,7 @@ src/renderer/js/
   brain.js               traduit les événements Claude en répliques et en actions
   mission.js             le journal de mission du jour, pour son rapport
   chat.js                lui parler : la conversation, qui elle est, ses réponses qui arrivent
-  lines.js               ce qu'elle dit (FR / EN / ES / PT / RU)
+  lines.js               ce qu'elle dit (FR / EN / ES / PT / RU / PL)
   chip.js                son masque : quand elle dort, et en bas à gauche quand tu la ranges
   voice.js               les sons
 ```

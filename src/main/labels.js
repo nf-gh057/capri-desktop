@@ -79,6 +79,21 @@ const TRAY = {
     hooksOn: 'Хуки Claude Code: установлены', hooksOff: 'Установить хуки Claude Code',
     hooksRemove: 'Удалить хуки Claude Code', forget: 'Забыть наши разговоры', quit: 'Выйти',
   },
+  pl: {
+    name: 'Polski',
+    online: (port) => `Capri — nasłuchuje na porcie ${port}`,
+    teleport: 'Teleportuj', satellite: 'Popatrz na satelitę', demo: 'Odpal demo', help: 'Jak to działa?',
+    report: 'Raport z misji', talk: 'Pogadaj z nią', custom: 'Dopasuj ją…', chatModel: 'Model AI', aiSetup: 'Wybierz razem z nią…', apiKey: 'Klucz API lub adres…', noOllama: 'Nie znaleziono Ollamy',
+    rest: 'Kiedy odpoczywa', restCorner: 'W swoim kącie', restTaskbar: 'Siedząc na pasku zadań', watch: 'Obserwuj', watchNone: 'Nic, po prostu dotrzymuj mi towarzystwa',
+    motion: 'Animacje', motionAuto: 'Jak w Windowsie', motionFull: 'Wszystkie', motionReduced: 'Ograniczone',
+    display: 'Wyświetlanie', displayAuto: 'Normalne', displayGl: 'OpenGL (jeśli jej tło jest czarne)', displaySoftware: 'Bez karty graficznej (jeśli dalej jest czarne)',
+    show: 'Przywołaj ją', hide: 'Schowaj ją',
+    size: 'Rozmiar', small: 'Mała', medium: 'Średnia', large: 'Duża', sound: 'Dźwięk', mute: 'Wycisz',
+    soundsDir: 'Otwórz folder własnych dźwięków', screen: 'Ekran', wander: 'Kręć się, kiedy nic się nie dzieje',
+    possess: 'Opętuj moje okna', lang: 'Język', auto: 'Automatycznie (systemowy)', startup: 'Uruchamiaj z Windowsem',
+    hooksOn: 'Hooki Claude Code: zainstalowane', hooksOff: 'Zainstaluj hooki Claude Code',
+    hooksRemove: 'Usuń hooki Claude Code', forget: 'Zapomnij nasze rozmowy', quit: 'Zakończ',
+  },
 };
 
 module.exports = { TRAY, LANGS: Object.keys(TRAY) };

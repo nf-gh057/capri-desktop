@@ -185,7 +185,7 @@ She only catches the mouse on her actual body (pixel-precise): the rest of the s
   how it works, mission report, talk to her, size, sound, screen, AI model, wander, possess your windows,
   language, start with Windows, hooks.
 
-She speaks **French, English, Spanish, Brazilian Portuguese and Russian**, and picks the language of your system on her
+She speaks **French, English, Spanish, Brazilian Portuguese, Russian and Polish**, and picks the language of your system on her
 own. You can choose another one in her menu.
 
 ## Install
@@ -265,7 +265,7 @@ prompt, the end), then shows everything she does on her own, a line before each 
 zapping your pointer, the whole satellite sequence, possessing a window (a little terminal opens for her, then closes
 under her and she falls), sleeping down to her mask, and putting herself away in the bottom-left corner.
 It's also in the tray menu, in her language; from the command line it's in English, or add one: `npm run demo -- fr`
-(or `es`, `pt`, `ru`).
+(or `es`, `pt`, `ru`, `pl`).
 
 ## Sounds
 
@@ -406,7 +406,7 @@ src/renderer/js/
   brain.js               turns Claude events into lines and actions
   mission.js             today's mission log, for her report card
   chat.js                talking to her: the conversation, who she is, her answers coming in
-  lines.js               what she says (FR / EN / ES / PT / RU)
+  lines.js               what she says (FR / EN / ES / PT / RU / PL)
   chip.js                her mask: while she sleeps, and bottom left when you put her away
   voice.js               the sounds
 ```

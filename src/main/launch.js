@@ -12,7 +12,7 @@ const { powershell } = require('./apps');
 
 const WIN = process.platform === 'win32';
 // not things to open from a chat: uninstallers, help pages and the like
-const SKIP = /uninstall|désinstaller|desinstalar|deinstall|readme|documentation|release notes|support center|website|manual/i;
+const SKIP = /uninstall|désinstaller|desinstalar|deinstall|odinstaluj|dezinstalacja|readme|documentation|release notes|support center|website|manual/i;
 const STEAM_SKIP = /redistributable|dedicated server|steamworks/i;
 // words that don't tell apps apart ("Roblox Player" is "roblox")
 const FILLER = new Set(['player', 'launcher', 'app', 'the', 'for', 'windows', 'desktop', 'client', 'x64', 'x86', 'beta']);

@@ -44,6 +44,14 @@ const TEXT = {
     push: 'Запушить в main',
     reply: 'Готово: **GET /gigs** с пагинацией по курсору, 6 тестов проходят. Пуш сделан.',
   },
+  pl: {
+    prompt: 'Dodaj endpoint /gigs z paginacją i testami',
+    // nouns: her ticker puts its verb before them ("Uruchamia testy gigs")
+    explore: 'sprawdzenie pozostałych tras',
+    test: 'testy gigs',
+    push: 'push na main',
+    reply: 'Dodałem **GET /gigs** z paginacją po kursorze i 6 testów przechodzi. Push zrobiony.',
+  },
 };
 
 // demo: not a real Claude Code event (she doesn't count it as her first contact)
@@ -51,7 +59,7 @@ const base = (name, extra = {}) => ({ hook_event_name: name, session_id: SESSION
 const tool = (name, input) => base('PreToolUse', { tool_name: name, tool_input: input });
 const done = (name, input, ms) => base('PostToolUse', { tool_name: name, tool_input: input, duration_ms: ms });
 
-// The steps, in `lang` (fr, en, es, pt, ru; English for anything else).
+// The steps, in `lang` (fr, en, es, pt, ru, pl; English for anything else).
 module.exports = function demoSteps(lang = 'en') {
   const t = TEXT[lang] || TEXT.en;
   return [
