@@ -10,6 +10,7 @@ import { ASSISTANT_NAMES } from './lines.js';
 import { parseReminder, parseWhen, clock } from './reminders.js';
 
 const REMEMBER = 20; // messages she has in mind when answering
+const REMEMBER_LOCAL = 8; // the same, with a model on this PC standing in (no network): less to read, a quicker answer
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
 // her language, where small models need it: how she says "we" (else it's in English), and the last line
 // of her prompt, in that language (they drift into the English of everything above it)
@@ -151,6 +152,9 @@ const BROWSER = /chrome|edge|firefox|opera|brave|vivaldi|duckduckgo|browser/i;
 // local models this small mostly talk nonsense ("llama3.2:1b", "qwen2.5:0.5b"…)
 const TINY = /[:-](0\.5b|1b|1\.5b|135m|270m|360m)\b/i;
 // her face when she greets you in a mood (bond.js)
+// a model's name as her chat shows it: without Ollama's ":latest" and Gemini's "models/"
+const short = (model) => String(model || '').replace(/:latest$/, '').replace(/^models\//, '');
+
 const MOOD_FACE = { angry: 'many', sulk: 'aside', dizzy: 'wide', thrown: 'wide', jealous: 'look', fun: 'laugh', happy: 'laugh', forgiven: 'smug' };
 
 export class Chat {
@@ -167,6 +171,8 @@ export class Chat {
     this.answer = '';
     this.apps = [];    // the apps open on this PC, as last listed: [{ name, label }]
     this.appsReady = Promise.resolve();
+    this.showModel = true; // the model's name in her chat's header (Mainframe can hide it)
+    this.showNote = true;  // the line under her chat saying an AI answers, not her (same)
     this.onSetup = null; // (status) => void: she can't answer yet (app.js hands it to setup.js)
     this.onBetterModel = null; // () => void: a bigger model than the tiny one she's on (setup.js)
     this.reminders = null; // the reminders she keeps (reminders.js, from app.js)
@@ -225,7 +231,9 @@ export class Chat {
     this.agentName = status.provider === 'codex' ? 'Codex' : 'Claude Code';
     this.powersOn = status.powers !== false; // her apps, sites and music (with an agent, if asked in her settings)
     this.listApps();
-    const shortModel = status.model.replace(/:latest$/, '').replace(/^models\//, ''); // Ollama's tag, Gemini's prefix
+    const shortModel = short(status.model);
+    this.mind = { model: status.model, local: status.local }; // who answers, as her chat shows it
+    this.elsewhere = false; // a model on this PC answering instead (no network)
     const tiny = status.provider === 'ollama' && TINY.test(status.model) && this.onBetterModel;
     // angry, sulking, dizzy…: she greets you the way she feels, and her model is told she did
     const feeling = this.bond?.feeling;
@@ -237,7 +245,7 @@ export class Chat {
       kind: 'chat',
       face: moody ? MOOD_FACE[feeling] : 'look',
       badge: t.badge,
-      tag: shortModel,
+      tag: this.brainInfo(status.model, status.local).tag,
       line: tiny ? fmt(t.tiny, { model: shortModel }) : hello,
       actions: tiny ? [{ id: 'better', label: t.better, primary: true }] : [],
       onAction: () => {
@@ -248,8 +256,7 @@ export class Chat {
         placeholder: t.placeholder,
         send: t.send,
         close: t.close,
-        noteTag: t.noteTag,
-        note: status.local ? t.note : t.noteCloud,
+        ...this.brainInfo(status.model, status.local).chat,
       },
       onSend: (text) => this.send(text),
       onLeave: () => this.close(),
@@ -315,12 +322,18 @@ export class Chat {
     // no tools of its own), and she says so under her answer.
     let note = '';
     if (!res.ok && res.code === 'offline' && res.local && this.turn === id) {
+      clearTimeout(slow); // "Claude Code is at work" isn't so
       const agent = this.agent;
       this.agent = false;
-      const local = this.messages();
+      const local = this.messages(REMEMBER_LOCAL);
       this.agent = agent;
       res = await this.host.chatSend({ id, messages: local, local: res.local });
-      if (res.ok) note = fmt(this.t.offlineLocal, { model: res.local });
+      if (res.ok) note = fmt(this.t.offlineLocal, { model: short(res.local) });
+    }
+    // her header and note follow: the model on this PC while it answers, hers again once it's back
+    if (res.ok && Boolean(note) !== this.elsewhere) {
+      this.elsewhere = Boolean(note);
+      this.panel.setChatInfo(note ? this.brainInfo(res.local, true) : this.brainInfo(this.mind.model, this.mind.local));
     }
     clearTimeout(slow);
     if (this.turn !== id) {
@@ -395,12 +408,22 @@ export class Chat {
     return say(answer, mood(answer));
   }
 
+  // Her chat's header tag and the note under it, for `model` answering (on this PC or not): each one
+  // hidden if you said so in Mainframe
+  brainInfo(model, local) {
+    const { t } = this;
+    return {
+      tag: this.showModel ? short(model) : '',
+      chat: { noteTag: t.noteTag, note: this.showNote ? (local ? t.note : t.noteCloud) : '' },
+    };
+  }
+
   // What her AI gets: who she is, then the conversation. Her mood (angry, sulking…) and her language
   // are said again right by your message, for this answer only. Small local models mostly go by the
   // last thing they read: up in her prompt alone, they forget it (and answer in English after a
   // conversation in English).
-  messages() {
-    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-REMEMBER)];
+  messages(remember = REMEMBER) {
+    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-remember)];
     if (!this.agent) {
       const mood = this.bond?.moodLine().replace(/^Right now: /, '');
       const last = messages.at(-1);

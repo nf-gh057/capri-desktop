@@ -164,6 +164,16 @@ itself: your messages go to `claude -p` in the folder you pick, continuing one c
 does. In that last one, permission mode `default` only lets it read (nobody is there to say yes); `acceptEdits` lets it
 edit files without asking. **Forget our conversations** clears what she remembers of your chats.
 
+**No network?** With her brain online (Codex, Claude Code, a service with a key, an Ollama cloud model), losing the
+network would leave her without a thought. **Install [Ollama](https://ollama.com) with a model on your PC** (gemma3 is a
+good pick): then, with no network, a model on your PC answers in her place, as her, in a narrower way (no Codex or
+Claude Code tools, a smaller model), and a line under her answer says so. It's loaded as soon as the network goes, so
+her first answer doesn't wait for it. Without Ollama she tells you plainly why she can't think. (Where winget isn't
+there, Windows LTSC for one, get Ollama from ollama.com.)
+
+The top of her chat names the model answering (the one on your PC while it stands in), and the line under it says an AI
+answers, on your PC or online. **Mainframe** can hide either one.
+
 **It's AI.** Her replies are written by the model, not by the show's writers: it's a fan version of her, and the chat
 panel says so every time.
 

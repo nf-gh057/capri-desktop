@@ -70,14 +70,21 @@ async function freeModels() {
   return free.names;
 }
 
+// A model on this PC: loaded with this much context (her persona and the conversation fit, and a
+// smaller one loads and answers faster), and kept in memory this long after its last answer. Loading
+// and answering ask for the same, or Ollama loads it all over again.
+const LOCAL = { keep_alive: '30m', options: { num_ctx: 4096 } };
+
 // Loads the model into memory ahead of the first message (the first answer after a fresh start
-// otherwise waits for it to load, which can take a while). Nothing to load for a cloud model.
+// otherwise waits for it to load, which can take a while), and has it answer one word: its first
+// reading on the graphics card is far slower than the next ones (20 seconds for her persona, then
+// half a second). Nothing to load for a cloud model.
 function warm(model) {
   if (isCloud(model)) return;
   fetch(`${base()}/api/generate`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ model, keep_alive: '15m' }),
+    body: JSON.stringify({ model, prompt: 'Hi', stream: false, ...LOCAL, options: { ...LOCAL.options, num_predict: 1 } }),
   }).catch(() => {});
 }
 
@@ -92,9 +99,9 @@ async function chat({ model, messages }, onDelta, signal) {
       model,
       messages,
       stream: true,
-      keep_alive: '15m', // she stays loaded while you chat
+      keep_alive: isCloud(model) ? '15m' : LOCAL.keep_alive, // she stays loaded while you chat
       ...(thinks && { think: 'low' }),
-      options: { temperature: 0.85, num_predict: thinks ? 1200 : 240 },
+      options: { temperature: 0.85, num_predict: thinks ? 1200 : 240, ...(!isCloud(model) && LOCAL.options) },
     }),
     signal,
   });

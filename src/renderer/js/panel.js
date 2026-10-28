@@ -287,12 +287,28 @@ export class Panel {
     this.chatSend.disabled = false;
     this.chatSend.textContent = chat.send;
     this.chatClose.setAttribute('aria-label', chat.close);
-    if (chat.note) {
-      const tag = document.createElement('b');
-      tag.textContent = chat.noteTag || '';
-      this.note.replaceChildren(...(chat.noteTag ? [tag, ' '] : []), chat.note);
-    }
+    this.renderNote(chat);
     requestAnimationFrame(() => this.chatInput.focus());
+  }
+
+  // the line under her chat: who answers (AI, local or online)
+  renderNote(chat) {
+    this.note.hidden = !chat.note;
+    if (!chat.note) return;
+    const tag = document.createElement('b');
+    tag.textContent = chat.noteTag || '';
+    this.note.replaceChildren(...(chat.noteTag ? [tag, ' '] : []), chat.note);
+  }
+
+  // Her chat's header tag (the model answering) and its note, changed while you talk: her brain went
+  // over to a model on this PC, or back.
+  setChatInfo({ tag, chat }) {
+    if (!this.current?.chat) return;
+    this.current.tag = tag;
+    this.current.chat = { ...this.current.chat, ...chat };
+    this.tag.textContent = tag || '';
+    this.renderNote(this.current.chat);
+    this.place();
   }
 
   // A chat turn: what you said goes up top, her answer starts coming in under it (stream), without

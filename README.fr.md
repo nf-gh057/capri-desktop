@@ -173,6 +173,16 @@ continuant la même conversation, et ses hooks montrent ce qu'il fait. Dans ce c
 lire (personne n'est là pour dire oui) ; `acceptEdits` le laisse modifier des fichiers sans demander. **Oublier nos
 conversations** efface ce qu'elle a retenu de vos discussions.
 
+**Plus de réseau ?** Avec son cerveau en ligne (Codex, Claude Code, un service avec une clé, un modèle cloud
+d'Ollama), une coupure du réseau la laisserait sans une pensée. **Installe [Ollama](https://ollama.com) avec un modèle
+sur ton PC** (gemma3 est un bon choix) : sans réseau, un modèle sur ton PC répond à sa place, en elle, de façon plus
+limitée (sans les outils de Codex ou de Claude Code, un modèle plus petit), et une ligne sous sa réponse le dit. Il est
+chargé dès que le réseau tombe, pour que sa première réponse ne l'attende pas. Sans Ollama, elle te dit simplement
+pourquoi elle ne peut pas réfléchir. (Là où winget n'existe pas, Windows LTSC par exemple, prends Ollama sur ollama.com.)
+
+Le haut de son chat nomme le modèle qui répond (celui de ton PC quand il la remplace), et la ligne en dessous dit
+qu'une IA répond, sur ton PC ou en ligne. **Mainframe** peut masquer l'un ou l'autre.
+
 **C'est une IA.** Ses réponses sont écrites par le modèle, pas par les scénaristes de la série : c'est une version
 fan d'elle, et le panneau du chat le dit à chaque fois.
 

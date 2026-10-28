@@ -621,6 +621,8 @@ function mainframeState() {
       models: [...(chatModels || []), ...(cfg.provider === 'ollama' && chatModels ? cloud.free.filter((name) => !chatModels.includes(name)) : [])]
         .map((name) => ({ id: name, label: cloud.free.includes(name) ? `${name} · ${t.cloudFree}` : name })),
       signin: cfg.provider === 'ollama' && Boolean(cloud.account?.signin),
+      showModel: cfg.chatShowModel !== false,
+      showNote: cfg.chatShowNote !== false,
       error: chatModels?.length ? null : (chatError || t.noOllama),
       where: agent ? `${t.agentIn} ${cfg.claudeCwd || app.getPath('home')}` : llm.isLocal(cfg.provider, cfg, pickModel(cfg)) ? t.local : t.cloud,
       agent: agent && {
@@ -686,6 +688,7 @@ async function mainframeAct(name, value) {
       else if (config.load().provider === 'ollama' && cloud.free.includes(value)) await fetchModel(value).catch(() => rebuildTray());
       break;
     case 'cloudSignin': signInToOllama(); break;
+    case 'chatShowModel': case 'chatShowNote': updateConfig({ [name]: Boolean(value) }); break;
     case 'refresh': await refreshModels(); rebuildTray(); break;
     case 'aiSetup': sendCommand('setupChat'); break;
     case 'apiKey': sendCommand('setupKey'); break;
@@ -917,6 +920,20 @@ async function localModel() {
   let list = await ollama.models().catch(() => null);
   if (!list && (await setup.ollamaState()).installed && (await setup.startOllama()).ok) list = await ollama.models().catch(() => null);
   return list?.find((m) => !ollama.isCloud(m)) || null;
+}
+
+// The network gone with her brain online: the model on this PC loaded right away, so her first answer
+// doesn't wait for it (a few seconds' look; Electron says nothing when the network goes).
+let wasCut = false;
+function watchBrain() {
+  setInterval(async () => {
+    const cut = brainCut();
+    if (cut && !wasCut) {
+      const model = await localModel();
+      if (model) ollama.warm(model);
+    }
+    wasCut = cut;
+  }, 5000);
 }
 
 // She looks at your screen (look.js): a picture of the screen she's on, kept here in memory a moment
@@ -1435,6 +1452,7 @@ function main() {
     });
     registerStowKey();
     llm.restoreAgents(readMemory());
+    watchBrain();
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     // a screen plugged in, unplugged, or rearranged: her window fitted again, and she learns of it

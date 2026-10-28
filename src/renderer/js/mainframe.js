@@ -82,6 +82,8 @@ function brain(s, t) {
       row(null, button(b.agent.cwd, 'folder', null, { class: 'grow' })),
       check(t.agentPowers, b.agent.powers, 'agentPowers'),
     ],
+    check(t.chatShowModel, b.showModel, 'chatShowModel'),
+    check(t.chatShowNote, b.showNote, 'chatShowNote'),
     el('div', { class: 'split' }, button(t.aiSetup, 'aiSetup'), button(t.apiKey, 'apiKey')),
     row(null, button(t.forget, 'forget', null, { class: 'grow' })));
 }

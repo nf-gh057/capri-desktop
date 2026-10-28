@@ -234,6 +234,12 @@ async function boot() {
   guide.onTalk = () => chat.start();
   chat.onSetup = (status) => setup.chat(status);
   chat.onBetterModel = () => setup.better();
+  // what her chat shows of the AI behind her (Mainframe): the model's name, the line under it
+  const chatShows = (cfg) => {
+    chat.showModel = cfg.chatShowModel !== false;
+    chat.showNote = cfg.chatShowNote !== false;
+  };
+  chatShows(config);
   setup.onReady = () => chat.start();
   // What she calls you, how she is, your lines, what she remembers (custom.js)
   const custom = new Custom({ guide, host, brain, capri, voice });
@@ -606,6 +612,7 @@ async function boot() {
   });
 
   host.onConfig((cfg) => {
+    chatShows(cfg);
     voice.configure(cfg);
     jealousy.enabled = cfg.jealous !== false;
     followOn = cfg.follow !== false;

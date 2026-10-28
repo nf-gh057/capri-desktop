@@ -27,6 +27,8 @@ const DEFAULTS = {
   myLines: [],       // lines of yours she says now and then, with hers
   memories: [],      // things you asked her to remember (her chat)
   codexEffort: 'low', // how long Codex thinks before her answer: 'low' (quickest), 'medium' or 'high'
+  chatShowModel: true, // her chat's header names the model answering
+  chatShowNote: true, // the line under her chat: an AI answers (on this PC or online), not the real Capri
   agentPowers: false, // in her chat with Claude Code or Codex: she still opens apps, sites and music herself
   claudeMode: 'default', // Claude Code's (or Codex's) permission mode in her chat: 'default' only reads, 'acceptEdits' edits without asking
   claude: true,      // she watches Claude Code (off: she just keeps you company, no word of it)
