@@ -127,8 +127,10 @@ function watch(s, t) {
 function phone(s, t) {
   const p = s.phone;
   const error = p.error && el('p', { class: 'note is-error' }, p.error);
+  const elsewhere = p.elsewhere && el('p', { class: 'note' }, p.elsewhere); // held by another of your PCs (her swarm)
   if (!p.bot) {
     return section(t.secPhone,
+      elsewhere,
       el('p', { class: 'note' }, t.phoneHow),
       error,
       row(null, button(t.phoneBotFather, 'phoneBotFather', null, { class: 'grow' })),
@@ -149,6 +151,7 @@ function phone(s, t) {
   }
   return section(t.secPhone,
     el('p', { class: 'headline' }, `@${p.bot} → ${p.linked}`),
+    elsewhere,
     el('p', { class: `note ${p.error ? 'is-error' : ''}` }, p.error || t.phonePrivacy),
     check(t.phoneOn, p.on, 'phoneOn'),
     row(t.phoneWhen, select([['5', t.phoneAway5], ['15', t.phoneAway15], ['0', t.phoneAlways]].map(([id, label]) => ({ id, label })),

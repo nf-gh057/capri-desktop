@@ -48,8 +48,10 @@ pracy nad Capri: `docs/ROZWOJ.md`.
 - O autorze oryginału (mochiiwuff) i o każdej osobie, której zaimków nie znasz: neutralnie (nie „autorka”, nie „her”),
   np. „oryginalny projekt”.
 - Styl kodu jak w otoczeniu: komentarze opisowe, w głosie projektu („she…”), tam gdzie coś nie jest oczywiste.
-- Dokumentacja: każda funkcja trafia do `README.md` i `README.pl.md`; plany i etapy do `TODO.md` (zrobione oznaczaj
-  „(zrobione: …)”).
+- Dokumentacja: każda funkcja trafia do `README.md` i `README.pl.md`; plany i etapy do `TODO.md`.
+- **Odhaczaj w `TODO.md` automatycznie** wszystko, co zostało zrobione (etapy i pozycje listy „Do zrobienia”, także
+  te dopisane przez użytkownika albo inną sesję), w tym samym commicie co zmiana: etap „(zrobione: gdzie)”, pozycja
+  listy `- [x] … (zrobione w 0.4.4-N)`.
 
 ## Bezpieczeństwo (decyzje użytkownika)
 

@@ -695,6 +695,11 @@ function mainframeState() {
       hooks: cfg.claude ? activeHooks().status().installed : null,
     },
     phone: {
+      // held by another of your PCs (her swarm): your messages go out from there
+      elsewhere: (() => {
+        const holder = phoneHolder(cfg);
+        return holder && holder !== 'here' ? t.phoneElsewhere(holder.name) : null;
+      })(),
       bot: cfg.telegram?.bot || null,
       linked: cfg.telegram?.chat ? cfg.telegram.name : null,
       pairing: phonePair?.code || null,
@@ -891,9 +896,43 @@ function startPairing() {
 }
 
 // You're away from this PC: its screen locked, or no key or mouse for `phoneAway` minutes (0: always)
+// You're away: from this PC (its screen locked, or no key or mouse for `phoneAway` minutes; 0: always),
+// and from every other one of yours in her swarm, as they last said
 function phoneAway(cfg = config.load()) {
   const minutes = Number(cfg.phoneAway ?? 5);
-  return !minutes || ['idle', 'locked'].includes(powerMonitor.getSystemIdleState(minutes * 60));
+  if (!minutes) return true;
+  return lastUse() >= minutes * 60;
+}
+
+// Seconds since you last used any of your PCs (a locked one isn't in use): this one, and the others in
+// her swarm that answer
+function lastUse() {
+  const mine = hiveHere();
+  const all = [mine.locked ? Infinity : mine.idle];
+  for (const p of hive?.state().peers || []) if (p.online && !p.locked && Number.isFinite(p.idle)) all.push(p.idle);
+  return Math.min(...all);
+}
+
+// Your phone in her swarm: the PC that holds it (its Telegram bot paired there), 'here', or null (none).
+// Two PCs paired with the same bot: the one with the lower id holds it while it answers (the bot can be
+// read from one place only), the other takes over when it's gone. A PC without one sends to it.
+function phoneHolder(cfg = config.load()) {
+  const mine = cfg.telegram?.chat ? cfg.telegram.bot : null;
+  const state = hive?.state();
+  const others = (state?.peers || []).filter((p) => p.online && p.phone).sort((a, b) => (a.id < b.id ? -1 : 1));
+  if (mine) return others.find((p) => p.phone === mine && p.id < state?.me.id) || 'here';
+  return others[0] || null;
+}
+
+// For your phone: sent from here (if this PC holds it, and you're away from all of them), else handed to
+// the PC that does (`from`: the PC it came from, for its name next to the project)
+async function phoneNote(note, from = null) {
+  const cfg = config.load();
+  const holder = phoneHolder(cfg);
+  if (holder && holder !== 'here') return from ? false : hive.phone(holder.id, note);
+  if (!holder || !cfg.phoneOn || !phoneAway(cfg) || Date.now() < phoneMuted) return false;
+  const project = [note.project, from && !String(note.project || '').includes(from.name) ? from.name : ''].filter(Boolean).join(' · ');
+  return phoneSend(phone.compose({ line: note.line, project, quote: note.quote }, cfg.phoneDetail), { buttons: true });
 }
 
 // To your phone, if it's paired and her messages are on (`always`: Mainframe's own, on or off), a few
@@ -935,7 +974,7 @@ const phoneTime = (at, cfg = config.load()) => new Date(at).toLocaleTimeString(r
 // listening to the bot while her chat there is on (and not while a new pairing waits for its code)
 function syncPhoneChat() {
   const cfg = config.load();
-  const want = Boolean(cfg.phoneChat && cfg.telegram?.chat && cfg.telegram?.totp) && !phonePair;
+  const want = Boolean(cfg.phoneChat && cfg.telegram?.chat && cfg.telegram?.totp) && !phonePair && phoneHolder(cfg) === 'here';
   if (want && !phoneListener) {
     const listener = new AbortController();
     phoneListener = listener;
@@ -983,8 +1022,8 @@ function watchPhone() {
     const now = Date.now();
     if (now > phoneOpen.until) return phoneLock('phoneBotExpired');
     if (now - phoneOpen.last > PHONE_QUIET_MS) return phoneLock('phoneBotQuiet');
-    const idle = powerMonitor.getSystemIdleTime();
-    if (idle >= 120 || powerMonitor.getSystemIdleState(120) === 'locked') phoneAwaySeen = true;
+    const idle = lastUse(); // any of your PCs
+    if (idle >= 120) phoneAwaySeen = true;
     else if (phoneAwaySeen && idle < 10) phoneLock('phoneBotBack');
   }, 5000);
 }
@@ -1418,10 +1457,8 @@ function registerIpc() {
   ipcMain.on('chat:ollama', () => shell.openExternal(OLLAMA_SITE));
   // something worth telling you about (brain.js), sent to your phone only while you're away
   ipcMain.handle('phone:notify', (_e, note) => {
-    const cfg = config.load();
-    if (!cfg.phoneOn || !cfg.telegram?.chat || !phoneAway(cfg) || Date.now() < phoneMuted) return false;
     const text = (key) => (typeof note?.[key] === 'string' ? note[key] : '');
-    return phoneSend(phone.compose({ line: text('line'), project: text('project'), quote: text('quote') }, cfg.phoneDetail), { buttons: true });
+    return phoneNote({ line: text('line'), project: text('project'), quote: text('quote') });
   });
   // her answer to a message from your phone (chat.js fromPhone)
   ipcMain.on('phone:answer', (_e, answer) => {
@@ -1671,8 +1708,10 @@ const HIVE_PORT = (DEV && Number(process.env.CAPRI_SWARM_PORT)) || swarm.PORT;
 
 // this PC now, for the others: locked, and seconds since a key or the mouse
 function hiveHere() {
-  if (hiveFake) return hiveFake;
-  return { locked: screenLocked || powerMonitor.getSystemIdleState(1) === 'locked', idle: powerMonitor.getSystemIdleTime() };
+  const cfg = config.load();
+  const phoneHere = cfg.telegram?.chat ? cfg.telegram.bot : null; // your phone paired here (for the others to send to)
+  if (hiveFake) return { ...hiveFake, phone: phoneHere };
+  return { locked: screenLocked || powerMonitor.getSystemIdleState(1) === 'locked', idle: powerMonitor.getSystemIdleTime(), phone: phoneHere };
 }
 
 // her own key, made the first time (sealed like the others)
@@ -1709,6 +1748,12 @@ async function syncHive(fresh = false) {
       mind: mindOpen(id.id),
       onMind: (keys, peer) => mindApply(keys, peer),
       trust: hiveTrust,
+      // a message for your phone from a PC without one: taken if this one holds it
+      onPhone: (peer, note) => {
+        if (phoneHolder() !== 'here') return false;
+        phoneNote(note, peer);
+        return true;
+      },
       onJoined: (peer) => {
         hiveFound = hiveFound.filter((f) => f.id !== peer.id);
         sendCommand('swarmJoined', { pc: peer.name });
@@ -2195,6 +2240,7 @@ function main() {
       await syncHive();
       await hiveLook();
       hiveUpgrade();
+      syncPhoneChat(); // the PC that holds your phone may have changed
     }, 60000);
     watchUpdates();
     refreshModels(); // for her menu's model list

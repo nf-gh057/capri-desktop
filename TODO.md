@@ -95,8 +95,11 @@ Ograniczenia: rozmowy agentów (wątek Codexa, sesja Claude Code) zostają na sw
   skanowany Signalem odpadł: Signal nie przekazuje danych do innych programów, a QR wymagałby kamery przy komputerze.
 - Rój wykrywa nowszą wersję na innym komputerze i aktualizuje się z GitHuba, kiedy nie siedzisz przy danym komputerze.
 
-### Etap 4: telefon w roju
+### Etap 4: telefon w roju (zrobione: `phoneHolder`/`phoneNote` w `main.js`, wiadomość `phone` w `swarm.js`)
 - Bota Telegrama czyta tylko jeden komputer naraz (lider roju); „nie ma cię” = przy żadnym komputerze.
+- Zrobione tak: komputer ze sparowanym botem obsługuje telefon, pozostałe przekazują mu powiadomienia (z nazwą swojego
+  komputera przy projekcie); dwa z tym samym botem: czyta ten z niższym id, drugi przejmuje, gdy tamtego zabraknie;
+  „nie ma cię” i blokada rozmowy po powrocie liczą się po wszystkich komputerach roju.
 
 ### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama)
 - Telefon z aplikacją Tailscale otwiera stronę czatu Capri (PWA) na jej adresie w sieci Tailscale (HTTPS z certyfikatem
@@ -138,7 +141,7 @@ zaktualizować tak jak ponowne uruchomienie instalatora: `git pull` i pakiety.
 
 ## Do zrobienia
 
-- Fix: po kliknięciu jednej Capri okno Mainframe robi się ciemne i nic w nim nie widać.
+- [x] Fix: po kliknięciu jednej Capri okno Mainframe robi się ciemne i nic w nim nie widać. (zrobione w 0.4.4-9)
 - Okno czatu na pulpicie, zsynchronizowane z czatem Capri (ta sama rozmowa w obu miejscach).
 - Przerobienie okna Mainframe.
 - Ograniczenie menu pod prawym przyciskiem myszy.

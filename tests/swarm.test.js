@@ -229,3 +229,24 @@ test('on Tailscale, a device of yours joins with a click; one that is not yours 
   await assert.rejects(b.s.joinTailnet('127.0.0.1', 49274), { message: 'notYours' }); // the laptop won't even ask
   assert.equal(a.peers().length, 2);
 });
+
+test('your phone in the swarm: who holds it and how long each PC has been idle go around; a note reaches the holder', async (t) => {
+  const notes = [];
+  const a = node(t, 'desk', 49281, { onPhone: (peer, note) => { notes.push([peer.name, note]); return true; } });
+  const b = node(t, 'laptop', 49282);
+  a.pc.phone = 'capri_bot';
+  a.pc.idle = 400;
+  b.pc.idle = 3;
+  await Promise.all([a.s.start(), b.s.start()]);
+  await b.s.join(a.s.startPairing('127.0.0.1').text);
+  await wait(300);
+  const desk = b.s.state().peers[0];
+  assert.equal(desk.phone, 'capri_bot');
+  assert.ok(desk.idle >= 400 && desk.idle < 410);
+  assert.equal(a.s.state().peers[0].phone, null);
+  assert.equal(await b.s.phone(desk.id, { line: 'Codex is done', project: 'capri', quote: 'x'.repeat(5000), extra: 1 }), true);
+  assert.deepEqual(notes.map(([from]) => from), ['laptop']);
+  assert.deepEqual(Object.keys(notes[0][1]), ['line', 'project', 'quote']);
+  assert.equal(notes[0][1].quote.length, 2000);
+  assert.equal(await b.s.phone('0000000000000000', { line: 'x' }), false); // no such PC
+});

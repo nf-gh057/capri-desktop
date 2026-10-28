@@ -159,14 +159,16 @@ function cleanEvent(evt) {
 // --- the swarm ---------------------------------------------------------------------------------
 
 // `me`: { id, pub, key, name, version }; `peers`: [{ id, name, pub, host, port }]; `here()`: this PC now,
-// { locked, idle } (idle: seconds since a key or the mouse); `onChange(state)`: who's where changed;
+// { locked, idle, phone } (idle: seconds since a key or the mouse; phone: the Telegram bot paired here, if
+// any); `onChange(state)`: who's where changed; `onPhone(peer, note)`: a message for your phone, from a PC
+// without one (true: it's taken);
 // `onPeers(peers)`: the list to save; `onEvent(peer, evt)`: what an agent did on another PC (cleaned).
 // `mind`: her shared mind (mind.js), swapped with each PC as it answers; `onMind(keys, peer)`: what of
 // it changed here. `trust(address)`: whether a device at that address is yours (Tailscale says so):
 // it may join without a code. `onJoined(peer)`: one did. `hosts`: the addresses to listen on.
 function createSwarm({
   me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, onEvent = () => {},
-  mind = null, onMind = () => {}, trust = async () => false, onJoined = () => {}, every = 3000, gone = 12000,
+  mind = null, onMind = () => {}, trust = async () => false, onJoined = () => {}, onPhone = () => false, every = 3000, gone = 12000,
 }) {
   const known = new Map(peers.map((p) => [p.id, { ...p }]));
   const keys = new Map(); // id -> shared key
@@ -218,7 +220,7 @@ function createSwarm({
 
   function hereNow() {
     const h = here();
-    return { name: me.name, version: me.version || null, locked: Boolean(h.locked), idle: Math.max(0, Number(h.idle) || 0), active };
+    return { name: me.name, version: me.version || null, locked: Boolean(h.locked), idle: Math.max(0, Number(h.idle) || 0), phone: h.phone || null, active };
   }
 
   // what came in, sealed: its answer (sealed too)
@@ -243,6 +245,10 @@ function createSwarm({
       }
       saved();
       answer = { ok: true };
+    } else if (inside.kind === 'phone') {
+      const note = inside.body || {};
+      const text = (key) => (typeof note[key] === 'string' ? note[key].slice(0, 2000) : '');
+      answer = { ok: Boolean(onPhone({ id: peer.id, name: peer.name }, { line: text('line'), project: text('project'), quote: text('quote') })) };
     } else if (inside.kind === 'sync') {
       answer = mind ? mind.since(inside.body?.vv || {}) : { items: [], more: false };
     } else if (inside.kind === 'event') {
@@ -340,7 +346,8 @@ function createSwarm({
   function heard(peer, body) {
     const now = Date.now();
     const version = typeof body?.version === 'string' ? body.version.slice(0, 40) : null;
-    status.set(peer.id, { seen: now, locked: Boolean(body?.locked), idle: Math.max(0, Number(body?.idle) || 0), at: now, version });
+    const phone = typeof body?.phone === 'string' ? body.phone.slice(0, 64) : null;
+    status.set(peer.id, { seen: now, locked: Boolean(body?.locked), idle: Math.max(0, Number(body?.idle) || 0), at: now, version, phone });
     if (typeof body?.name === 'string' && body.name && body.name !== peer.name) {
       peer.name = body.name.slice(0, 60);
       saved();
@@ -412,7 +419,10 @@ function createSwarm({
       peers: [...known.values()].map((p) => {
         const s = status.get(p.id);
         const online = Boolean(s && now - s.seen <= gone);
-        return { id: p.id, name: p.name, host: p.host, online, locked: online && s.locked, active: p.id === active, version: s?.version || null };
+        return {
+          id: p.id, name: p.name, host: p.host, online, locked: online && s.locked, active: p.id === active, version: s?.version || null,
+          idle: online ? s.idle + (now - s.at) / 1000 : null, phone: online ? s.phone || null : null,
+        };
       }),
     };
   }
@@ -515,7 +525,18 @@ function createSwarm({
     return found.filter(Boolean);
   }
 
-  return { start, stop, join, joinTailnet, look, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward };
+  // A message for your phone, to the PC that holds it: true once it's taken
+  async function phone(id, note) {
+    const peer = known.get(id);
+    if (!peer) return false;
+    try {
+      return Boolean((await send(peer, 'phone', note)).body?.ok);
+    } catch {
+      return false;
+    }
+  }
+
+  return { start, stop, join, joinTailnet, look, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward, phone };
 }
 
 module.exports = { createSwarm, identity, nodeId, pairKey, seal, open, invite, readInvite, tailscale, cleanEvent, SwarmError, PORT, hostName: () => os.hostname() };

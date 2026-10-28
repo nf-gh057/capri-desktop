@@ -552,6 +552,12 @@ tym, czego drugi jeszcze nie widział; wygrywa nowsza zmiana, a usunięte zostaj
 sam (z Ollamą, jeśli jej mózg jest w sieci), a gdy wraca, nadrabia to, co zrobiły w tym czasie pozostałe, one nadrabiają
 to, co zrobił on, a Capri o tym mówi. Przypomnienie odzywa się raz, na komputerze, przy którym jesteś.
 
+Telefon też: sparuj bota Telegrama na jednym komputerze, a pozostałe wysyłają swoje wiadomości przez niego (Mainframe
+› Telefon na nich mówi, który komputer go obsługuje). „Nie ma cię” znaczy wtedy: nie ma cię przy żadnym z nich; żadnej
+wiadomości, póki siedzisz przy którymkolwiek, a rozmowa przez Telegram blokuje się, gdy wrócisz do któregokolwiek.
+Dwa komputery sparowane z tym samym botem: czyta go jeden (bota da się czytać tylko z jednego miejsca), drugi przejmuje
+go, gdy tamtego zabraknie.
+
 ## Kierunek artystyczny
 
 Cel: ma wyglądać, jakby wyszła z anime, a nie jak widżet.
