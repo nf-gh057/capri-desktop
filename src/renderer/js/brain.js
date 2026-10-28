@@ -3,6 +3,10 @@
 import { linesFor, ASSISTANT_NAMES } from './lines.js';
 import { pick, fmt, duration, basename, rand } from './util.js';
 
+// the window your last prompt was typed in, kept across her restarts (Windows' id for it lasts as
+// long as the window does): where she points when asked where Claude is
+export const AGENT_WINDOW = 'capri.agentWindow';
+
 // an agent as she calls it (Claude Code is just Claude)
 const agentName = (id) => (id === 'claude' ? 'Claude' : ASSISTANT_NAMES[id] || id);
 
@@ -152,6 +156,13 @@ export class Brain {
     // the window in front when you send a prompt is the one you typed it in: Claude's (not on another PC)
     const window = evt.remote ? null : this.capri.windows.fg || null;
     Object.assign(s, { taskStart: Date.now(), count: 0, files: new Set(), log: [], working: true, window });
+    if (window && !evt.demo) {
+      try {
+        localStorage.setItem(AGENT_WINDOW, JSON.stringify(window));
+      } catch {
+        // no storage: she knows it until she restarts
+      }
+    }
     this.tally(evt)?.prompt(s.project);
     this.capri.goToWork(); // perched on the window in front if she can, else her corner
     const prompt = String(evt.prompt || '').replace(/\s+/g, ' ').trim();

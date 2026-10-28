@@ -135,7 +135,8 @@ or glances back at you. When she's done, the wire reels back into her finger and
 ![The strike, and the hold while she explains](docs/point.png)
 
 - **Where's my icon?** She goes down by the clock and points at her tray icon, or at the **^** when Windows hides it.
-- **Where's Claude?** She points at Claude's window: the one you typed your last prompt in.
+- **Where's Claude?** She points at Claude's window: the one you typed your last prompt in (maximized, its title bar;
+  she still knows it after a restart of hers, as long as it's open).
 - **Claude's folder**: she opens `~/.claude` in Explorer with `settings.json` selected, points at the window, and
   explains what her hook in there is and how to take it out.
 - **Plug me into Claude**: her hooks in one click. It's also her welcome the first time she starts. Next to it,

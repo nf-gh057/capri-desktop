@@ -139,7 +139,8 @@ go albo zerka na ciebie. Kiedy skończy, drut wraca do palca, a ramię wskakuje 
 ![Uderzenie i trzymanie, kiedy tłumaczy](docs/point.png)
 
 - **Gdzie jest moja ikona?** Schodzi do zegara i pokazuje swoją ikonę w zasobniku albo **^**, kiedy Windows ją chowa.
-- **Gdzie jest Claude?** Pokazuje okno Claude'a: to, w którym wpisałeś ostatni prompt.
+- **Gdzie jest Claude?** Pokazuje okno Claude'a: to, w którym wpisałeś ostatni prompt (zmaksymalizowane: jego pasek
+  tytułu; pamięta je też po swoim restarcie, dopóki jest otwarte).
 - **Folder Claude'a**: otwiera `~/.claude` w Eksploratorze z zaznaczonym `settings.json`, pokazuje okno i
   tłumaczy, czym jest tam jej hook i jak go usunąć.
 - **Podłącz mnie do Claude'a**: jej hooki jednym kliknięciem. To też jej powitanie przy pierwszym uruchomieniu. Obok

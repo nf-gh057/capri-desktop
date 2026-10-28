@@ -1758,6 +1758,7 @@ export class Capri {
   // until stopPointing(). Resolves once she's there with her arm out.
   async pointAt(rect, { label = '' } = {}) {
     if (this.stowed) return false;
+    rect = this.target(rect);
     this.stopPointing();
     const spot = this.spotNear(rect);
     if (this.stance !== 'stand' || Math.hypot(spot.x - this.pos.x, spot.y - this.pos.y) > 140) {
@@ -1789,9 +1790,17 @@ export class Capri {
     if (!this.busy && !this.hidden && this.stance === 'stand') this.perform('unpoint', pt.dir);
   }
 
-  // Can she point at this window so you'd see it: not maximized, its top not under other windows.
+  // What of a window she points at: all of it, or, maximized (the whole screen, nowhere beside it to
+  // stand), the left end of its title bar, where its name is.
+  target(win) {
+    if (!win?.max) return win;
+    return { ...win, x: win.x + 8, y: Math.max(win.y, 0), w: Math.min(360, win.w / 3), h: 34, max: false };
+  }
+
+  // Can she point at this window so you'd see it: big enough, its top not under other windows.
   canPoint(win) {
-    return Boolean(win && !win.max && win.w > 120 && win.y > -10 && !this.covered(win, win.x + win.w / 2));
+    const spot = win && this.target(win);
+    return Boolean(spot && spot.w > 120 && spot.y > -10 && !this.covered(win, spot.x + spot.w / 2));
   }
 
   // Where to stand next to the mouse pointer.

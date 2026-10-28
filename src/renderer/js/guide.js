@@ -4,6 +4,7 @@
 // you closing the panel) ends it.
 
 import { fmt } from './util.js';
+import { AGENT_WINDOW } from './brain.js';
 
 const IDLE_FOR = 10 * 60 * 1000; // no wandering off while she's showing you something
 
@@ -285,7 +286,13 @@ export class Guide {
       const win = wins.find((w) => w.id === s.window);
       if (win) return win;
     }
-    return null;
+    // since she started, no prompt yet: the window of the last one before, if it's still open
+    try {
+      const id = JSON.parse(localStorage.getItem(AGENT_WINDOW));
+      return wins.find((w) => w.id === id) || null;
+    } catch {
+      return null;
+    }
   }
 
   until(find, max) {
