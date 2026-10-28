@@ -15,7 +15,7 @@ import { Reminders, clock } from './reminders.js';
 import { Look } from './look.js';
 import { Pc } from './pc.js';
 import { linesFor } from './lines.js';
-import { pick, fmt, reducedMotion } from './util.js';
+import { pick, fmt, reducedMotion, sleep } from './util.js';
 
 const host = window.host;
 
@@ -694,6 +694,18 @@ async function boot() {
         break;
       case 'screens': // a screen plugged in, unplugged or moved
         refreshScreens();
+        break;
+      case 'swarmAway': // you're at another of your PCs (her swarm): she goes there, into her biochip here
+        if (capri.stowed) break;
+        if (cmd.to) panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.leave), { pc: cmd.to }), hold: 1800 });
+        await sleep(cmd.to ? 1400 : 0);
+        capri.stow();
+        break;
+      case 'swarmBack': // you're back at this one: out she comes
+        if (!capri.stowed) break;
+        await capri.unstow();
+        capri.wake();
+        panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.back), { pc: cmd.from || '…' }), hold: 3000 });
         break;
       case 'remindIn': // --dev: a reminder `ms` from now
         reminders.add(Date.now() + (cmd.ms ?? 3000), cmd.text ?? '');

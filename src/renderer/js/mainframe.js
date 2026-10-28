@@ -189,6 +189,38 @@ function phoneChat(p, t) {
     row(null, button(t.phoneTotpRemove, 'phoneTotpRemove', null, { class: 'grow' }))];
 }
 
+// Her swarm: this PC, Tailscale, your other PCs with where she is, and adding or joining one
+function swarm(s, t) {
+  const w = s.swarm;
+  const tailscale = w.tailscale
+    ? el('p', { class: 'note' }, `Tailscale: `, el('span', { class: 'code' }, w.tailscale))
+    : [
+      el('p', { class: 'note is-error' }, w.tailscaleState === 'missing' ? t.swarmNoTailscale : t.swarmTailscaleOff),
+      el('div', { class: 'split' }, button(t.swarmGetTailscale, 'tailscaleGet'), button(t.swarmCheck, 'tailscaleCheck')),
+    ];
+  if (!w.on) {
+    return section(t.secSwarm,
+      el('p', { class: 'note' }, t.swarmHow),
+      tailscale,
+      check(t.swarmOn, false, 'swarmOn'));
+  }
+  return section(t.secSwarm,
+    el('p', { class: 'headline' }, `${w.name}${w.here ? ` · ${t.swarmHere}` : ''}`),
+    tailscale,
+    w.error && el('p', { class: 'note is-error' }, w.error),
+    check(t.swarmOn, true, 'swarmOn'),
+    field('swarmName', t.swarmName, t.phoneSave, 'swarmName'),
+    el('h3', { class: 'subhead' }, t.swarmPcs),
+    !w.peers.length && el('p', { class: 'note' }, t.swarmNone),
+    w.peers.map((p) => row(null, el('span', { class: 'grow reminder' }, `${p.name} · ${p.status}`),
+      button('✕', 'swarmRemove', p.id, { title: t.swarmRemove }))),
+    w.invite
+      ? [el('p', { class: 'note' }, t.swarmInviteHow), el('p', { class: 'note' }, el('span', { class: 'code' }, w.invite)),
+        row(null, button(t.phoneTotpCancel, 'swarmInviteCancel', null, { class: 'grow' }))]
+      : row(null, button(t.swarmInvite, 'swarmInvite', null, { class: 'grow' })),
+    field('swarmJoin', t.swarmJoinCode, t.swarmJoin, 'swarmJoin'));
+}
+
 function system(s, t) {
   const y = s.system;
   return section(t.secSystem,
@@ -209,7 +241,7 @@ function draw(next) {
   document.getElementById('version').textContent = `v${state.version}`;
   const top = sections.scrollTop; // drawn again in place, not back at the top
   const typed = [...sections.querySelectorAll('[data-keep]')].map((input) => [input.dataset.keep, input.value, input === document.activeElement]);
-  sections.replaceChildren(brain(state, t), capri(state, t), watch(state, t), phone(state, t), system(state, t));
+  sections.replaceChildren(brain(state, t), capri(state, t), watch(state, t), phone(state, t), swarm(state, t), system(state, t));
   for (const [keep, value, focused] of typed) {
     const input = sections.querySelector(`[data-keep="${keep}"]`);
     if (!input) continue;

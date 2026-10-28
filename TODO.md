@@ -49,3 +49,48 @@ Przyciski: „przypomnij za 30 min” (wysyła to samo jeszcze raz) i „cisza n
 - Raport po powrocie do komputera: co zrobiono zdalnie, zmienione pliki, nieudane próby odblokowania.
 - Ryzyko, które zostaje: prompt injection z plików czytanych przez agenta (ograniczone brakiem sieci,
   folderem i limitem odpowiedzi); Telegram widzi treść zadań (czaty z botem nie są szyfrowane end-to-end).
+
+## Rój: jedna Capri na kilku komputerach (przez Tailscale)
+
+Komputery w różnych miejscach i sieciach (Wi-Fi, LAN, sieć komórkowa, zmienne IP). Łączy je Tailscale: prywatna,
+szyfrowana sieć WireGuard ze stałym adresem `100.x.y.z` dla każdego urządzenia, która sama przebija się przez NAT,
+a gdy nie może, idzie przez przekaźniki (widzą tylko szyfr). Bez serwera Capri i bez otwierania portów w internecie.
+Konto Tailscale i logowanie na każdym urządzeniu robi użytkownik; wszystko inne ustawia się w Mainframe.
+
+Wspólne dla wszystkich etapów:
+- Każda Capri ma własny klucz (X25519, prywatny zaszyfrowany DPAPI). Parowanie kodem pokazanym w Mainframe jednego PC
+  i wklejonym w Mainframe drugiego; potem każda para ma własny klucz i szyfruje wiadomości (AES-256-GCM) niezależnie
+  od WireGuarda, ze znacznikiem czasu i jednorazowym numerem (bez powtórek). Nowy komputer poznaje resztę roju od tego,
+  z którym się sparował.
+- Nasłuch tylko na adresie Tailscale (i 127.0.0.1), nigdy na LAN-ie ani w internecie.
+- Inne komputery przysyłają tylko stan, obecność, zdarzenia i pamięć: nigdy poleceń do wykonania. Przejęty laptop
+  nie uruchomi niczego na pozostałych.
+
+### Etap 1: obecność i przeskok (zrobione: `src/main/swarm.js`, Mainframe › RÓJ, `install.ps1 -Tailscale`)
+- Co kilka sekund każdy komputer mówi pozostałym: czy ekran jest zablokowany i ile sekund minęło od klawiatury
+  lub myszy. Aktywny: odblokowany, z najświeższym ruchem (z zapasem, żeby nie skakała tam i z powrotem).
+  Zablokowany ekran albo brak odpowiedzi przez kilkanaście sekund: nie ma cię tam.
+- Capri jest widoczna tylko na aktywnym; gdzie indziej chowa się do biochipa. Bez sieci: wyspa, jest u siebie,
+  myśli przez Ollamę.
+- Mainframe › RÓJ: ten komputer, Tailscale (jest / zainstaluj), lista komputerów z ich stanem, dodaj, dołącz, usuń.
+
+### Etap 2: zdarzenia agentów z całego roju
+- Claude Code / Codex na laptopie skończył: Capri przy biurku mówi o tym; raport z misji z wszystkich komputerów.
+
+### Etap 3: świadomość zbiorowa
+- Wspólne: rozmowy i pamięć (imię, „zapamiętaj”, jej opis), więź i nastrój, przypomnienia. Lokalne: ekran, rozmiar,
+  hooki, model AI.
+- Zmiany ze znacznikiem czasu i komputera; po powrocie wyspy do sieci scalanie bez gubienia: rozmowy po czasie,
+  wspomnienia i przypomnienia jako suma (z usunięciami), więź jako suma przyrostów. Capri komentuje powrót.
+
+### Etap 4: telefon w roju
+- Bota Telegrama czyta tylko jeden komputer naraz (lider roju); „nie ma cię” = przy żadnym komputerze.
+
+### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama)
+- Telefon z aplikacją Tailscale otwiera stronę czatu Capri (PWA) na jej adresie w sieci Tailscale (HTTPS z certyfikatem
+  `*.ts.net`): treść nie przechodzi przez żaden obcy serwer.
+- Parowanie telefonu raz, w Mainframe: Capri zapamiętuje jego urządzenie w Tailscale (`whois`) i klucz w przeglądarce.
+  Obce urządzenie z tej samej sieci Tailscale nie wejdzie, nawet z twojego konta.
+- Bez kodów TOTP do rozmowy: dostęp wymaga fizycznie tego telefonu (odblokowanego, z zalogowanym Tailscale), a nie
+  konta, które da się przejąć zdalnie. Do zadań z narzędziami (jak etap 3 Telegrama): potwierdzenie odciskiem palca
+  (passkey, WebAuthn) zamiast kodu.

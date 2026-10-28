@@ -7,6 +7,7 @@
   - Git and Node.js 20+ (with winget), if they aren't there
   - Ollama with a model, if you want it: her brain on this PC, and what keeps her thinking without the network
   - Codex or Claude Code, if you want them: the coding assistants she watches (and can talk through)
+  - Tailscale, if you want it: what links her on all your PCs, wherever they are (her swarm)
   - Capri from this fork, in %LOCALAPPDATA%\Capri (run again: brought up to date), its packages installed
   - Capri in the Start menu and on the desktop, then started
 
@@ -32,6 +33,7 @@ param(
   [string]$Model = 'gemma3:4b',       # 3.3 GB, good in languages other than English; llama3.2 (2 GB) for smaller PCs
   [switch]$Codex,                     # OpenAI's Codex CLI (npm), without asking
   [switch]$Claude,                    # Anthropic's Claude Code (its own installer), without asking
+  [switch]$Tailscale,                 # Tailscale (winget), for her swarm, without asking
   [switch]$Yes,                       # no questions: only what the switches say
   [string[]]$ShortcutDirs,            # where her shortcuts go (default: Start menu and desktop)
   [switch]$NoShortcut,
@@ -205,6 +207,13 @@ function Confirm-Claude {
   Done 'Claude Code installed: sign in with "claude" in a terminal.'
 }
 
+function Confirm-Tailscale {
+  $exe = Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe'
+  if ((Has tailscale) -or (Test-Path $exe)) { Done 'Tailscale already there'; return }
+  Install-WithWinget 'Tailscale.Tailscale' 'Tailscale'
+  Done 'Tailscale installed: sign in from its icon by the clock (the same account on each of your PCs).'
+}
+
 # ---------- Capri ----------
 
 # this script's own clone, when it's run from one (not piped from the web)
@@ -314,6 +323,7 @@ Say 'Capri setup: what she needs, Capri herself, her shortcuts.'
 $wantOllama = (-not $NoOllama) -and ($Ollama -or (Ask "Ollama with $Model (about 5 GB): her brain on this PC, and what keeps her thinking without the network?" $true))
 $wantCodex = $Codex -or (Ask 'Codex (OpenAI, with a ChatGPT plan): a coding assistant she watches and can talk through?' $false)
 $wantClaude = $Claude -or (Ask 'Claude Code (Anthropic, Pro plan or higher): the coding assistant she was made for?' $false)
+$wantTailscale = $Tailscale -or (Ask 'Tailscale: one Capri on all your PCs, wherever they are (needs a free Tailscale account)?' $false)
 
 Confirm-Winget # her own setup installs Ollama with it too, from her panel
 Confirm-Git
@@ -321,6 +331,7 @@ Confirm-Node
 if ($wantOllama) { Confirm-Ollama }
 if ($wantCodex) { Confirm-Codex }
 if ($wantClaude) { Confirm-Claude }
+if ($wantTailscale) { Confirm-Tailscale }
 Install-Capri $app
 if (-not $NoShortcut) { New-Shortcuts $app }
 if (-not $NoLaunch) { Start-Capri $app }

@@ -24,6 +24,7 @@ const { ASSISTANTS, assistant } = require('./assistants');
 const { createMainframe } = require('./mainframe');
 const phone = require('./phone');
 const totp = require('./totp');
+const swarm = require('./swarm');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -45,6 +46,14 @@ let trayMenu = null; // also what she opens when you right-click her
 let demoTimer = null;
 let windowWatch = null;
 let mainframe = null; // her settings window (mainframe.js)
+// her swarm (swarm.js): the link to her on your other PCs, and what Tailscale says here
+let hive = null;
+let hiveTailscale = null; // { ip, name, state } or null (not there)
+let hiveAway = null;      // the name of your other PC she's on (put away here meanwhile), else null
+let hiveError = null;
+let hiveInvite = null;    // { text, until }: a code for another PC, shown in Mainframe
+let screenLocked = false;
+let hiveFake = null;      // --dev: { locked, idle } instead of this PC's (two Capris on one PC)
 // the watcher only speaks when something changes: the overlay asks for this when it (re)loads
 let lastWindows = null;
 let chatModels = null; // the provider's models, as last seen (null: not reached)
@@ -333,7 +342,7 @@ function resolveLang(setting) {
 
 // What the overlay gets: `lang` is the resolved one, `langSetting` what the user picked.
 function rendererConfig() {
-  const { apiKeys, telegram, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
+  const { apiKeys, telegram, swarm: hiveKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
   return {
     ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang,
     floorGap: overlayArea().gap, screens: displays().length,
@@ -686,6 +695,19 @@ function mainframeState() {
       hours: String(phoneHours(cfg)),
       open: phoneOpen ? t.phoneOpenUntil(phoneTime(phoneOpen.until, cfg)) : null,
     },
+    swarm: {
+      on: Boolean(cfg.swarmOn),
+      name: hiveName(cfg),
+      tailscale: hiveTailscale?.ip || null,
+      tailscaleState: hiveTailscale ? hiveTailscale.state : 'missing',
+      invite: hiveInvite && hive?.state().pairing ? hiveInvite.text : null, // until it's used, cancelled or runs out
+      error: hiveError && (t[`swarmErr${hiveError[0].toUpperCase()}${hiveError.slice(1)}`] || hiveError),
+      peers: hive ? hive.state().peers.map((p) => ({
+        id: p.id, name: p.name,
+        status: p.active ? t.swarmHere : !p.online ? t.swarmOffline : p.locked ? t.swarmLocked : t.swarmOnline,
+      })) : (cfg.swarm?.peers || []).map((p) => ({ id: p.id, name: p.name, status: t.swarmOff })),
+      here: hive ? hive.state().here : true,
+    },
     system: {
       lang: cfg.lang,
       langs: [['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])].map(([id, label]) => ({ id, label })),
@@ -767,6 +789,14 @@ async function mainframeAct(name, value) {
       break;
     case 'phoneHours': if (one(['1', '4', '8'])) updateConfig({ phoneUnlockHours: Number(value) }); break;
     case 'phoneLock': phoneLock('phoneBotLockedNow'); break;
+    case 'swarmOn': updateConfig({ swarmOn: Boolean(value) }); await syncHive(); break;
+    case 'swarmName': if (typeof value === 'string' && value.trim()) { updateConfig({ swarmName: value.trim().slice(0, 40) }); await syncHive(true); } break;
+    case 'swarmInvite': hiveInviteNew(); break;
+    case 'swarmInviteCancel': hive?.stopPairing(); hiveInvite = null; break;
+    case 'swarmJoin': if (typeof value === 'string') await hiveJoin(value); break;
+    case 'swarmRemove': if (typeof value === 'string') await hive?.remove(value); break;
+    case 'tailscaleGet': shell.openExternal('https://tailscale.com/download/windows'); break;
+    case 'tailscaleCheck': await syncHive(); break;
     case 'quit': app.quit(); break;
     default: break;
   }
@@ -1488,6 +1518,99 @@ function registerIpc() {
 // Only in --dev: lets scripts drive the overlay and grab frames of it (no desktop content, just our window).
 const testWins = new Map(); // name -> test window
 
+// --- Her swarm --------------------------------------------------------------------------------------
+// One Capri on all your PCs (swarm.js): each one tells the others whether its screen is locked and
+// how long since a key or the mouse; she's on the one you're at, put away on the others. A PC alone
+// (no network, or the others gone) has her to itself, thinking through Ollama if it must.
+
+const hiveName = (cfg = config.load()) => cfg.swarmName || (DEV && process.env.CAPRI_PROFILE ? `${os.hostname()} (${process.env.CAPRI_PROFILE})` : os.hostname());
+const HIVE_PORT = (DEV && Number(process.env.CAPRI_SWARM_PORT)) || swarm.PORT;
+
+// this PC now, for the others: locked, and seconds since a key or the mouse
+function hiveHere() {
+  if (hiveFake) return hiveFake;
+  return { locked: screenLocked || powerMonitor.getSystemIdleState(1) === 'locked', idle: powerMonitor.getSystemIdleTime() };
+}
+
+// her own key, made the first time (sealed like the others)
+function hiveIdentity() {
+  const cfg = config.load();
+  if (cfg.swarm?.id && cfg.swarm.key) return { ...cfg.swarm, key: setup.openKey(cfg.swarm.key) };
+  const made = swarm.identity();
+  updateConfig({ swarm: { id: made.id, pub: made.pub, key: setup.sealKey(made.key), peers: [] } });
+  return made;
+}
+
+// Started, stopped or started again (`fresh`: a new name, or Tailscale's address changed)
+async function syncHive(fresh = false) {
+  const cfg = config.load();
+  hiveTailscale = await swarm.tailscale().catch(() => null);
+  const hosts = ['127.0.0.1', ...(hiveTailscale?.ip ? [hiveTailscale.ip] : [])];
+  const want = Boolean(cfg.swarmOn);
+  if (hive && (!want || fresh || hive.hosts.join() !== hosts.join())) {
+    hive.stop();
+    hive = null;
+  }
+  if (want && !hive) {
+    const id = hiveIdentity();
+    const link = swarm.createSwarm({
+      me: { id: id.id, pub: id.pub, key: id.key, name: hiveName() },
+      peers: config.load().swarm?.peers || [],
+      port: HIVE_PORT,
+      hosts,
+      here: hiveHere,
+      onChange: (state) => hiveMoved(state),
+      onPeers: (peers) => updateConfig({ swarm: { ...config.load().swarm, peers } }),
+    });
+    link.hosts = hosts;
+    hive = link;
+    if (!(await link.start())) hiveError = 'port';
+    else if (hiveError === 'port') hiveError = null;
+  }
+  if (!want) hiveBack();
+  mainframe?.refresh();
+}
+
+// She went to the PC you're at, or came back here
+function hiveMoved(state) {
+  if (!state.here && hiveAway === null) {
+    const to = state.peers.find((p) => p.active)?.name || '';
+    hiveAway = to;
+    if (config.load().visible) sendCommand('swarmAway', { to });
+  } else if (state.here && hiveAway !== null) {
+    hiveBack();
+  }
+  mainframe?.refresh();
+}
+
+function hiveBack() {
+  if (hiveAway === null) return;
+  const from = hiveAway;
+  hiveAway = null;
+  if (config.load().visible) sendCommand('swarmBack', { from });
+}
+
+function hiveInviteNew() {
+  if (!hive) return;
+  const address = hiveTailscale?.ip || (DEV ? '127.0.0.1' : null);
+  if (!address) {
+    hiveError = 'noTailscale';
+    return;
+  }
+  hiveError = null;
+  hiveInvite = hive.startPairing(address);
+}
+
+async function hiveJoin(text) {
+  if (!hive) return;
+  hiveError = null;
+  try {
+    await hive.join(text);
+  } catch (err) {
+    hiveError = err.message;
+  }
+}
+
 async function debugHandler(route, body) {
   if (!DEV) throw new Error('debug routes need --dev');
   if (route === 'command') {
@@ -1548,6 +1671,13 @@ async function debugHandler(route, body) {
     const find = (menu) => menu.items.reduce((hit, i) => hit || (i.label === body.click ? i : i.submenu && find(i.submenu)), null);
     if (body.click) find(trayMenu)?.click();
     return { ok: true, value: items(trayMenu) };
+  }
+  if (route === 'swarm') {
+    // her swarm: this PC locked or idle as you say ({ locked, idle }, or { real: true }), and what it sees
+    if (body.real) hiveFake = null;
+    else if ('locked' in body || 'idle' in body) hiveFake = { locked: Boolean(body.locked), idle: Number(body.idle) || 0 };
+    if (body.tick) await hive?.tick();
+    return { ok: true, fake: hiveFake, state: hive?.state() || null, away: hiveAway };
   }
   if (route === 'eval') {
     // a look inside the overlay (app.js puts what's there on window.dev in --dev)
@@ -1637,6 +1767,8 @@ function applyRender() {
 }
 
 function main() {
+  // --dev: a second Capri on this PC, with its own settings (to try her swarm with)
+  if (DEV && process.env.CAPRI_PROFILE) app.setPath('userData', `${app.getPath('userData')}-${process.env.CAPRI_PROFILE.replace(/\W/g, '')}`);
   applyRender();
   if (DEV && process.env.CAPRI_TELEGRAM_API) phone.useApi(process.env.CAPRI_TELEGRAM_API); // a Telegram of your own, to try her with
   if (!app.requestSingleInstanceLock()) {
@@ -1673,6 +1805,8 @@ function main() {
     watchBrain();
     watchPhone();
     syncPhoneChat();
+    syncHive();
+    setInterval(() => config.load().swarmOn && syncHive(), 60000); // Tailscale installed, signed in, or its address changed
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     // a screen plugged in, unplugged, or rearranged: her window fitted again, and she learns of it
@@ -1688,7 +1822,13 @@ function main() {
     screen.on('display-removed', screensChanged);
     // after sleep or a locked screen, once Windows has settled
     powerMonitor.on('resume', () => setTimeout(rearmOverlay, 2000));
+    powerMonitor.on('lock-screen', () => {
+      screenLocked = true;
+      hive?.tick(); // the others learn at once that you've left this one
+    });
     powerMonitor.on('unlock-screen', () => {
+      screenLocked = false;
+      hive?.tick();
       setTimeout(rearmOverlay, 1000);
       phoneLock('phoneBotBack'); // you're back at the PC: her chat on Telegram locks
     });
@@ -1698,6 +1838,7 @@ function main() {
     llm.stopAgents();
     stopPairing();
     phoneListener?.abort();
+    hive?.stop();
     globalShortcut.unregisterAll();
     windowWatch?.stop();
   });

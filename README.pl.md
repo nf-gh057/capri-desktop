@@ -18,6 +18,9 @@ glitchuje, komentuje każdą akcję, przychodzi po ciebie, kiedy trzeba twojej z
 >   albo się wysypuje, a ciebie nie ma przy komputerze, i jej wieczorny raport. Patrz „Co opuszcza twój komputer”.
 > - **Rozmowa przez Telegram**: ta sama rozmowa i pamięć z telefonu, odblokowana kodem z aplikacji uwierzytelniającej
 >   (`/unlock 123456`), bez jej mocy, a Claude Code i Codex tylko czytają.
+> - **Rój**: jedna Capri na wszystkich twoich komputerach, gdziekolwiek są (połączonych przez Tailscale): jest na tym,
+>   przy którym siedzisz, a na pozostałych schowana; zablokowany ekran albo komputer poza zasięgiem znaczy, że cię tam
+>   nie ma. Patrz „Rój” niżej.
 > - **Mózg bez sieci**: z Ollamą i modelem na twoim PC myśli dalej, kiedy sieć padnie (patrz „Nie ma sieci?” niżej).
 > - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…).
 > - **Instalator w jednej linijce** dla Windows, który dokłada też to, czego brakuje (łącznie z wingetem): patrz „Instalacja”.
@@ -318,11 +321,12 @@ Dokłada to, czego potrzebuje, a potem samą Capri, pytając o części opcjonal
 - **Git** i **Node.js** 20 lub nowszy, jeśli ich nie ma (Node.js przy instalacji może poprosić o prawa administratora).
 - **Ollamę z modelem** (gemma3, razem około 5 GB; domyślnie tak): jej mózg na twoim PC i to, co pozwala jej myśleć bez sieci.
 - **Codex** albo **Claude Code**, jeśli chcesz (domyślnie nie): asystentów do programowania, których obserwuje.
+- **Tailscale**, jeśli chcesz (domyślnie nie): to, co łączy ją na wszystkich twoich komputerach, do roju.
 - **Capri** z tego forka w `%LOCALAPPDATA%\Capri\capri-desktop`, ze skrótem w menu Start i na pulpicie, a potem ją uruchamia.
 
 Uruchom go jeszcze raz, żeby ją zaktualizować. Z opcjami:
 `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex`
-(bez pytań: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). W sklonowanym
+(bez pytań: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Tailscale`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). W sklonowanym
 repozytorium kliknij dwa razy **`install.cmd`**: instaluje ten klon na miejscu. `install.cmd -Uninstall` wyjmuje jej hooki
 z Claude Code i Codexa i usuwa jej skróty i folder (Git, Node.js i Ollama zostają).
 
@@ -500,6 +504,25 @@ i serwerów MCP). Twoje wiadomości i jej odpowiedzi idą przez serwery Telegram
 Przyciski pod jej wiadomościami („przypomnij za 30 min”, „cisza na godzinę”) nie wymagają kodu: zmieniają tylko to, co
 ci wysyła.
 
+### Rój
+
+Jedna Capri na wszystkich twoich komputerach: w domu, w pracy, na laptopie w sieci komórkowej. Łączą się przez
+[Tailscale](https://tailscale.com), prywatną sieć (WireGuard), w której każde twoje urządzenie ma jeden adres
+(`100.x.y.z`) niezależnie od sieci i samo przechodzi przez domowe routery i sieci komórkowe. Zainstaluj go i zaloguj się
+na każdym komputerze tym samym kontem (do użytku prywatnego za darmo; `install.ps1 -Tailscale` go instaluje). Potem
+w Mainframe › **Rój**: włącz go, na jednym komputerze **Dodaj komputer**, a linijkę, którą pokaże, wklej w **Dołącz** na
+drugim (działa raz, przez 10 minut). Komputer, który dołącza, poznaje resztę roju od tego, do którego dołączył.
+
+Co kilka sekund każdy komputer mówi pozostałym, czy ma zablokowany ekran i ile minęło od klawiatury lub myszy. Capri jest
+na odblokowanym, którego używałeś ostatnio (inny musi być wyraźnie świeższy, żeby przeskoczyła), a na pozostałych chowa
+się do biochipa; komputer, który przez kilkanaście sekund nie odpowiada, liczy się jako ten, przy którym cię nie ma.
+Komputer sam, bez sieci, ma ją dla siebie (myśli przez Ollamę, jeśli jej mózg jest w sieci).
+
+Każda Capri ma własny klucz; każda para komputerów ma wspólny klucz wyliczony z ich kluczy, nigdy niewysyłany, i szyfruje
+nim wszystko między nimi (AES-256-GCM, ze znacznikiem czasu i jednorazowym numerem, którego nie da się powtórzyć) na
+szyfrowaniu samego Tailscale. Nasłuchuje tylko na swoim adresie Tailscale (i `127.0.0.1`), nigdy w sieci lokalnej ani
+w internecie, i tylko sparowanych komputerów. To, co przysyłają, to ich stan, nigdy coś do uruchomienia.
+
 ## Kierunek artystyczny
 
 Cel: ma wyglądać, jakby wyszła z anime, a nie jak widżet.
@@ -574,6 +597,7 @@ src/main/                Electron: pełnoekranowe przezroczyste okno przepuszcza
   apps.js                zamykanie aplikacji, o które prosisz (po twoim kliknięciu)
   phone.js               jej wiadomości na twój telefon, przez twojego własnego bota na Telegramie, i rozmowa tam
   totp.js                kod z aplikacji uwierzytelniającej, który odblokowuje rozmowę przez Telegram
+  swarm.js               rój: parowanie komputerów, szyfrowane wiadomości między nimi, przy którym jesteś
   files.js               szukanie twoich plików (indeks wyszukiwania Windows), zrzuty ekranu
 src/renderer/js/
   sprite.js              shader WebGL: przechył głowy, rozkładanie grzywy, siedzenie, smużenie, powidoki, kolory, glitch
@@ -603,7 +627,8 @@ Do grzebania w niej: `npm run dev` włącza trasy debugowania na moście (`/debu
 kursorem nad oknem Capri, bez ruszania prawdziwego, `/debug/type` pisze w jej czacie, `/debug/menu` wylicza jej menu i może
 kliknąć jego pozycję, `/debug/mainframe` otwiera Mainframe, coś w nim robi i robi mu zrzut). Z `CAPRI_OFFLINE=1` zachowuje się,
 jakby nie było sieci, z `CAPRI_SCREENS=2` dzieli twój ekran na dwa, a `CAPRI_TELEGRAM_API` kieruje jej telefon do twojego
-własnego Telegrama.
+własnego Telegrama. Druga Capri na tym samym PC, do roju: `CAPRI_PROFILE=b` (własne ustawienia), z własnymi
+`CAPRI_PORT`, `CAPRI_SWARM_PORT` i `CAPRI_TOKEN_FILE`; `/debug/swarm` udaje, że jej PC jest zablokowany albo bezczynny.
 `npm run dist` buduje instalator Windows w `dist/`.
 
 ## Autorzy i prawa

@@ -41,6 +41,9 @@ const DEFAULTS = {
   phoneChat: false,  // her chat on Telegram, unlocked with the code from your authenticator app (main.js)
   phoneUnlockHours: 8, // how long `/unlock` opens it for: 1, 4 or 8
   phoneLockout: false, // three wrong codes turned it off: said in Mainframe until it's turned on again
+  swarm: null,       // her swarm (swarm.js): { id, pub, key (sealed), peers: [{ id, name, pub, host, port }] }
+  swarmOn: false,    // she's one Capri on all your PCs, on the one you're at (through Tailscale)
+  swarmName: '',     // this PC's name in her swarm ('': its Windows name)
   phoneOn: false,    // she writes to your phone when something happens while you're away
   phoneAway: 5,      // away: this many minutes without a key or the mouse, or the screen locked (0: always)
   phoneDetail: 'line', // what she writes: 'line' (her words and the project) or 'quote' (with a bit of what was said)

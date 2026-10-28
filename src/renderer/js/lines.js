@@ -278,6 +278,8 @@ export const LINES = {
     },
     // passée sur ton autre écran pour te suivre
     screens: { hello: ['Coucou, l’autre écran.', 'Tu bosses ici maintenant ? J’arrive.', 'Me voilà.'] },
+    // elle passe d’un de tes PC à l’autre (essaim, swarm.js)
+    swarm: { leave: ['Je file sur {pc}.', 'On se retrouve sur {pc}, choom.', 'Je te suis sur {pc}.'], back: ['Me revoilà.', 'Je t’ai suivi depuis {pc}.', 'Celui-ci maintenant ? J’arrive.'] },
     // elle réagit à ton PC (pc.js) : processeur, batterie, réseau, clé USB, jeu
     pc: {
       hot: ['Ton processeur est à fond. Moi aussi, je chauffe.', '{cpu} % de processeur. Il fait chaud là-dedans.', 'Ça chauffe ! Tu fais tourner quoi, là ?'],
@@ -648,6 +650,8 @@ export const LINES = {
     },
     // over on your other screen, following you
     screens: { hello: ['Hi, other screen.', 'Working over here now? Coming.', 'There you are.'] },
+    // she goes from one of your PCs to another (her swarm, swarm.js)
+    swarm: { leave: ['Off to {pc}.', 'See you on {pc}, choom.', 'Following you to {pc}.'], back: ['Back.', 'Followed you from {pc}.', 'This one now? Here I am.'] },
     // she reacts to your PC (pc.js): processor, battery, network, USB stick, game
     pc: {
       hot: ['Your processor is maxed out. I’m heating up too.', '{cpu}% CPU. It’s getting hot in here.', 'Things are heating up! What are you running?'],
@@ -1014,6 +1018,8 @@ export const LINES = {
     },
     // en tu otra pantalla, siguiéndote
     screens: { hello: ['Hola, otra pantalla.', '¿Ahora trabajas aquí? Voy.', 'Aquí estás.'] },
+    // pasa de uno de tus PC a otro (enjambre, swarm.js)
+    swarm: { leave: ['Me voy a {pc}.', 'Nos vemos en {pc}, choom.', 'Te sigo a {pc}.'], back: ['Volví.', 'Te seguí desde {pc}.', '¿Ahora este? Aquí estoy.'] },
     // reacciona a tu PC (pc.js): procesador, batería, red, USB, juego
     pc: {
       hot: ['Tu procesador va a tope. Yo también me caliento.', '{cpu} % de CPU. Aquí dentro hace calor.', '¡Esto se calienta! ¿Qué estás ejecutando?'],
@@ -1382,6 +1388,8 @@ export const LINES = {
     },
     // na sua outra tela, te seguindo
     screens: { hello: ['Oi, outra tela.', 'Trabalhando aqui agora? Tô indo.', 'Aí está você.'] },
+    // ela passa de um dos seus PCs para outro (enxame, swarm.js)
+    swarm: { leave: ['Indo pro {pc}.', 'A gente se vê no {pc}, choom.', 'Te sigo até o {pc}.'], back: ['Voltei.', 'Te segui desde o {pc}.', 'Agora este? Tô aqui.'] },
     // ela reage ao seu PC (pc.js): processador, bateria, rede, pendrive, jogo
     pc: {
       hot: ['Seu processador tá no talo. Eu também tô esquentando.', '{cpu} % de CPU. Tá quente aqui dentro.', 'Tá esquentando! O que você tá rodando?'],
@@ -1752,6 +1760,8 @@ export const LINES = {
     },
     // на твоём другом экране, следом за тобой
     screens: { hello: ['Привет, другой экран.', 'Теперь работаешь тут? Иду.', 'Вот ты где.'] },
+    // она переходит с одного твоего ПК на другой (рой, swarm.js)
+    swarm: { leave: ['Ухожу на {pc}.', 'Увидимся на {pc}, choom.', 'Иду за тобой на {pc}.'], back: ['Я тут.', 'Пришла за тобой с {pc}.', 'Теперь этот? Я здесь.'] },
     // она реагирует на твой ПК (pc.js): процессор, батарея, сеть, флешка, игра
     pc: {
       hot: ['Твой процессор на пределе. Я тоже нагреваюсь.', 'Процессор на {cpu} %. Жарко тут.', 'Горячо! Что там у тебя запущено?'],
@@ -1923,6 +1933,8 @@ export const LINES = {
     screens: {
       hello: ['Cześć, drugi ekranie.', 'Teraz pracujesz tutaj? Już idę.', 'Tu jesteś.'],
     },
+    // przechodzi z jednego twojego PC na drugi (rój, swarm.js)
+    swarm: { leave: ['Lecę na {pc}.', 'Widzimy się na {pc}, choom.', 'Idę za tobą na {pc}.'], back: ['Wróciłam.', 'Przyszłam za tobą z {pc}.', 'Teraz ten? Jestem.'] },
     // twój PC, tak jak go czuje (pc.js)
     pc: {
       hot: ['Twój procesor jedzie na maksa. Ja też się grzeję.', 'CPU {cpu}%. Robi się tu gorąco.', 'Ale się grzeje! Co ty tam odpalasz?'],

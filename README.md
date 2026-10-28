@@ -18,6 +18,8 @@ glitches, comments on every action, comes to find you when it needs your permiss
 >   while you're away from the PC, and her evening report. See "What leaves your machine".
 > - **Her chat on Telegram**: the same conversation and memory from your phone, unlocked with the code from your
 >   authenticator app (`/unlock 123456`), without her powers, with Claude Code or Codex only reading.
+> - **Her swarm**: one Capri on all your PCs, wherever they are (linked through Tailscale): she's on the one you're at,
+>   put away on the others; a locked screen or a PC out of reach means you're not there. See "Her swarm" below.
 > - **A brain without the network**: with Ollama and a model on your PC, she keeps thinking when the network goes
 >   (see "No network?" below).
 > - **Polish**: she speaks it, and understands it in her chat (reminders, music, files...).
@@ -318,11 +320,12 @@ It puts in what she needs and then Capri herself, asking about the optional part
 - **Ollama with a model** (gemma3, about 5 GB in all; yes by default): her brain on your PC, and what keeps her thinking
   without the network.
 - **Codex** or **Claude Code**, if you want them (no by default): the coding assistants she watches.
+- **Tailscale**, if you want it (no by default): what links her on all your PCs, for her swarm.
 - **Capri** from this fork in `%LOCALAPPDATA%\Capri\capri-desktop`, with a Start menu and desktop shortcut, then she
   starts.
 
 Run it again to bring her up to date. With options: `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex`
-(no questions: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). In a
+(no questions: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Tailscale`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). In a
 clone, double-click **`install.cmd`** instead: it installs that clone in place. `install.cmd -Uninstall` takes her
 hooks out of Claude Code and Codex and removes her shortcuts and folder (Git, Node.js and Ollama stay).
 
@@ -498,6 +501,25 @@ read, whatever Mainframe allows on the desktop: Codex in its read-only sandbox, 
 memory as her chat here. Buttons under her messages ("remind me in 30 min", "quiet for an hour") need no code: they
 only change what she sends you.
 
+### Her swarm
+
+One Capri on all your PCs: at home, at work, a laptop on mobile data. They link through
+[Tailscale](https://tailscale.com), a private network (WireGuard) where each of your devices keeps one address
+(`100.x.y.z`) whatever network it's on, and gets through home routers and mobile networks by itself. Install it and sign
+in on each PC with the same account (free for personal use; `install.ps1 -Tailscale` puts it in). Then in Mainframe ›
+**Swarm**: turn it on, **Add a PC** on one, and paste the line it shows into **Join** on the other (it works once, for
+10 minutes). A PC that joins learns the rest of the swarm from the one it joined.
+
+Every few seconds each PC tells the others whether its screen is locked and how long since a key or the mouse. She's on
+the unlocked one you used last (another must be clearly fresher for her to hop), and put away into her biochip on the
+others; a PC that stops answering for a dozen seconds counts as one you're not at. A PC alone, with no network, has her
+to itself (thinking through Ollama if her brain is online).
+
+Each Capri has a key of her own; every pair of PCs shares a key worked out from theirs, never sent, and seals everything
+between them with it (AES-256-GCM, with a time and a one-time number that can't be played again) on top of Tailscale's
+own encryption. She listens on her Tailscale address only (and `127.0.0.1`), never on your local network or the
+internet, and only to PCs paired with her. What they send is their state, never something to run.
+
 ## Art direction
 
 The goal: she should feel like she stepped out of the anime, not like a widget.
@@ -568,6 +590,7 @@ src/main/                Electron: full-screen transparent click-through window,
   apps.js                closing an app you asked her to close (after your click)
   phone.js               her messages to your phone, through your own Telegram bot, and her chat there
   totp.js                the code from your authenticator app that unlocks her chat on Telegram
+  swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
 src/renderer/js/
   sprite.js              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
   acting.js              the exposure sheets: every move, drawing by drawing
@@ -602,7 +625,9 @@ To hack on it: `npm run dev` turns on debug routes on the bridge (`/debug/captur
 over Capri's window, without touching the real one, `/debug/type` types in her chat, `/debug/menu` lists her menu and
 can click an item of it, `/debug/mainframe` opens Mainframe, acts in it and captures it). With `CAPRI_OFFLINE=1` she
 acts as if the network were gone, with `CAPRI_SCREENS=2` she cuts your screen in two, and `CAPRI_TELEGRAM_API` points
-her phone at a Telegram of your own.
+her phone at a Telegram of your own. A second Capri on the same PC, for her swarm: `CAPRI_PROFILE=b` (settings of its
+own), with `CAPRI_PORT`, `CAPRI_SWARM_PORT` and `CAPRI_TOKEN_FILE` of its own; `/debug/swarm` makes her PC locked or
+idle as you say.
 `npm run dist` builds the Windows installer in `dist/`.
 
 ## Credits and rights
