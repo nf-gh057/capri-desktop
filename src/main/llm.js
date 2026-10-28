@@ -34,6 +34,9 @@ const PROVIDERS = {
 const CLAUDE_MODES = ['default', 'acceptEdits'];
 // the same two for Codex, as its sandboxes: it reads, or it also edits in its folder
 const CODEX_SANDBOX = { default: 'read-only', acceptEdits: 'workspace-write' };
+// Claude Code's tools when it only reads (from your phone): nothing that changes or runs anything,
+// nothing that reaches out, and no MCP server
+const READ_ONLY_TOOLS = 'Read,Grep,Glob';
 // the terminal agents: they keep the conversation themselves and really work in a folder
 const isAgent = (id) => ['claude', 'codex'].includes(PROVIDERS[id]?.kind);
 
@@ -151,6 +154,8 @@ function claudeChat(cfg, text, persona, onDelta, signal) {
   const args = ['-p', '--output-format', 'stream-json', '--verbose',
     '--permission-mode', CLAUDE_MODES.includes(cfg.claudeMode) ? cfg.claudeMode : 'default',
     '--append-system-prompt-file', quote(personaFile)];
+  // from your phone (main.js): it reads, and that's all, whatever your Claude Code settings allow
+  if (cfg.readOnly) args.push('--tools', READ_ONLY_TOOLS, '--strict-mcp-config');
   if (!claudeSession) claudeSession = randomUUID();
   args.push(claudeStarted ? '--resume' : '--session-id', claudeSession);
   return new Promise((resolve, reject) => {

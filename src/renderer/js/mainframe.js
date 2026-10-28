@@ -155,7 +155,38 @@ function phone(s, t) {
       p.away, 'phoneAway', { label: t.phoneWhen })),
     row(t.phoneDetail, select([['line', t.phoneLine], ['quote', t.phoneQuote]].map(([id, label]) => ({ id, label })),
       p.detail, 'phoneDetail', { label: t.phoneDetail })),
-    el('div', { class: 'split' }, button(t.phoneTest, 'phoneTest'), button(t.phoneForget, 'phoneForget')));
+    el('div', { class: 'split' }, button(t.phoneTest, 'phoneTest'), button(t.phoneForget, 'phoneForget')),
+    phoneChat(p, t));
+}
+
+// Her chat on Telegram: the code from your authenticator app first (scanned here, checked once), then
+// on or off, how long `/unlock` opens it for, and locked again from here
+function phoneChat(p, t) {
+  const head = el('h3', { class: 'subhead' }, t.phoneChatHead);
+  if (p.draft) {
+    return [head,
+      el('p', { class: 'note' }, t.phoneTotpScan),
+      el('img', { class: 'qr', src: p.draft.qr, alt: t.phoneTotpScan }),
+      el('p', { class: 'note' }, `${t.phoneTotpKey} `, el('span', { class: 'code' }, p.draft.key)),
+      p.draftError && el('p', { class: 'note is-error' }, p.draftError),
+      field('phoneTotpCode', t.phoneTotpCode, t.phoneTotpCheck, 'phoneTotpCheck'),
+      row(null, button(t.phoneTotpCancel, 'phoneTotpCancel', null, { class: 'grow' }))];
+  }
+  if (!p.totp) {
+    return [head,
+      el('p', { class: 'note' }, t.phoneChatHow),
+      row(null, button(t.phoneTotpSet, 'phoneTotpSet', null, { class: 'grow' }))];
+  }
+  return [head,
+    el('p', { class: `note ${p.lockout ? 'is-error' : ''}` }, p.lockout || t.phoneChatHow),
+    check(t.phoneChat, p.chat, 'phoneChat'),
+    ...(p.chat ? [
+      row(t.phoneUnlockFor, choice('trio grow', ['1', '4', '8'].map((h) => [h, `${h} h`]), p.hours, 'phoneHours')),
+      p.open
+        ? row(null, el('span', { class: 'note grow' }, p.open), button(t.phoneLockNow, 'phoneLock'))
+        : el('p', { class: 'note' }, t.phoneLocked),
+    ] : []),
+    row(null, button(t.phoneTotpRemove, 'phoneTotpRemove', null, { class: 'grow' }))];
 }
 
 function system(s, t) {

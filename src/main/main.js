@@ -23,6 +23,7 @@ const files = require('./files');
 const { ASSISTANTS, assistant } = require('./assistants');
 const { createMainframe } = require('./mainframe');
 const phone = require('./phone');
+const totp = require('./totp');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -56,6 +57,16 @@ const chats = new Map(); // id -> AbortController of an answer being streamed
 let phonePair = null; // { code, link, until, abort } until `/start <code>` comes
 let phoneError = null;
 const phoneLimit = phone.limiter();
+// her chat on Telegram (below syncPhoneChat)
+let phoneListener = null;  // AbortController of the bot being listened to
+let phoneOpen = null;      // unlocked: { until, last } (till when, and your last message)
+let phoneFails = 0;        // wrong codes in a row
+let phoneAwaySeen = false; // you were away from the PC since it was unlocked
+let phoneMuted = 0;        // till when her messages wait ("quiet for an hour", a button under one)
+let totpDraft = null;      // { secret, wrong }: the code being set up in Mainframe
+let phoneQueue = Promise.resolve(); // your messages, answered one after the other
+const phoneTurns = new Map(); // id -> done(answer): her answers being written by the overlay
+const phoneReplies = phone.limiter(20);
 
 const userSoundsDir = () => path.join(app.getPath('userData'), 'sounds');
 
@@ -666,6 +677,14 @@ function mainframeState() {
       on: Boolean(cfg.phoneOn),
       away: String(cfg.phoneAway ?? 5),
       detail: cfg.phoneDetail === 'quote' ? 'quote' : 'line',
+      // her chat on Telegram: the code from your authenticator app, set up here
+      totp: Boolean(cfg.telegram?.totp),
+      draft: totpDraft && { qr: totpDraft.qr, key: totpDraft.secret.match(/.{1,4}/g).join(' ') },
+      draftError: totpDraft?.wrong ? t.phoneErrTotp : null,
+      chat: Boolean(cfg.phoneChat),
+      lockout: cfg.phoneLockout ? t.phoneErrLockout : null,
+      hours: String(phoneHours(cfg)),
+      open: phoneOpen ? t.phoneOpenUntil(phoneTime(phoneOpen.until, cfg)) : null,
     },
     system: {
       lang: cfg.lang,
@@ -726,10 +745,48 @@ async function mainframeAct(name, value) {
     case 'phoneAway': if (one(['0', '5', '15'])) updateConfig({ phoneAway: Number(value) }); break;
     case 'phoneDetail': if (one(['line', 'quote'])) updateConfig({ phoneDetail: value }); break;
     case 'phoneTest': await phoneSend(trayLabels().phoneTestText, { always: true }); break;
-    case 'phoneForget': stopPairing(); phoneError = null; updateConfig({ telegram: null, phoneOn: false }); break;
+    case 'phoneForget':
+      stopPairing();
+      phoneError = null;
+      totpDraft = null;
+      updateConfig({ telegram: null, phoneOn: false, phoneChat: false, phoneLockout: false });
+      break;
+    case 'phoneTotpSet': {
+      const { telegram } = config.load();
+      if (!telegram?.chat) break;
+      const secret = totp.secret();
+      totpDraft = { secret, qr: totp.qr(totp.link(secret, telegram.bot)) };
+      break;
+    }
+    case 'phoneTotpCancel': totpDraft = null; break;
+    case 'phoneTotpCheck': if (typeof value === 'string') checkTotpDraft(value); break;
+    case 'phoneTotpRemove': updateConfig({ telegram: { ...config.load().telegram, totp: null }, phoneChat: false }); break;
+    case 'phoneChat':
+      phoneFails = 0;
+      updateConfig({ phoneChat: Boolean(value) && Boolean(config.load().telegram?.totp), phoneLockout: false });
+      break;
+    case 'phoneHours': if (one(['1', '4', '8'])) updateConfig({ phoneUnlockHours: Number(value) }); break;
+    case 'phoneLock': phoneLock('phoneBotLockedNow'); break;
     case 'quit': app.quit(); break;
     default: break;
   }
+  syncPhoneChat(); // her chat on Telegram may have been turned on or off
+}
+
+// The code from your authenticator app, being set up: its secret shown once (QR code and text), and
+// kept, sealed, only when the app's code checks out (so the app has it right)
+function checkTotpDraft(typed) {
+  const cfg = config.load();
+  if (!totpDraft || !cfg.telegram?.chat) return;
+  const step = totp.check(totpDraft.secret, typed);
+  if (step === null) {
+    totpDraft.wrong = true;
+    return;
+  }
+  phoneFails = 0;
+  // `step`: the last code that worked, kept across restarts (that one doesn't unlock her chat too)
+  updateConfig({ telegram: { ...cfg.telegram, totp: setup.sealKey(totpDraft.secret), step }, phoneChat: true, phoneLockout: false });
+  totpDraft = null;
 }
 
 // Her bot on Telegram (phone.js), set up in Mainframe: its token checked with Telegram, then sealed
@@ -742,7 +799,7 @@ async function phoneSetToken(value) {
   const token = value.trim();
   try {
     const { username } = await phone.bot(token);
-    updateConfig({ telegram: { token: setup.sealKey(token), bot: username }, phoneOn: false });
+    updateConfig({ telegram: { token: setup.sealKey(token), bot: username }, phoneOn: false, phoneChat: false });
     startPairing();
   } catch (err) {
     phoneError = err.message;
@@ -764,7 +821,9 @@ function startPairing() {
   phone.waitForPair(phoneToken(cfg), pair.code, pair.abort.signal).then((who) => {
     if (phonePair !== pair) return;
     phonePair = null;
-    updateConfig({ telegram: { ...config.load().telegram, ...who }, phoneOn: true });
+    // another phone may have paired: her chat there starts locked, and off until you turn it on again
+    phoneLock();
+    updateConfig({ telegram: { ...config.load().telegram, ...who, totp: null }, phoneOn: true, phoneChat: false });
     phoneSend(trayLabels().phoneLinked, { always: true });
   }, (err) => {
     if (phonePair !== pair) return;
@@ -783,11 +842,14 @@ function phoneAway(cfg = config.load()) {
 
 // To your phone, if it's paired and her messages are on (`always`: Mainframe's own, on or off), a few
 // a minute at most
-async function phoneSend(text, { always = false } = {}) {
+async function phoneSend(text, { always = false, buttons = false } = {}) {
   const cfg = config.load();
   if (!cfg.telegram?.chat || (!always && !cfg.phoneOn) || !phoneLimit(text)) return false;
   try {
-    await phone.send(phoneToken(cfg), cfg.telegram.chat, text);
+    // under it, while she listens to the bot: "remind me in 30 min", "quiet for an hour"
+    const t = trayLabels(cfg);
+    const under = buttons && phoneListener ? { buttons: [[{ text: t.phoneLater, data: 'later' }, { text: t.phoneMute, data: 'mute' }]] } : {};
+    await phone.send(phoneToken(cfg), cfg.telegram.chat, text, under);
     if (phoneError) mainframe?.refresh();
     phoneError = null;
     return true;
@@ -795,6 +857,156 @@ async function phoneSend(text, { always = false } = {}) {
     phoneError = err.message;
     mainframe?.refresh();
     return false;
+  }
+}
+
+// --- Her chat on Telegram --------------------------------------------------------------------------
+// Turned on in Mainframe once the code from your authenticator app checks out: the bot then listens
+// to your one paired chat, nobody else's. `/unlock 123456` opens her chat for a few hours; before
+// that and after, nothing you send reaches her. It locks again when you're back at the PC, after an
+// hour of silence, or with `/lock`; three wrong codes turn it off until you turn it on again here.
+// Her chat from there is the one on your desktop, the same memory, without her powers, and Claude
+// Code or Codex only read (chat:send). Buttons under her messages need no code: they run nothing.
+
+const PHONE_FAILS = 3;
+const PHONE_QUIET_MS = 60 * 60 * 1000;
+const PHONE_ANSWER_MS = 6 * 60 * 1000;
+const PHONE_LATER_MS = 30 * 60 * 1000;
+
+const phoneHours = (cfg = config.load()) => ([1, 4, 8].includes(cfg.phoneUnlockHours) ? cfg.phoneUnlockHours : 8);
+const phoneTime = (at, cfg = config.load()) => new Date(at).toLocaleTimeString(resolveLang(cfg.lang), { hour: '2-digit', minute: '2-digit' });
+
+// listening to the bot while her chat there is on (and not while a new pairing waits for its code)
+function syncPhoneChat() {
+  const cfg = config.load();
+  const want = Boolean(cfg.phoneChat && cfg.telegram?.chat && cfg.telegram?.totp) && !phonePair;
+  if (want && !phoneListener) {
+    const listener = new AbortController();
+    phoneListener = listener;
+    const t = trayLabels(cfg);
+    const token = phoneToken(cfg);
+    phone.commands(token, [['unlock', t.phoneCmdUnlock], ['lock', t.phoneCmdLock]]);
+    phone.listen(token, onPhoneUpdate, listener.signal, (err) => {
+      if (!(err instanceof phone.PhoneError)) console.error('[capri] her chat on Telegram:', err.message);
+      else if (['badToken', 'conflict'].includes(err.message)) {
+        phoneError = err.message;
+        mainframe?.refresh();
+      }
+    }).finally(() => {
+      if (phoneListener === listener) phoneListener = null;
+    });
+  } else if (!want && phoneListener) {
+    phoneListener.abort();
+    phoneListener = null;
+    phoneLock();
+  }
+}
+
+// Locked again (`why`: what she tells your phone, if anything); an answer on its way stays here.
+function phoneLock(why = null) {
+  if (!phoneOpen) return;
+  phoneOpen = null;
+  phoneAwaySeen = false;
+  for (const id of phoneTurns.keys()) chats.get(id)?.abort();
+  mainframe?.refresh();
+  if (why) phoneReply(trayLabels()[why]);
+}
+
+// what she says back on Telegram (her chat's answers have their own way: sendLong)
+async function phoneReply(text) {
+  const cfg = config.load();
+  if (!cfg.telegram?.chat || !text || !phoneReplies(text)) return;
+  await phone.send(phoneToken(cfg), cfg.telegram.chat, text).catch(() => {});
+}
+
+// Every 5 seconds while it's unlocked: the time it was opened for, an hour of silence, and you at the
+// PC again after being away (a key or the mouse; the screen unlocked is seen at once, at startup)
+function watchPhone() {
+  setInterval(() => {
+    if (!phoneOpen) return;
+    const now = Date.now();
+    if (now > phoneOpen.until) return phoneLock('phoneBotExpired');
+    if (now - phoneOpen.last > PHONE_QUIET_MS) return phoneLock('phoneBotQuiet');
+    const idle = powerMonitor.getSystemIdleTime();
+    if (idle >= 120 || powerMonitor.getSystemIdleState(120) === 'locked') phoneAwaySeen = true;
+    else if (phoneAwaySeen && idle < 10) phoneLock('phoneBotBack');
+  }, 5000);
+}
+
+// What comes to the bot. Only from you, in your chat with it: anything else is not even answered.
+async function onPhoneUpdate(update) {
+  const cfg = config.load();
+  if (!cfg.telegram?.chat || !cfg.phoneChat) return;
+  const said = phone.fromOwner(update, cfg.telegram);
+  if (!said) return;
+  const t = trayLabels(cfg);
+  const token = phoneToken(cfg);
+  if (said.press) {
+    if (said.data === 'mute') {
+      phoneMuted = Date.now() + 60 * 60 * 1000;
+      return phone.answered(token, said.press, t.phoneMuted(phoneTime(phoneMuted, cfg)));
+    }
+    if (said.data === 'later' && said.text) {
+      setTimeout(() => phoneSend(said.text, { buttons: true }), PHONE_LATER_MS);
+      return phone.answered(token, said.press, t.phoneLaterSet);
+    }
+    return phone.answered(token, said.press);
+  }
+  if (said.command === 'unlock') return phoneUnlock(said.rest, said.message);
+  if (said.command === 'lock') return phoneOpen ? phoneLock('phoneBotLockedNow') : phoneReply(t.phoneBotLockedNow);
+  if (!phoneOpen) return phoneReply(`${t.phoneBotLocked}\n${t.phoneBotHelp}`);
+  if (said.command) return phoneReply(t.phoneBotHelp);
+  if (!said.text) return phoneReply(t.phoneBotTextOnly);
+  phoneOpen.last = Date.now();
+  phoneQueue = phoneQueue.then(() => phoneAnswer(said.text)).catch(() => {});
+}
+
+async function phoneUnlock(typed, message) {
+  const cfg = config.load();
+  const t = trayLabels(cfg);
+  phone.unsend(phoneToken(cfg), cfg.telegram.chat, message); // the code doesn't stay in the chat
+  const step = totp.check(setup.openKey(cfg.telegram.totp), typed, { after: cfg.telegram.step ?? -1 }); // a code works once
+  if (step === null) {
+    phoneFails += 1;
+    if (phoneFails < PHONE_FAILS) return phoneReply(t.phoneBotWrong(phoneFails, PHONE_FAILS));
+    // three in a row: off until you turn it on again at the PC
+    phoneLock();
+    updateConfig({ phoneChat: false, phoneLockout: true });
+    syncPhoneChat();
+    mainframe?.refresh();
+    return phoneReply(t.phoneBotOff);
+  }
+  phoneFails = 0;
+  updateConfig({ telegram: { ...cfg.telegram, step } });
+  phoneOpen = { until: Date.now() + phoneHours(cfg) * 60 * 60 * 1000, last: Date.now() };
+  phoneAwaySeen = false;
+  mainframe?.refresh();
+  return phoneReply(t.phoneBotUnlocked(phoneTime(phoneOpen.until, cfg)));
+}
+
+// Your message to her chat (chat.js fromPhone, in the overlay), and her answer back to your phone
+async function phoneAnswer(text) {
+  const cfg = config.load();
+  if (!phoneOpen || !overlay || !cfg.telegram?.chat) return;
+  const t = trayLabels(cfg);
+  const token = phoneToken(cfg);
+  const id = `phone-${randomUUID()}`;
+  phone.typing(token, cfg.telegram.chat);
+  const typing = setInterval(() => phone.typing(token, cfg.telegram.chat), 4500);
+  try {
+    const answer = await new Promise((resolve) => {
+      phoneTurns.set(id, resolve);
+      overlay.webContents.send('phone:chat', { id, text });
+      setTimeout(() => {
+        chats.get(id)?.abort();
+        resolve({ ok: false, error: 'timeout' });
+      }, PHONE_ANSWER_MS);
+    });
+    if (!phoneOpen) return; // locked meanwhile: what she says stays here
+    await phone.sendLong(token, cfg.telegram.chat, answer.ok ? answer.text : t.phoneBotFailed(answer.error)).catch(() => {});
+  } finally {
+    clearInterval(typing);
+    phoneTurns.delete(id);
   }
 }
 
@@ -1084,7 +1296,8 @@ function registerIpc() {
     const abort = new AbortController();
     chats.set(id, abort);
     let streamed = false;
-    const cfg = config.load();
+    // from your phone: Claude Code or Codex only read, whatever Mainframe says for the desktop
+    const cfg = phoneTurns.has(id) ? { ...config.load(), claudeMode: 'default', readOnly: true } : config.load();
     try {
       const send = (text) => {
         streamed = true;
@@ -1146,9 +1359,14 @@ function registerIpc() {
   // something worth telling you about (brain.js), sent to your phone only while you're away
   ipcMain.handle('phone:notify', (_e, note) => {
     const cfg = config.load();
-    if (!cfg.phoneOn || !cfg.telegram?.chat || !phoneAway(cfg)) return false;
+    if (!cfg.phoneOn || !cfg.telegram?.chat || !phoneAway(cfg) || Date.now() < phoneMuted) return false;
     const text = (key) => (typeof note?.[key] === 'string' ? note[key] : '');
-    return phoneSend(phone.compose({ line: text('line'), project: text('project'), quote: text('quote') }, cfg.phoneDetail));
+    return phoneSend(phone.compose({ line: text('line'), project: text('project'), quote: text('quote') }, cfg.phoneDetail), { buttons: true });
+  });
+  // her answer to a message from your phone (chat.js fromPhone)
+  ipcMain.on('phone:answer', (_e, answer) => {
+    const done = phoneTurns.get(answer?.id);
+    if (done) done({ ok: Boolean(answer.ok), text: String(answer.text || ''), error: String(answer.error || '') });
   });
   // setting her up with buttons (setup.js): Ollama and a model, or a key, or an address
   const progress = (payload) => overlay?.webContents.send('setup:progress', payload);
@@ -1453,6 +1671,8 @@ function main() {
     registerStowKey();
     llm.restoreAgents(readMemory());
     watchBrain();
+    watchPhone();
+    syncPhoneChat();
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     // a screen plugged in, unplugged, or rearranged: her window fitted again, and she learns of it
@@ -1468,12 +1688,16 @@ function main() {
     screen.on('display-removed', screensChanged);
     // after sleep or a locked screen, once Windows has settled
     powerMonitor.on('resume', () => setTimeout(rearmOverlay, 2000));
-    powerMonitor.on('unlock-screen', () => setTimeout(rearmOverlay, 1000));
+    powerMonitor.on('unlock-screen', () => {
+      setTimeout(rearmOverlay, 1000);
+      phoneLock('phoneBotBack'); // you're back at the PC: her chat on Telegram locks
+    });
   });
 
   app.on('will-quit', () => {
     llm.stopAgents();
     stopPairing();
+    phoneListener?.abort();
     globalShortcut.unregisterAll();
     windowWatch?.stop();
   });

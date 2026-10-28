@@ -16,6 +16,8 @@ glitchuje, komentuje każdą akcję, przychodzi po ciebie, kiedy trzeba twojej z
 >   co pokazuje jej czat). Prawy klik na niej › **Ustawienia…**.
 > - **Wiadomości na telefon** przez twojego własnego bota na Telegramie: kiedy Claude albo Codex cię potrzebuje, kończy
 >   albo się wysypuje, a ciebie nie ma przy komputerze, i jej wieczorny raport. Patrz „Co opuszcza twój komputer”.
+> - **Rozmowa przez Telegram**: ta sama rozmowa i pamięć z telefonu, odblokowana kodem z aplikacji uwierzytelniającej
+>   (`/unlock 123456`), bez jej mocy, a Claude Code i Codex tylko czytają.
 > - **Mózg bez sieci**: z Ollamą i modelem na twoim PC myśli dalej, kiedy sieć padnie (patrz „Nie ma sieci?” niżej).
 > - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…).
 > - **Instalator w jednej linijce** dla Windows, który dokłada też to, czego brakuje (łącznie z wingetem): patrz „Instalacja”.
@@ -485,6 +487,19 @@ albo odpowiedzi (najwyżej 400 znaków, wszystko, co wygląda na klucz, zamazane
 nie są szyfrowane end-to-end. Nigdy twoje pliki. Token bota jest zaszyfrowany twoim kontem Windows, a jedyne, co kiedykolwiek
 czyta od bota, to ten kod parowania.
 
+Rozmowa przez Telegram jest wyłączona, dopóki nie włączysz jej w Mainframe, a do tego potrzebna jest aplikacja
+uwierzytelniająca (Google albo Microsoft Authenticator, Aegis, 2FAS…): jej sekret widać tam raz, jako kod QR, jest
+zaszyfrowany jak token i zostaje zapisany dopiero, gdy pierwszy kod z aplikacji się zgodzi. Wtedy bot słucha tylko
+twojego sparowanego czatu (nikomu innemu nawet nie odpowiada), a nic, co wyślesz, nie dociera do niej przed
+`/unlock 123456` (każdy kod działa raz, a wiadomość z nim jest kasowana). Odblokowanie trwa 1, 4 albo 8 godzin
+i kończy się wcześniej, gdy wracasz do komputera, po godzinie ciszy, przez `/lock` albo z Mainframe; trzy złe kody
+z rzędu wyłączają rozmowę, dopóki nie włączysz jej z powrotem przy komputerze. Stamtąd Capri rozmawia bez swoich mocy
+(niczego nie otwiera, nie gra, nie przypomina), a Claude Code i Codex tylko czytają, cokolwiek pozwala im Mainframe na
+pulpicie: Codex w piaskownicy tylko do odczytu, Claude Code z samymi narzędziami do czytania (bez powłoki, edycji, sieci
+i serwerów MCP). Twoje wiadomości i jej odpowiedzi idą przez serwery Telegrama i do tej samej pamięci co jej czat tutaj.
+Przyciski pod jej wiadomościami („przypomnij za 30 min”, „cisza na godzinę”) nie wymagają kodu: zmieniają tylko to, co
+ci wysyła.
+
 ## Kierunek artystyczny
 
 Cel: ma wyglądać, jakby wyszła z anime, a nie jak widżet.
@@ -557,7 +572,8 @@ src/main/                Electron: pełnoekranowe przezroczyste okno przepuszcza
   llm.js                 jej czat: usługi z kluczem, Claude Code i Codex (app-server)
   mainframe.js           jej okno ustawień, Mainframe
   apps.js                zamykanie aplikacji, o które prosisz (po twoim kliknięciu)
-  phone.js               jej wiadomości na twój telefon, przez twojego własnego bota na Telegramie
+  phone.js               jej wiadomości na twój telefon, przez twojego własnego bota na Telegramie, i rozmowa tam
+  totp.js                kod z aplikacji uwierzytelniającej, który odblokowuje rozmowę przez Telegram
   files.js               szukanie twoich plików (indeks wyszukiwania Windows), zrzuty ekranu
 src/renderer/js/
   sprite.js              shader WebGL: przechył głowy, rozkładanie grzywy, siedzenie, smużenie, powidoki, kolory, glitch

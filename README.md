@@ -16,6 +16,8 @@ glitches, comments on every action, comes to find you when it needs your permiss
 >   what her chat shows). Right-click her › **Settings…**.
 > - **Messages to your phone** through a Telegram bot of your own: when Claude or Codex needs you, finishes or crashes
 >   while you're away from the PC, and her evening report. See "What leaves your machine".
+> - **Her chat on Telegram**: the same conversation and memory from your phone, unlocked with the code from your
+>   authenticator app (`/unlock 123456`), without her powers, with Claude Code or Codex only reading.
 > - **A brain without the network**: with Ollama and a model on your PC, she keeps thinking when the network goes
 >   (see "No network?" below).
 > - **Polish**: she speaks it, and understands it in her chat (reminders, music, files...).
@@ -484,6 +486,18 @@ answer (400 characters at most, anything that looks like a key blanked out), thr
 aren't end-to-end encrypted. Never your files. The bot token is kept encrypted with your Windows account, and the
 only thing she ever reads from the bot is that pairing code.
 
+Her chat on Telegram is off until you turn it on in Mainframe, and that takes the code from an authenticator app
+(Google or Microsoft Authenticator, Aegis, 2FAS…): its secret is shown there once, as a QR code, kept encrypted like
+the token, and stays only when the app's first code checks out. Then the bot listens to your paired chat alone (anyone
+else isn't even answered), and nothing you send reaches her until `/unlock 123456` (a code works once, and the message
+holding it is deleted). It stays unlocked for 1, 4 or 8 hours, and locks again sooner when you're back at the PC, after
+an hour of silence, with `/lock` or from Mainframe; three wrong codes in a row turn it off until you turn it back on at
+the PC. From there, she talks without her powers (nothing opened, played or reminded), and Claude Code or Codex only
+read, whatever Mainframe allows on the desktop: Codex in its read-only sandbox, Claude Code with its reading tools alone
+(no shell, edits, web or MCP servers). Your messages and her answers go through Telegram's servers, and into the same
+memory as her chat here. Buttons under her messages ("remind me in 30 min", "quiet for an hour") need no code: they
+only change what she sends you.
+
 ## Art direction
 
 The goal: she should feel like she stepped out of the anime, not like a widget.
@@ -552,7 +566,8 @@ src/main/                Electron: full-screen transparent click-through window,
   windows.js / .ps1      where the other windows are (Windows only), so she can sit on them
   ollama.js              her chat: the local model through Ollama, or one of its cloud models
   apps.js                closing an app you asked her to close (after your click)
-  phone.js               her messages to your phone, through your own Telegram bot
+  phone.js               her messages to your phone, through your own Telegram bot, and her chat there
+  totp.js                the code from your authenticator app that unlocks her chat on Telegram
 src/renderer/js/
   sprite.js              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
   acting.js              the exposure sheets: every move, drawing by drawing

@@ -1,8 +1,9 @@
 'use strict';
 
 // Her messages to your phone, through a Telegram bot of your own: plain HTTPS out to Telegram's Bot
-// API, no port opened on this PC. She only sends; the one thing she reads is the code that pairs the
-// bot with your chat (shown in Mainframe only), so nobody else's chat can ever be the one she writes to.
+// API, no port opened on this PC. What she reads: the code that pairs the bot with your chat (shown in
+// Mainframe only), so nobody else's chat can ever be the one she writes to, and, with her chat on
+// Telegram turned on, what that one chat sends her (main.js decides what it may do).
 // The token comes in sealed and goes out only to api.telegram.org: never into a log or an error.
 
 const { randomBytes } = require('node:crypto');
@@ -107,8 +108,84 @@ function limiter(perMinute = PER_MINUTE) {
   };
 }
 
-function send(token, chat, text) {
-  return call(token, 'sendMessage', { chat_id: chat, text, link_preview_options: { is_disabled: true } });
+// `buttons`: [[{ text, data }]], under the message
+function send(token, chat, text, { buttons } = {}) {
+  return call(token, 'sendMessage', {
+    chat_id: chat, text: clip(String(text), MAX_TEXT), link_preview_options: { is_disabled: true },
+    ...(buttons && { reply_markup: { inline_keyboard: buttons.map((line) => line.map(({ text: label, data }) => ({ text: label, callback_data: data }))) } }),
+  });
 }
 
-module.exports = { useApi, PhoneError, bot, pairing, waitForPair, compose, redact, limiter, send, PAIR_MS };
+// A long answer, in a few messages rather than cut short
+async function sendLong(token, chat, text, parts = 3) {
+  let rest = String(text).trim() || '…';
+  for (let i = 0; i < parts && rest; i++) {
+    const last = i === parts - 1 || rest.length <= MAX_TEXT;
+    let cut = last ? rest.length : rest.lastIndexOf('\n', MAX_TEXT);
+    if (cut < MAX_TEXT / 2) cut = last ? rest.length : MAX_TEXT;
+    await send(token, chat, rest.slice(0, cut));
+    rest = rest.slice(cut).trim();
+  }
+}
+
+const typing = (token, chat) => call(token, 'sendChatAction', { chat_id: chat, action: 'typing' }).catch(() => {});
+const unsend = (token, chat, message) => call(token, 'deleteMessage', { chat_id: chat, message_id: message }).catch(() => {});
+const answered = (token, query, text) => call(token, 'answerCallbackQuery', { callback_query_id: query, ...(text && { text }) }).catch(() => {});
+// the commands Telegram offers when you type "/": [[command, description]]
+const commands = (token, list) => call(token, 'setMyCommands', { commands: list.map(([command, description]) => ({ command, description })) }).catch(() => {});
+
+// What an update says, if it comes from you (`owner`: { chat, user }, as paired) in your private chat
+// with the bot, else null (not even answered): a button pressed { press, data, text }, a command
+// { message, command, rest }, or anything else { message, text }
+function fromOwner(update, { chat, user }) {
+  const press = update?.callback_query;
+  if (press) {
+    if (press.from?.id !== user || press.message?.chat?.id !== chat) return null;
+    return { press: press.id, data: String(press.data || ''), text: String(press.message.text || '') };
+  }
+  const m = update?.message;
+  if (m?.chat?.type !== 'private' || m.chat.id !== chat || m.from?.id !== user || m.from.is_bot) return null;
+  const text = String(m.text || '').trim();
+  const [, command = null, rest = ''] = /^\/(\w+)(?:@\w+)?(?:\s+([\s\S]*))?$/.exec(text) || [];
+  return { message: m.message_id, text, command: command && command.toLowerCase(), rest: rest.trim() };
+}
+
+// What comes to the bot (messages, button presses), one by one to `onUpdate`, until `signal` stops it.
+// What came while she wasn't listening is skipped. A failure waits a bit longer each time, and
+// a bad token ends it (`onFail` hears each one).
+async function listen(token, onUpdate, signal, onFail = () => {}) {
+  let offset = null;
+  let pause = 2;
+  while (!signal.aborted) {
+    try {
+      if (offset === null) {
+        const old = await call(token, 'getUpdates', { offset: -1, timeout: 0 }, { signal });
+        offset = old.length ? old.at(-1).update_id + 1 : 0;
+      }
+      const updates = await call(token, 'getUpdates', { offset, timeout: 25, allowed_updates: ['message', 'callback_query'] }, { signal, wait: 25 });
+      pause = 2;
+      for (const u of updates) {
+        offset = u.update_id + 1;
+        try {
+          await onUpdate(u);
+        } catch (err) {
+          onFail(err);
+        }
+      }
+    } catch (err) {
+      if (signal.aborted || err.message === 'stopped') return;
+      onFail(err);
+      if (err.message === 'badToken') return;
+      await new Promise((resolve) => {
+        const timer = setTimeout(resolve, pause * 1000);
+        signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+      });
+      pause = Math.min(pause * 2, 60);
+    }
+  }
+}
+
+module.exports = {
+  useApi, PhoneError, bot, pairing, waitForPair, compose, redact, limiter, send, sendLong, fromOwner, typing, unsend, answered, commands, listen,
+  PAIR_MS, MAX_TEXT,
+};

@@ -72,4 +72,7 @@ contextBridge.exposeInMainWorld('host', {
   openSite: (address) => ipcRenderer.invoke('apps:site', address),
   focusOverlay: (on) => ipcRenderer.send('overlay:focus', Boolean(on)),
   phoneNotify: (note) => ipcRenderer.invoke('phone:notify', note),
+  // your messages from her chat on Telegram, and her answers back
+  onPhoneChat: on('phone:chat'),
+  phoneAnswer: (answer) => ipcRenderer.send('phone:answer', answer),
 });

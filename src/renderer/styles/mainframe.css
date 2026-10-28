@@ -284,6 +284,21 @@ body {
   font-weight: 700;
   user-select: text;
 }
+/* the code for your authenticator app */
+.qr {
+  display: block;
+  width: 190px;
+  margin: 0 auto 12px;
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+/* her chat on Telegram, under her messages there */
+.subhead {
+  margin: 16px 0 8px;
+  color: var(--text-2);
+  font: 700 12px/1.2 var(--font-mono);
+  letter-spacing: 0.08em;
+}
 
 /* a checkbox: a square that fills with cyan */
 .check {

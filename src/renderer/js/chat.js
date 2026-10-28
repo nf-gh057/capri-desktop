@@ -11,6 +11,9 @@ import { parseReminder, parseWhen, clock } from './reminders.js';
 
 const REMEMBER = 20; // messages she has in mind when answering
 const REMEMBER_LOCAL = 8; // the same, with a model on this PC standing in (no network): less to read, a quicker answer
+// a message from your phone (her chat on Telegram): what her AI is told, by the message
+const PHONE_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from their phone, on Telegram. You can\'t open apps, sites or music, play anything or set reminders for them now: if they ask, say so. Plain text, a few sentences at most.';
+const PHONE_AGENT = 'You only read here: change no file and run nothing that changes anything, even if asked; that waits until they\'re back at the PC.';
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
 // her language, where small models need it: how she says "we" (else it's in English), and the last line
 // of her prompt, in that language (they drift into the English of everything above it)
@@ -360,6 +363,42 @@ export class Chat {
     this.panel.setChatBusy(false);
     if (this.powersOn || asked) this.after(res.text, answer, asked, early, text);
     this.listApps(); // fresh for the next message
+  }
+
+  // A message from your phone (her chat on Telegram, main.js): the same conversation and memory, with
+  // nothing shown here and none of her powers (whatever she says she'd open stays unopened). Claude
+  // Code or Codex only read for it, main.js sees to that. { ok, text } or { ok: false, error }
+  async fromPhone(id, text) {
+    while (this.turn) await new Promise((resolve) => setTimeout(resolve, 500)); // what you typed here first
+    const status = await this.host.chatStatus().catch(() => ({ ok: false, error: 'offline' }));
+    if (!status.ok) return { ok: false, error: status.error === 'offline' ? this.t.offline : status.error || '…' };
+    if (!this.open) this.history = await this.host.chatMemory().catch(() => this.history);
+    const agent = this.agent;
+    const name = this.agentName;
+    this.agent = Boolean(status.agent);
+    this.agentName = status.provider === 'codex' ? 'Codex' : 'Claude Code';
+    // where you are, said by your message (her prompt stays the one Codex already knows)
+    const away = (messages) => {
+      const last = messages.at(-1);
+      messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(${PHONE_NOTE}${this.agent ? ` ${PHONE_AGENT}` : ''})` };
+      return messages;
+    };
+    this.history.push({ role: 'user', content: text });
+    let res = await this.host.chatSend({ id, messages: away(this.messages()) });
+    if (!res.ok && res.code === 'offline' && res.local) {
+      this.agent = false;
+      res = await this.host.chatSend({ id, messages: away(this.messages(REMEMBER_LOCAL)), local: res.local });
+    }
+    this.agent = agent;
+    this.agentName = name;
+    if (!res.ok) {
+      if (this.history.at(-1)?.content === text) this.history.pop();
+      return { ok: false, error: res.code === 'offline' ? this.t.offline : res.code === 'busy' ? this.t.swamped : res.error || '…' };
+    }
+    const said = clean(res.text) || '…';
+    this.remember({ role: 'assistant', content: said });
+    this.onMessage?.();
+    return { ok: true, text: said };
   }
 
   // "Look at my screen" in her chat: she looks (asking you first, the first time) and answers here,

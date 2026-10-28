@@ -228,6 +228,11 @@ async function boot() {
   // Talking to her (chat.js): "Talk to her" in her menu, or the button when you click her idle.
   const chat = new Chat({ capri, panel, voice, host, brain });
   brain.onTalk = () => chat.start();
+  // what you write her from your phone (main.js lets it through only once unlocked)
+  host.onPhoneChat(async ({ id, text }) => {
+    const answer = await chat.fromPhone(id, String(text)).catch((err) => ({ ok: false, error: err.message }));
+    host.phoneAnswer({ id, ...answer });
+  });
   // Getting her chat going with buttons (setup.js): Ollama and a model, a key, or an address
   const setup = new Setup({ guide, panel, host, brain, capri, voice });
   guide.setup = setup;

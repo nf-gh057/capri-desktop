@@ -25,7 +25,11 @@ Wspólne dla wszystkich etapów:
 - Bot niczego nie przyjmuje poza kodem parowania: bez kodu TOTP, bo nic nie wchodzi.
 - Mainframe: link do @BotFather, pole na token, parowanie, włącz/wyłącz, kiedy, ile treści, test, odłącz.
 
-### Etap 2: rozmowa z Capri na Telegramie
+### Etap 2: rozmowa z Capri na Telegramie (zrobione: `src/main/totp.js`, nasłuch w `phone.js` i `main.js`)
+
+Zrobione tak: odblokowanie na 1, 4 albo 8 h (wybór w Mainframe); każdy kod działa raz, wiadomość z kodem jest kasowana;
+Claude Code z telefonu ma tylko Read, Grep i Glob, bez serwerów MCP; Codex w piaskownicy tylko do odczytu, bez sieci.
+Przyciski: „przypomnij za 30 min” (wysyła to samo jeszcze raz) i „cisza na godzinę”.
 
 - Ta sama rozmowa i pamięć co czat na pulpicie, bez jej „mocy” (żadnych aplikacji, stron, muzyki).
 - Odblokowanie kodem TOTP z aplikacji uwierzytelniającej (`/unlock 123456`) na dłużej, np. 8 h;
