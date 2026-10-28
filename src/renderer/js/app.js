@@ -625,7 +625,8 @@ async function boot() {
     look.configure(cfg);
     pc.enabled = cfg.pcReact !== false;
     wantsOut = cfg.visible !== false;
-    reminders.sync(cfg.reminders); // one may have been cancelled from her menu
+    reminders.sync(cfg.reminders); // one may have been cancelled from her menu, or on another PC
+    reminders.elsewhere = Boolean(cfg.hiveAway);
     capri.wander = cfg.wander;
     capri.possessWindows = cfg.possess;
     capri.restOn = cfg.rest || 'corner';
@@ -706,6 +707,12 @@ async function boot() {
         await capri.unstow();
         capri.wake();
         panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.back), { pc: cmd.from || '…' }), hold: 3000 });
+        break;
+      case 'bondSync': // how close she is to you, as your other PCs have it (her swarm)
+        bond.sync(cmd.bond);
+        break;
+      case 'hiveRejoined': // back on the network after being on her own: she's caught up with the others
+        if (!capri.stowed) panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.rejoined), { pc: cmd.pc || '…' }), hold: 5000 });
         break;
       case 'updateFound': // a new version of her on GitHub (said once per version)
         if (!capri.stowed) panel.say({ kind: 'info', face: 'look', line: fmt(pick(brain.t.update.found), { version: cmd.version || '…' }), hold: 7000 });

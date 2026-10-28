@@ -8,7 +8,7 @@ const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, protocol, net, shell, globalShortcut, nativeImage,
   clipboard, ClipboardItem, dialog, powerMonitor, desktopCapturer,
 } = require('electron');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 
 const config = require('./config');
 const { TRAY, LANGS } = require('./labels');
@@ -26,6 +26,7 @@ const phone = require('./phone');
 const totp = require('./totp');
 const swarm = require('./swarm');
 const update = require('./update');
+const { createMind } = require('./mind');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -55,6 +56,12 @@ let hiveError = null;
 let hiveInvite = null;    // { text, until }: a code for another PC, shown in Mainframe
 let screenLocked = false;
 let hiveFake = null;      // --dev: { locked, idle } instead of this PC's (two Capris on one PC)
+let hiveIsland = false;   // --dev: as if this PC had no network (her swarm down, her mind kept)
+// her shared mind (mind.js), while her swarm is on: what one Capri knows on all your PCs
+let mind = null;
+let mindSaveTimer = null;
+let mindApplying = false; // a change that came from another PC: not written back as ours
+let hiveAlone = null;     // since when no other PC answers (an island), then { from, at } once one does
 // her own updates (update.js): what GitHub has, and what she's doing about it
 let updateInfo = null;
 let updateBusy = null;    // 'checking' or 'applying'
@@ -104,6 +111,7 @@ function saveMemory(patch) {
 function forgetChats() {
   llm.resetAgents();
   saveMemory({ history: [], claude: null, codex: null });
+  if (mind?.write('forgot', Date.now())) mindSave(); // on all your PCs
   sendCommand('forget');
 }
 
@@ -351,12 +359,13 @@ function rendererConfig() {
   const { apiKeys, telegram, swarm: hiveKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
   return {
     ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang,
-    floorGap: overlayArea().gap, screens: displays().length,
+    floorGap: overlayArea().gap, screens: displays().length, hiveAway: hiveAway !== null,
   };
 }
 
 function updateConfig(patch) {
   config.save(patch);
+  if (!mindApplying && MIND_KEYS.some((key) => key in patch)) mindCapture();
   if ('rest' in patch) {
     fitOverlay(); // the taskbar in her window or not
     windowWatch?.refresh();
@@ -1395,7 +1404,11 @@ function registerIpc() {
     return { local: llm.isLocal(cfg.provider, cfg, model), provider, model };
   });
   ipcMain.handle('chat:memory', () => readMemory().history || []);
-  ipcMain.on('chat:remember', (_e, history) => Array.isArray(history) && saveMemory({ history }));
+  ipcMain.on('chat:remember', (_e, history) => {
+    if (!Array.isArray(history)) return;
+    saveMemory({ history });
+    mindCapture();
+  });
   ipcMain.on('chat:ollama', () => shell.openExternal(OLLAMA_SITE));
   // something worth telling you about (brain.js), sent to your phone only while you're away
   ipcMain.handle('phone:notify', (_e, note) => {
@@ -1658,7 +1671,7 @@ async function syncHive(fresh = false) {
   const cfg = config.load();
   hiveTailscale = await swarm.tailscale().catch(() => null);
   const hosts = ['127.0.0.1', ...(hiveTailscale?.ip ? [hiveTailscale.ip] : [])];
-  const want = Boolean(cfg.swarmOn);
+  const want = Boolean(cfg.swarmOn) && !hiveIsland;
   if (hive && (!want || fresh || hive.hosts.join() !== hosts.join())) {
     hive.stop();
     hive = null;
@@ -1675,18 +1688,27 @@ async function syncHive(fresh = false) {
       onPeers: (peers) => updateConfig({ swarm: { ...config.load().swarm, peers } }),
       // what an agent did on the PC you're not at: told here, with that PC's name
       onEvent: (peer, evt) => overlay?.webContents.send('claude:event', { ...evt, remote: true, pc: peer.name }),
+      mind: mindOpen(id.id),
+      onMind: (keys, peer) => mindApply(keys, peer),
     });
     link.hosts = hosts;
     hive = link;
     if (!(await link.start())) hiveError = 'port';
     else if (hiveError === 'port') hiveError = null;
   }
-  if (!want) hiveBack();
+  if (!want) {
+    hiveBack();
+    if (!cfg.swarmOn) mindClose();
+  }
   mainframe?.refresh();
 }
 
 // She went to the PC you're at, or came back here
 function hiveMoved(state) {
+  const online = state.peers.some((p) => p.online);
+  if (!online && !hiveAlone) hiveAlone = { since: Date.now() };
+  else if (online && hiveAlone?.since) hiveAlone = { from: hiveAlone.since, at: Date.now() };
+  overlay?.webContents.send('capri:config', rendererConfig()); // whether reminders go off here
   if (!state.here && hiveAway === null) {
     const to = state.peers.find((p) => p.active)?.name || '';
     hiveAway = to;
@@ -1715,6 +1737,161 @@ async function hiveEvent(evt) {
   }
   const { remote, pc, ...here } = evt; // only her swarm says an event comes from another PC
   overlay?.webContents.send('claude:event', here); // here, or the other PC couldn't be reached
+}
+
+// --- Her shared mind ---------------------------------------------------------------------------------
+// What one Capri knows on all your PCs (mind.js), while her swarm is on: your chats with her, "forget
+// our conversations", your name, how you want her, what you asked her to remember, her reminders and
+// how close she is to you. What changes here is written into it; what comes from another PC is put
+// back here (her config, her chat's memory) and told to the overlay.
+
+const MIND_KEYS = ['userName', 'persona', 'memories', 'reminders', 'bond'];
+const MIND_CHAT = 60; // the messages kept, as her chat keeps them (chat.js KEEP)
+const mindFile = () => path.join(app.getPath('userData'), 'mind.json');
+const memoKey = (text) => `memo:${createHash('sha1').update(String(text)).digest('hex').slice(0, 16)}`;
+
+function mindOpen(id) {
+  if (mind) return mind;
+  let state = null;
+  try {
+    state = JSON.parse(fs.readFileSync(mindFile(), 'utf8'));
+  } catch {
+    // a first time: what's here is what she knows
+  }
+  mind = createMind({ me: id, state });
+  mindCapture();
+  return mind;
+}
+
+function mindClose() {
+  if (!mind) return;
+  clearTimeout(mindSaveTimer);
+  mindWrite();
+  mind = null;
+}
+
+function mindWrite() {
+  try {
+    fs.writeFileSync(mindFile(), JSON.stringify(mind.state()));
+  } catch (err) {
+    console.error('[capri] could not save her shared mind:', err.message);
+  }
+}
+
+function mindSave() {
+  clearTimeout(mindSaveTimer);
+  mindSaveTimer = setTimeout(() => mind && mindWrite(), 1000);
+}
+
+// Her chat's messages, each with an id and a time (older ones, from before: made up once, in their
+// order, from when they were saved)
+function stampedHistory() {
+  const history = Array.isArray(readMemory().history) ? readMemory().history : [];
+  if (history.every((m) => m.id && m.at)) return history;
+  let saved = Date.now();
+  try {
+    saved = fs.statSync(memoryFile()).mtimeMs;
+  } catch {
+    // never saved: now
+  }
+  const stamped = history.map((m, i) => (m.id && m.at ? m : {
+    ...m,
+    id: createHash('sha1').update(`${m.role}\n${m.content}`).digest('hex').slice(0, 16),
+    at: Math.round(saved - (history.length - i) * 1000),
+  }));
+  saveMemory({ history: stamped });
+  overlay?.webContents.send('chat:history', stamped);
+  return stamped;
+}
+
+// how close she is to you, from two PCs: the closer, the longer known, the latest day (bond.js has the same)
+function bondJoin(a, b) {
+  if (!a || !b) return a || b || null;
+  const later = (b.last || '') > (a.last || '') ? b : a;
+  const ca = a.caps || {};
+  const cb = b.caps || {};
+  const caps = ca.date === cb.date
+    ? Object.fromEntries([...new Set([...Object.keys(ca), ...Object.keys(cb)])].map((k) => [k, k === 'date' ? ca.date : Math.max(ca[k] || 0, cb[k] || 0)]))
+    : ((ca.date || '') > (cb.date || '') ? ca : cb);
+  return {
+    ...a, ...b,
+    xp: Math.max(a.xp || 0, b.xp || 0),
+    first: [a.first, b.first].filter(Boolean).sort()[0],
+    last: later.last,
+    days: Math.max(a.days || 0, b.days || 0),
+    streak: a.last === b.last ? Math.max(a.streak || 0, b.streak || 0) : later.streak,
+    caps,
+  };
+}
+
+// What's here, into her mind
+function mindCapture() {
+  if (!mind) return;
+  const cfg = config.load();
+  let wrote = false;
+  const put = (key, value, opts) => { if (mind.write(key, value, opts)) wrote = true; };
+  // her chat: each message, unless "forget" came after it, or it's older than the ones she keeps
+  const cleared = Number(mind.get('forgot')) || 0;
+  const kept = mind.list('chat:').map((e) => e.v?.at || 0).sort((a, b) => b - a);
+  const floor = kept.length >= MIND_CHAT ? kept[MIND_CHAT - 1] : 0;
+  for (const m of stampedHistory()) {
+    if (m.at > cleared && m.at >= floor) put(`chat:${m.id}`, { role: m.role, content: String(m.content).slice(0, 6000), at: m.at });
+  }
+  // your name and how you want her: empty is a change only once one was set (on any PC)
+  if (cfg.userName || mind.get('name') !== undefined) put('name', cfg.userName || '');
+  if (cfg.persona || mind.get('persona') !== undefined) put('persona', cfg.persona || '');
+  const memos = new Map((cfg.memories || []).map((text) => [memoKey(text), text]));
+  for (const [key, text] of memos) put(key, text);
+  for (const e of mind.list('memo:')) if (!memos.has(e.key)) put(e.key, null, { del: true });
+  const reminders = new Map((cfg.reminders || []).filter((r) => r?.id).map((r) => [`rem:${r.id}`, r]));
+  for (const [key, r] of reminders) put(key, r);
+  for (const e of mind.list('rem:')) if (!reminders.has(e.key)) put(e.key, null, { del: true });
+  if (cfg.bond) put('bond', bondJoin(mind.get('bond'), cfg.bond));
+  mind.prune('chat:', MIND_CHAT, (e) => e.v?.at || 0); // the newest messages
+  if (wrote) mindSave();
+}
+
+// What came from another PC (`keys` of her mind), put back here
+function mindApply(keys, peer) {
+  if (!mind) return;
+  const cfg = config.load();
+  const patch = {};
+  if (keys.includes('name')) patch.userName = mind.get('name') || '';
+  if (keys.includes('persona')) patch.persona = mind.get('persona') || '';
+  if (keys.some((k) => k.startsWith('memo:'))) patch.memories = mind.list('memo:').sort((a, b) => a.at - b.at).map((e) => e.v);
+  if (keys.some((k) => k.startsWith('rem:'))) patch.reminders = mind.list('rem:').map((e) => e.v).sort((a, b) => a.at - b.at);
+  if (keys.includes('bond')) {
+    const joined = bondJoin(cfg.bond, mind.get('bond'));
+    if (JSON.stringify(joined) !== JSON.stringify(cfg.bond)) patch.bond = joined;
+    mind.write('bond', joined); // what this PC adds to it goes back
+  }
+  if (keys.some((k) => k.startsWith('chat:') || k === 'forgot')) {
+    const cleared = Number(mind.get('forgot')) || 0;
+    const history = mind.list('chat:').filter((e) => (e.v?.at || 0) > cleared)
+      .sort((a, b) => a.v.at - b.v.at || (a.key < b.key ? -1 : 1)).slice(-MIND_CHAT)
+      .map((e) => ({ id: e.key.slice(5), role: e.v.role, content: e.v.content, at: e.v.at }));
+    if (keys.includes('forgot')) llm.resetAgents(); // "forget" on another PC: the agents' conversations too
+    saveMemory({ history });
+    overlay?.webContents.send('chat:history', history);
+  }
+  if (Object.keys(patch).length) {
+    mindApplying = true;
+    try {
+      updateConfig(patch);
+    } finally {
+      mindApplying = false;
+    }
+    if (patch.bond) sendCommand('bondSync', { bond: patch.bond });
+  }
+  mindSave();
+  // back from being an island a while (still marked alone, or just back): she says she's caught up
+  // (once), where you are
+  const alone = !hiveAlone ? 0 : hiveAlone.since ? Date.now() - hiveAlone.since
+    : Date.now() - hiveAlone.at < 60000 ? hiveAlone.at - hiveAlone.from : 0;
+  if (alone > 60000) {
+    hiveAlone = null;
+    if (hiveAway === null) sendCommand('hiveRejoined', { pc: peer.name, n: keys.length });
+  }
 }
 
 function hiveInviteNew() {
@@ -1804,6 +1981,15 @@ async function debugHandler(route, body) {
     if (body.real) hiveFake = null;
     else if ('locked' in body || 'idle' in body) hiveFake = { locked: Boolean(body.locked), idle: Number(body.idle) || 0 };
     if (body.tick) await hive?.tick();
+    // no network for this one (an island): her swarm stopped, her mind still kept; and back
+    if (body.island === true) {
+      hiveIsland = true;
+      hiveAlone = { since: Date.now() };
+      await syncHive();
+    } else if (body.island === false) {
+      hiveIsland = false;
+      await syncHive();
+    }
     return { ok: true, fake: hiveFake, state: hive?.state() || null, away: hiveAway };
   }
   if (route === 'eval') {

@@ -128,6 +128,31 @@ export class Bond {
     this.save();
   }
 
+  // How close she is to you as another of your PCs has it (her swarm): the closer of the two, the
+  // longer known, the latest day (main.js bondJoin does the same)
+  sync(other) {
+    if (!other || typeof other !== 'object') return;
+    const a = this.data;
+    const b = other;
+    const later = (b.last || '') > (a.last || '') ? b : a;
+    const ca = a.caps || {};
+    const cb = b.caps || {};
+    const caps = ca.date === cb.date
+      ? Object.fromEntries([...new Set([...Object.keys(ca), ...Object.keys(cb)])].map((k) => [k, k === 'date' ? ca.date : Math.max(ca[k] || 0, cb[k] || 0)]))
+      : ((ca.date || '') > (cb.date || '') ? ca : cb);
+    const before = this.stage;
+    this.data = {
+      ...a, ...b,
+      xp: Math.max(a.xp || 0, b.xp || 0),
+      first: [a.first, b.first].filter(Boolean).sort()[0],
+      last: later.last,
+      days: Math.max(a.days || 0, b.days || 0),
+      streak: a.last === b.last ? Math.max(a.streak || 0, b.streak || 0) : later.streak,
+      caps,
+    };
+    if (this.stage > before) this.onStage?.(this.stage);
+  }
+
   save(now = false) {
     clearTimeout(this.saveTimer);
     const write = () => this.host.setConfig({ bond: { ...this.data } });

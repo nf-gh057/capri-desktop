@@ -160,6 +160,11 @@ const short = (model) => String(model || '').replace(/:latest$/, '').replace(/^m
 
 const MOOD_FACE = { angry: 'many', sulk: 'aside', dizzy: 'wide', thrown: 'wide', jealous: 'look', fun: 'laugh', happy: 'laugh', forgiven: 'smug' };
 
+// A message of your chat, with what tells it apart on all your PCs (her swarm, main.js): an id, and when
+const note = (role, content, at = Date.now()) => ({ role, content, id: crypto.randomUUID().replaceAll('-', '').slice(0, 16), at });
+// what her AI gets of one: who said what, nothing else
+const said = ({ role, content }) => ({ role, content });
+
 export class Chat {
   constructor({ capri, panel, voice, host, brain }) {
     this.capri = capri;
@@ -167,7 +172,7 @@ export class Chat {
     this.voice = voice;
     this.host = host;
     this.brain = brain;
-    this.history = []; // your chats with her, [{ role, content }], kept by main.js across restarts
+    this.history = []; // your chats with her, [{ role, content, id, at }], kept by main.js across restarts
     this.warm = false; // a model already answered this run (Ollama's first answer waits for it to load)
     this.open = false;
     this.turn = 0;     // id of the answer coming in, if any
@@ -184,6 +189,10 @@ export class Chat {
     this.onMessage = null; // () => void: you said something to her
     this.waitingWhen = null; // a reminder you asked for without saying when: { text, until }
     host.onChatDelta(({ id, text }) => this.onDelta(id, text));
+    // your chats as they are on all your PCs now (her swarm): taken in, unless she's answering
+    host.onChatHistory?.((history) => {
+      if (!this.turn && Array.isArray(history)) this.history = history;
+    });
   }
 
   get t() {
@@ -290,7 +299,7 @@ export class Chat {
     const id = Date.now();
     this.turn = id;
     this.answer = '';
-    this.history.push({ role: 'user', content: text });
+    this.history.push(note('user', text));
     this.panel.setChatBusy(true);
     this.panel.setActions([]); // a close button she offered before goes with a new message
     this.panel.chatTurn({ quote: text, face: 'aside' });
@@ -310,7 +319,7 @@ export class Chat {
       const at = this.history.length - 1;
       const before = this.history[at - 1];
       if (before?.role === 'assistant') this.history[at - 1] = { ...before, content: `${before.content}\n${this.opening}` };
-      else this.history.splice(at, 0, { role: 'assistant', content: this.opening });
+      else this.history.splice(at, 0, note('assistant', this.opening, (this.history[at]?.at || Date.now()) - 1));
       this.opening = null;
     }
     const messages = this.messages();
@@ -383,7 +392,7 @@ export class Chat {
       messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(${PHONE_NOTE}${this.agent ? ` ${PHONE_AGENT}` : ''})` };
       return messages;
     };
-    this.history.push({ role: 'user', content: text });
+    this.history.push(note('user', text));
     let res = await this.host.chatSend({ id, messages: away(this.messages()) });
     if (!res.ok && res.code === 'offline' && res.local) {
       this.agent = false;
@@ -435,7 +444,7 @@ export class Chat {
     const res = await this.host.lookSay({
       id: snap.id,
       persona: this.lookPersona(),
-      history: this.history.slice(-REMEMBER, -1),
+      history: this.history.slice(-REMEMBER, -1).map(said),
       prompt: `${text}\n\n(Note for you, never repeat it: the picture is the user's screen right now; a small figure with a big red mane on it is you. Answer about what you really see, in character. ${this.languageNote()})`,
     });
     if (!res.ok) {
@@ -462,7 +471,7 @@ export class Chat {
   // last thing they read: up in her prompt alone, they forget it (and answer in English after a
   // conversation in English).
   messages(remember = REMEMBER) {
-    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-remember)];
+    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-remember).map(said)];
     if (!this.agent) {
       const mood = this.bond?.moodLine().replace(/^Right now: /, '');
       const last = messages.at(-1);
@@ -473,7 +482,7 @@ export class Chat {
 
   // an answer of hers, kept with your message before it
   remember(message) {
-    this.history.push(message);
+    this.history.push(message.id ? message : note(message.role, message.content));
     this.history = this.history.slice(-KEEP);
     this.host.chatRemember(this.history);
   }

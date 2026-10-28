@@ -534,6 +534,13 @@ to the project ("projekt-x · laptop"), and names the agent watched on that PC i
 PC you left stays quiet (she's in her biochip there, and no phone message leaves from it). Only what her brain reads
 goes: the event, its texts clipped, a tool's inputs one level deep; never a tool's output or a file's contents.
 
+And she's one mind on all of them: your chats with her, **Forget our conversations**, your name, how you want her, what
+you asked her to remember, her reminders and how close she is to you are the same on every PC (her screen, size, hooks
+and AI stay each PC's own). Each change is written down with when and on which PC, and two PCs swap only what the other
+hasn't seen yet; the newer change wins, and what was removed stays removed. A PC without the network goes on alone
+(with Ollama, if her brain is online), then catches up as soon as it's back, with what the others did meanwhile and they
+with what it did, and she says so. A reminder goes off on the PC you're at, once.
+
 ## Art direction
 
 The goal: she should feel like she stepped out of the anime, not like a widget.
@@ -605,6 +612,7 @@ src/main/                Electron: full-screen transparent click-through window,
   phone.js               her messages to your phone, through your own Telegram bot, and her chat there
   totp.js                the code from your authenticator app that unlocks her chat on Telegram
   swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
+  mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
 scripts/update-finish.js her packages after an update, once she's closed, and her started again (back if it fails)
 src/renderer/js/
@@ -643,7 +651,7 @@ can click an item of it, `/debug/mainframe` opens Mainframe, acts in it and capt
 acts as if the network were gone, with `CAPRI_SCREENS=2` she cuts your screen in two, and `CAPRI_TELEGRAM_API` points
 her phone at a Telegram of your own. A second Capri on the same PC, for her swarm: `CAPRI_PROFILE=b` (settings of its
 own), with `CAPRI_PORT`, `CAPRI_SWARM_PORT` and `CAPRI_TOKEN_FILE` of its own; `/debug/swarm` makes her PC locked or
-idle as you say. In `--dev` (a developer's clone) she only tells of a new version: `CAPRI_UPDATE_DEV=1` lets her update
+idle as you say (`{ "island": true }`: as if it had no network, until `false`). In `--dev` (a developer's clone) she only tells of a new version: `CAPRI_UPDATE_DEV=1` lets her update
 that clone too.
 `npm run dist` builds the Windows installer in `dist/`.
 

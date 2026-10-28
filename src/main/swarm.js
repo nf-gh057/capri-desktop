@@ -7,8 +7,8 @@
 // and pasted on the other; from then on, every pair shares a key of its own, and everything between
 // them is sealed with it (AES-256-GCM) on top of WireGuard, with a time and a one-time number that
 // can't be played again. A PC that joins learns the rest of the swarm from the one it paired with.
-// What comes from another PC is only its state (here, locked, how long idle) and what its coding
-// agents are doing (for her to tell you where you are): never something to run.
+// What comes from another PC is only its state (here, locked, how long idle), what its coding agents
+// are doing (for her to tell you where you are), and her shared mind (mind.js): never something to run.
 //
 // Nothing here knows Electron: main.js hands in the private key (unsealed), how this PC is doing,
 // and saves what changes.
@@ -157,8 +157,12 @@ function cleanEvent(evt) {
 // `me`: { id, pub, key, name, version }; `peers`: [{ id, name, pub, host, port }]; `here()`: this PC now,
 // { locked, idle } (idle: seconds since a key or the mouse); `onChange(state)`: who's where changed;
 // `onPeers(peers)`: the list to save; `onEvent(peer, evt)`: what an agent did on another PC (cleaned).
-// `hosts`: the addresses to listen on.
-function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, onEvent = () => {}, every = 3000, gone = 12000 }) {
+// `mind`: her shared mind (mind.js), swapped with each PC as it answers; `onMind(keys, peer)`: what of
+// it changed here. `hosts`: the addresses to listen on.
+function createSwarm({
+  me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, onEvent = () => {},
+  mind = null, onMind = () => {}, every = 3000, gone = 12000,
+}) {
   const known = new Map(peers.map((p) => [p.id, { ...p }]));
   const keys = new Map(); // id -> shared key
   const status = new Map(); // id -> { seen, locked, idle, name, at }
@@ -234,6 +238,8 @@ function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here,
       }
       saved();
       answer = { ok: true };
+    } else if (inside.kind === 'sync') {
+      answer = mind ? mind.since(inside.body?.vv || {}) : { items: [], more: false };
     } else if (inside.kind === 'event') {
       const evt = cleanEvent(inside.body);
       if (evt) onEvent({ id: peer.id, name: peer.name }, evt);
@@ -339,10 +345,23 @@ function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here,
         const inside = await send(peer, 'here', hereNow());
         heard(peer, inside.body);
       } catch {
-        // unreachable, or not answering right: gone once `gone` has passed without a word
+        return; // unreachable, or not answering right: gone once `gone` has passed without a word
       }
+      await pull(peer).catch(() => {});
     }));
     decide();
+  }
+
+  // What that PC knows that this one hasn't seen yet, a few pages of it at most per round, each put in
+  // place as it comes (before anything here could be taken for older than it)
+  async function pull(peer) {
+    if (!mind) return;
+    for (let page = 0; page < 5; page++) {
+      const { body } = await send(peer, 'sync', { vv: mind.vv() });
+      const changed = mind.merge(body?.items);
+      if (changed.length) onMind(changed, { id: peer.id, name: peer.name });
+      if (!body?.more) break;
+    }
   }
 
   function state() {

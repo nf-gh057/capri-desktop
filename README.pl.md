@@ -538,6 +538,13 @@ komputerze, jeśli to nie ten, którego obserwuje tutaj. Komputer, od którego o
 w biochipie i nie wysyła z niego wiadomości na telefon). Idzie tylko to, co czyta jej mózg: zdarzenie, przycięte teksty,
 wejście narzędzia jeden poziom w głąb; nigdy wynik narzędzia ani zawartość pliku.
 
+I jest jednym umysłem na nich wszystkich: wasze rozmowy, **Zapomnij nasze rozmowy**, twoje imię, to, jaka ma być, to, co
+kazałeś jej zapamiętać, jej przypomnienia i wasza więź są takie same na każdym komputerze (ekran, rozmiar, hooki i AI
+zostają osobne dla każdego). Każda zmiana jest zapisywana z czasem i komputerem, a dwa komputery wymieniają się tylko
+tym, czego drugi jeszcze nie widział; wygrywa nowsza zmiana, a usunięte zostaje usunięte. Komputer bez sieci działa
+sam (z Ollamą, jeśli jej mózg jest w sieci), a gdy wraca, nadrabia to, co zrobiły w tym czasie pozostałe, one nadrabiają
+to, co zrobił on, a Capri o tym mówi. Przypomnienie odzywa się raz, na komputerze, przy którym jesteś.
+
 ## Kierunek artystyczny
 
 Cel: ma wyglądać, jakby wyszła z anime, a nie jak widżet.
@@ -613,6 +620,7 @@ src/main/                Electron: pełnoekranowe przezroczyste okno przepuszcza
   phone.js               jej wiadomości na twój telefon, przez twojego własnego bota na Telegramie, i rozmowa tam
   totp.js                kod z aplikacji uwierzytelniającej, który odblokowuje rozmowę przez Telegram
   swarm.js               rój: parowanie komputerów, szyfrowane wiadomości między nimi, przy którym jesteś
+  mind.js                jej wspólny umysł: to, co wie na wszystkich komputerach, wymieniane i scalane (wyspa nadrabia)
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
 scripts/update-finish.js pakiety po aktualizacji, kiedy jest zamknięta, i ponowne uruchomienie (powrót, gdy się nie uda)
   files.js               szukanie twoich plików (indeks wyszukiwania Windows), zrzuty ekranu
@@ -645,7 +653,7 @@ kursorem nad oknem Capri, bez ruszania prawdziwego, `/debug/type` pisze w jej cz
 kliknąć jego pozycję, `/debug/mainframe` otwiera Mainframe, coś w nim robi i robi mu zrzut). Z `CAPRI_OFFLINE=1` zachowuje się,
 jakby nie było sieci, z `CAPRI_SCREENS=2` dzieli twój ekran na dwa, a `CAPRI_TELEGRAM_API` kieruje jej telefon do twojego
 własnego Telegrama. Druga Capri na tym samym PC, do roju: `CAPRI_PROFILE=b` (własne ustawienia), z własnymi
-`CAPRI_PORT`, `CAPRI_SWARM_PORT` i `CAPRI_TOKEN_FILE`; `/debug/swarm` udaje, że jej PC jest zablokowany albo bezczynny. W trybie `--dev` (klon programisty) tylko mówi o nowej
+`CAPRI_PORT`, `CAPRI_SWARM_PORT` i `CAPRI_TOKEN_FILE`; `/debug/swarm` udaje, że jej PC jest zablokowany albo bezczynny (`{ "island": true }`: jakby nie miał sieci, do `false`). W trybie `--dev` (klon programisty) tylko mówi o nowej
 wersji: `CAPRI_UPDATE_DEV=1` pozwala jej zaktualizować także taki klon.
 `npm run dist` buduje instalator Windows w `dist/`.
 

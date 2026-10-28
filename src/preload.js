@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('host', {
   chatSend: (request) => ipcRenderer.invoke('chat:send', request),
   chatStop: (id) => ipcRenderer.send('chat:stop', id),
   chatMemory: () => ipcRenderer.invoke('chat:memory'),
+  onChatHistory: on('chat:history'),
   chatRemember: (history) => ipcRenderer.send('chat:remember', history),
   onChatDelta: on('chat:delta'),
   lookSnap: () => ipcRenderer.invoke('look:snap'),

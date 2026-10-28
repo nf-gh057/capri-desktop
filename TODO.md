@@ -77,7 +77,13 @@ Wspólne dla wszystkich etapów:
 ### Etap 2: zdarzenia agentów z całego roju (zrobione: `forward` w `swarm.js`, `hiveEvent` w `main.js`, `brain.js`)
 - Claude Code / Codex na laptopie skończył: Capri przy biurku mówi o tym; raport z misji z wszystkich komputerów.
 
-### Etap 3: świadomość zbiorowa
+### Etap 3: świadomość zbiorowa (zrobione: `src/main/mind.js`, wymiana w `swarm.js`, mapowanie w `main.js`)
+
+Zrobione tak: wpisy klucz → wartość z czasem, komputerem i jego numerem kolejnym; wymiana według wektora wersji (tylko
+to, czego druga strona nie widziała, stronami); nowszy wygrywa, usunięte zostaje nagrobkiem; więź scalana (wyższa
+synchronizacja, wcześniejsza znajomość, dłuższa seria); przypomnienia tylko na komputerze, przy którym jesteś.
+Ograniczenia: rozmowy agentów (wątek Codexa, sesja Claude Code) zostają na swoim komputerze; utrata synchronizacji
+(`lose`) na jednym komputerze przegrywa z wyższą wartością z innego.
 - Wspólne: rozmowy i pamięć (imię, „zapamiętaj”, jej opis), więź i nastrój, przypomnienia. Lokalne: ekran, rozmiar,
   hooki, model AI.
 - Zmiany ze znacznikiem czasu i komputera; po powrocie wyspy do sieci scalanie bez gubienia: rozmowy po czasie,

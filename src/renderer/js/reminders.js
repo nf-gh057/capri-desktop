@@ -147,6 +147,7 @@ export class Reminders {
     this.list = Array.isArray(list) ? list : [];
     this.onDue = null;
     this.firing = new Set(); // ids being shown right now
+    this.elsewhere = false;  // you're at another of your PCs (her swarm): it goes off there, not here
     setInterval(() => this.check(), 5000);
   }
 
@@ -183,7 +184,7 @@ export class Reminders {
   }
 
   check() {
-    if (this.firing.size || !this.onDue) return;
+    if (this.firing.size || !this.onDue || this.elsewhere) return;
     const due = this.upcoming.find((r) => r.at <= Date.now());
     if (!due) return;
     this.firing.add(due.id);
