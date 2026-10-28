@@ -528,7 +528,14 @@ Komputer sam, bez sieci, ma ją dla siebie (myśli przez Ollamę, jeśli jej mó
 Każda Capri ma własny klucz; każda para komputerów ma wspólny klucz wyliczony z ich kluczy, nigdy niewysyłany, i szyfruje
 nim wszystko między nimi (AES-256-GCM, ze znacznikiem czasu i jednorazowym numerem, którego nie da się powtórzyć) na
 szyfrowaniu samego Tailscale. Nasłuchuje tylko na swoim adresie Tailscale (i `127.0.0.1`), nigdy w sieci lokalnej ani
-w internecie, i tylko sparowanych komputerów. To, co przysyłają, to ich stan, nigdy coś do uruchomienia.
+w internecie, i tylko sparowanych komputerów. To, co przysyłają, to ich stan i to, co robią ich agenci do
+programowania, nigdy coś do uruchomienia.
+
+To, co Claude Code albo Codex robi na komputerze, przy którym cię nie ma, trafia do tego, przy którym jesteś: Capri mówi
+ci o tym tam, z nazwą komputera przy projekcie („projekt-x · laptop”), i nazywa agenta obserwowanego na tamtym
+komputerze, jeśli to nie ten, którego obserwuje tutaj. Komputer, od którego odszedłeś, milczy (Capri jest tam
+w biochipie i nie wysyła z niego wiadomości na telefon). Idzie tylko to, co czyta jej mózg: zdarzenie, przycięte teksty,
+wejście narzędzia jeden poziom w głąb; nigdy wynik narzędzia ani zawartość pliku.
 
 ## Kierunek artystyczny
 

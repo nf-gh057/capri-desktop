@@ -74,7 +74,7 @@ Wspólne dla wszystkich etapów:
   myśli przez Ollamę.
 - Mainframe › RÓJ: ten komputer, Tailscale (jest / zainstaluj), lista komputerów z ich stanem, dodaj, dołącz, usuń.
 
-### Etap 2: zdarzenia agentów z całego roju
+### Etap 2: zdarzenia agentów z całego roju (zrobione: `forward` w `swarm.js`, `hiveEvent` w `main.js`, `brain.js`)
 - Claude Code / Codex na laptopie skończył: Capri przy biurku mówi o tym; raport z misji z wszystkich komputerów.
 
 ### Etap 3: świadomość zbiorowa
@@ -123,3 +123,12 @@ zaktualizować tak jak ponowne uruchomienie instalatora: `git pull` i pakiety.
 - Rój: komputery mówią sobie swoją wersję; Mainframe pokazuje, który jest starszy, a różne wersje protokołu roju nie
   psują połączenia (komputer ze starszą wersją dostaje informację, że trzeba go zaktualizować).
 - Capri z instalatora oryginalnego projektu (`Capri-Setup-x.y.z.exe`, nie klon) tylko informuje o nowej wersji i odsyła do Releases.
+
+## Do zrobienia
+
+- Fix: po kliknięciu jednej Capri okno Mainframe robi się ciemne i nic w nim nie widać.
+- Okno czatu na pulpicie, zsynchronizowane z czatem Capri (ta sama rozmowa w obu miejscach).
+- Przerobienie okna Mainframe.
+- Ograniczenie menu pod prawym przyciskiem myszy.
+- Głos klonowany z postaci z anime albo z własnego nagrania.
+- Zróżnicowane komentarze Capri do podejmowanych akcji (mniej powtórzeń tych samych tekstów).

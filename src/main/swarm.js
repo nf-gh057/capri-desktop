@@ -7,7 +7,8 @@
 // and pasted on the other; from then on, every pair shares a key of its own, and everything between
 // them is sealed with it (AES-256-GCM) on top of WireGuard, with a time and a one-time number that
 // can't be played again. A PC that joins learns the rest of the swarm from the one it paired with.
-// What comes from another PC is only its state (here, locked, how long idle): never something to run.
+// What comes from another PC is only its state (here, locked, how long idle) and what its coding
+// agents are doing (for her to tell you where you are): never something to run.
 //
 // Nothing here knows Electron: main.js hands in the private key (unsealed), how this PC is doing,
 // and saves what changes.
@@ -128,12 +129,36 @@ async function tailscale() {
   return null;
 }
 
+// What of a Claude Code / Codex event goes to another PC: the fields her brain reads (brain.js), texts
+// clipped, tool inputs one level deep, nothing else (no tool output, no file contents, no demo flag).
+const EVENT_FIELDS = ['hook_event_name', 'session_id', 'session_title', 'cwd', 'source', 'message', 'tool_name', 'notification_type',
+  'last_assistant_message', 'error', 'agent_type', 'prompt', 'is_interrupt', 'agent'];
+const clipText = (v, max) => (typeof v === 'string' ? v.slice(0, max) : typeof v === 'number' || typeof v === 'boolean' ? v : undefined);
+
+function cleanEvent(evt) {
+  if (!evt || typeof evt.hook_event_name !== 'string' || evt.hook_event_name === 'CapriShowcase') return null;
+  const out = {};
+  for (const key of EVENT_FIELDS) {
+    const v = clipText(evt[key], key === 'last_assistant_message' || key === 'prompt' || key === 'message' ? 2000 : 300);
+    if (v !== undefined) out[key] = v;
+  }
+  if (evt.tool_input && typeof evt.tool_input === 'object') {
+    out.tool_input = {};
+    for (const [key, v] of Object.entries(evt.tool_input).slice(0, 12)) {
+      const c = clipText(v, 300);
+      if (c !== undefined) out.tool_input[String(key).slice(0, 40)] = c;
+    }
+  }
+  return out;
+}
+
 // --- the swarm ---------------------------------------------------------------------------------
 
 // `me`: { id, pub, key, name, version }; `peers`: [{ id, name, pub, host, port }]; `here()`: this PC now,
 // { locked, idle } (idle: seconds since a key or the mouse); `onChange(state)`: who's where changed;
-// `onPeers(peers)`: the list to save. `hosts`: the addresses to listen on.
-function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, every = 3000, gone = 12000 }) {
+// `onPeers(peers)`: the list to save; `onEvent(peer, evt)`: what an agent did on another PC (cleaned).
+// `hosts`: the addresses to listen on.
+function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, onEvent = () => {}, every = 3000, gone = 12000 }) {
   const known = new Map(peers.map((p) => [p.id, { ...p }]));
   const keys = new Map(); // id -> shared key
   const status = new Map(); // id -> { seen, locked, idle, name, at }
@@ -209,6 +234,10 @@ function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here,
       }
       saved();
       answer = { ok: true };
+    } else if (inside.kind === 'event') {
+      const evt = cleanEvent(inside.body);
+      if (evt) onEvent({ id: peer.id, name: peer.name }, evt);
+      answer = { ok: Boolean(evt) };
     } else if (inside.kind === 'leave') {
       known.delete(peer.id);
       keys.delete(peer.id);
@@ -399,7 +428,19 @@ function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here,
     decide();
   }
 
-  return { start, stop, join, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide };
+  // An agent's event, to the PC you're at (when it isn't this one): true once it's there
+  async function forward(evt) {
+    const peer = active !== me.id && known.get(active);
+    const clean = cleanEvent(evt);
+    if (!peer || !clean) return false;
+    try {
+      return Boolean((await send(peer, 'event', clean)).body?.ok);
+    } catch {
+      return false;
+    }
+  }
+
+  return { start, stop, join, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward };
 }
 
-module.exports = { createSwarm, identity, nodeId, pairKey, seal, open, invite, readInvite, tailscale, SwarmError, PORT, hostName: () => os.hostname() };
+module.exports = { createSwarm, identity, nodeId, pairKey, seal, open, invite, readInvite, tailscale, cleanEvent, SwarmError, PORT, hostName: () => os.hostname() };

@@ -132,3 +132,37 @@ test('only a paired PC is listened to; a removed one is told and forgotten', asy
   assert.deepEqual(a.peers(), []);
   assert.deepEqual(b.peers(), []);
 });
+
+test('what an agent does on the PC you are not at reaches the one you are at, cut down to what she reads', async (t) => {
+  const heard = [];
+  const a = node(t, 'desk', 47951, { onEvent: (peer, evt) => heard.push({ from: peer.name, evt }) });
+  const b = node(t, 'laptop', 47952);
+  await Promise.all([a.s.start(), b.s.start()]);
+  await b.s.join(a.s.startPairing('127.0.0.1').text);
+  a.pc.idle = 1;
+  b.pc.idle = 300;
+  await new Promise((r) => setTimeout(r, 400));
+  assert.equal(b.s.state().here, false);
+  const sent = await b.s.forward({
+    hook_event_name: 'Stop', session_id: 'codex:abc', cwd: 'C:/code/capri', agent: 'codex',
+    last_assistant_message: 'x'.repeat(5000), tool_response: { big: 'y'.repeat(9000) }, demo: true,
+    tool_input: { file_path: 'C:/code/capri/a.js', content: 'z'.repeat(1000), nested: { deep: 1 } },
+  });
+  assert.equal(sent, true);
+  assert.equal(heard.length, 1);
+  const { from, evt } = heard[0];
+  assert.equal(from, 'laptop');
+  assert.equal(evt.hook_event_name, 'Stop');
+  assert.equal(evt.agent, 'codex');
+  assert.equal(evt.last_assistant_message.length, 2000);
+  assert.equal(evt.tool_response, undefined);
+  assert.equal(evt.demo, undefined);
+  assert.deepEqual(Object.keys(evt.tool_input), ['file_path', 'content']);
+  assert.equal(evt.tool_input.content.length, 300);
+  // her demo's showcase, or not an event at all: nothing goes
+  assert.equal(await b.s.forward({ hook_event_name: 'CapriShowcase' }), false);
+  assert.equal(await b.s.forward({ nope: 1 }), false);
+  // the PC you're at keeps its own events
+  assert.equal(await a.s.forward({ hook_event_name: 'Stop' }), false);
+  assert.equal(heard.length, 1);
+});

@@ -3,6 +3,9 @@
 import { linesFor, ASSISTANT_NAMES } from './lines.js';
 import { pick, fmt, duration, basename, rand } from './util.js';
 
+// an agent as she calls it (Claude Code is just Claude)
+const agentName = (id) => (id === 'claude' ? 'Claude' : ASSISTANT_NAMES[id] || id);
+
 const EDIT_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const HACKING_TOOLS = new Set(['Bash', 'PowerShell', 'WebFetch', 'WebSearch', 'Agent', 'Task']);
 const WORKING_EVERY = 20; // say something about progress every N tool calls
@@ -54,6 +57,11 @@ export class Brain {
     }
     if (evt.cwd) s.project = basename(evt.cwd);
     if (evt.session_title) s.title = evt.session_title;
+    // from another of your PCs (her swarm): which one, and the agent watched there
+    if (evt.remote) {
+      s.pc = String(evt.pc || '').slice(0, 40);
+      if (ASSISTANT_NAMES[evt.agent]) s.agent = evt.agent;
+    }
     s.seen = Date.now();
     return s;
   }
@@ -63,7 +71,9 @@ export class Brain {
   }
 
   say(kind, line, s, extra = {}) {
-    return this.panel.say({ kind, line, tag: s ? s.title || s.project : '', ...extra });
+    // another PC's agent, under its own name if it isn't the one she watches here
+    const text = s?.agent && s.agent !== this.assistant ? String(line).replaceAll(this.name, agentName(s.agent)) : line;
+    return this.panel.say({ kind, line: text, tag: s ? [s.title || s.project, s.pc].filter(Boolean).join(' · ') : '', ...extra });
   }
 
   // today's log, for real events only: the demo's don't go on her report card
@@ -80,13 +90,15 @@ export class Brain {
     // Codex's and Antigravity's hooks mark their sessions (codex:..., agy:...): only the one she watches
     // counts. Another one at work is another AI in your life: she notices (bond.js).
     const source = /^(codex|agy):/.exec(String(evt.session_id || ''))?.[1] || 'claude';
-    if (!evt.demo && source !== this.assistant) {
+    // another of your PCs sends only what it watches there, whoever she watches here
+    if (evt.remote) evt = { ...evt, demo: false };
+    else if (!evt.demo && source !== this.assistant) {
       this.onRival?.(source === 'agy' ? 'gemini' : source);
       return undefined;
     }
-    if (!this.watching && !evt.demo) return undefined; // not watching Claude Code: none of its business
+    if (!this.watching && !evt.demo && !evt.remote) return undefined; // not watching Claude Code: none of its business
     // the first real Claude Code event that ever reaches her (the demo's don't count)
-    if (!this.linked && !evt.demo) {
+    if (!this.linked && !evt.demo && !evt.remote) {
       this.linked = true;
       this.onLinked?.();
     }
@@ -137,8 +149,8 @@ export class Brain {
   }
 
   onPrompt(evt, s) {
-    // the window in front when you send a prompt is the one you typed it in: Claude's
-    const window = this.capri.windows.fg || null;
+    // the window in front when you send a prompt is the one you typed it in: Claude's (not on another PC)
+    const window = evt.remote ? null : this.capri.windows.fg || null;
     Object.assign(s, { taskStart: Date.now(), count: 0, files: new Set(), log: [], working: true, window });
     this.tally(evt)?.prompt(s.project);
     this.capri.goToWork(); // perched on the window in front if she can, else her corner
@@ -347,7 +359,7 @@ export class Brain {
   // The same news for your phone (main.js sends it only if it's paired and you're away from this PC)
   phone(kind, evt, s, quote = '') {
     if (evt.demo) return;
-    const project = s.project !== this.name ? s.project : '';
+    const project = [s.project !== this.name ? s.project : '', s.pc].filter(Boolean).join(' · ');
     this.host.phoneNotify?.({ line: pick(this.t.phone[kind]), project, quote: String(quote || '') }).catch(() => {});
   }
 

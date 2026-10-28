@@ -525,7 +525,13 @@ to itself (thinking through Ollama if her brain is online).
 Each Capri has a key of her own; every pair of PCs shares a key worked out from theirs, never sent, and seals everything
 between them with it (AES-256-GCM, with a time and a one-time number that can't be played again) on top of Tailscale's
 own encryption. She listens on her Tailscale address only (and `127.0.0.1`), never on your local network or the
-internet, and only to PCs paired with her. What they send is their state, never something to run.
+internet, and only to PCs paired with her. What they send is their state and what their coding agents are doing,
+never something to run.
+
+What Claude Code or Codex does on a PC you're not at reaches the one you're at: she tells you there, the PC's name next
+to the project ("projekt-x · laptop"), and names the agent watched on that PC if it isn't the one she watches here. The
+PC you left stays quiet (she's in her biochip there, and no phone message leaves from it). Only what her brain reads
+goes: the event, its texts clipped, a tool's inputs one level deep; never a tool's output or a file's contents.
 
 ## Art direction
 

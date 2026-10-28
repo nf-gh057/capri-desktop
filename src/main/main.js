@@ -1673,6 +1673,8 @@ async function syncHive(fresh = false) {
       here: hiveHere,
       onChange: (state) => hiveMoved(state),
       onPeers: (peers) => updateConfig({ swarm: { ...config.load().swarm, peers } }),
+      // what an agent did on the PC you're not at: told here, with that PC's name
+      onEvent: (peer, evt) => overlay?.webContents.send('claude:event', { ...evt, remote: true, pc: peer.name }),
     });
     link.hosts = hosts;
     hive = link;
@@ -1700,6 +1702,19 @@ function hiveBack() {
   const from = hiveAway;
   hiveAway = null;
   if (config.load().visible) sendCommand('swarmBack', { from });
+}
+
+// An event of Claude Code or Codex on this PC. You're at another of your PCs: it goes there (only the
+// agent she watches here; she's put away, and no phone message leaves from here), else it's hers here.
+async function hiveEvent(evt) {
+  if (hiveAway !== null && hive && !evt.demo) {
+    const watched = activeAssistant().id;
+    const source = /^(codex|agy):/.exec(String(evt.session_id || ''))?.[1] || 'claude';
+    if (!config.load().claude || source !== watched) return;
+    if (await hive.forward({ ...evt, agent: watched })) return;
+  }
+  const { remote, pc, ...here } = evt; // only her swarm says an event comes from another PC
+  overlay?.webContents.send('claude:event', here); // here, or the other PC couldn't be reached
 }
 
 function hiveInviteNew() {
@@ -1909,7 +1924,7 @@ function main() {
     createBridge({
       port: PORT,
       // her own Claude Code or Codex chat's hooks would cover its answer with theirs
-      onEvent: (evt) => !llm.isChatSession(evt.session_id) && overlay?.webContents.send('claude:event', evt),
+      onEvent: (evt) => !llm.isChatSession(evt.session_id) && hiveEvent(evt),
       onDebug: DEV ? debugHandler : null,
     });
     registerStowKey();
