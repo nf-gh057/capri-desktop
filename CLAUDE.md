@@ -51,9 +51,10 @@ pracy nad Capri: `docs/ROZWOJ.md`.
   np. „oryginalny projekt”.
 - Styl kodu jak w otoczeniu: komentarze opisowe, w głosie projektu („she…”), tam gdzie coś nie jest oczywiste.
 - Dokumentacja: każda funkcja trafia do `README.md` i `README.pl.md`; plany i etapy do `TODO.md`.
-- **Odhaczaj w `TODO.md` automatycznie** wszystko, co zostało zrobione (etapy i pozycje listy „Do zrobienia”, także
-  te dopisane przez użytkownika albo inną sesję), w tym samym commicie co zmiana: etap „(zrobione: gdzie)”, pozycja
-  listy `- [x] … (zrobione w 0.4.4-N)`.
+- **Pilnuj `TODO.md` na bieżąco**: przy każdej pracy sprawdź, czy któryś etap albo pozycja listy „Do zrobienia”
+  (także dopisana przez użytkownika albo inną sesję) jest już zrobiona: rozwiązany problem, dodana funkcja, również
+  przy okazji czegoś innego. **Powiedz o tym użytkownikowi i usuń z listy dopiero po jego potwierdzeniu.** Do tego
+  czasu możesz ją oznaczyć: etap „(zrobione: gdzie)”, pozycja `- [x] … (zrobione w 0.4.4-N)`.
 
 ## Bezpieczeństwo (decyzje użytkownika)
 
