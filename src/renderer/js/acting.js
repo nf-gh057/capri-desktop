@@ -14,6 +14,10 @@
 //   kickL / kickR   lower legs swinging outward, radians (when sitting)
 //
 // A key can carry a cue as third item: capri.js fires effects and sounds when it's reached.
+// An act with `draw` is done on one of her pose drawings (sprite.js POSES) instead of the rigged
+// cut-out: only hair, mane, bob and squash show on it (a key's own `draw` picks one for that key).
+// An act on top swaps the cut-out back in for as long as it plays, unless it has drawings of its
+// own or `keeps` the one underneath (it only moves her mane).
 // Directional acts are drawn leaning to screen-right; played with dir -1 they're mirrored.
 
 export const SHEET_FPS = 12;
@@ -36,6 +40,49 @@ export const ACTS = {
       [4, { bob: -2, hair: 0, arms: 0 }],
       [6, { bob: -4, hair: 2.5, arms: -0.05 }],
       [4, { bob: -2, hair: 0, arms: 0 }],
+    ],
+  },
+
+  // floating, her hand on her hip and her weight on one leg: slower than "stand", she's in no hurry
+  hip: {
+    loop: true,
+    draw: 'hip',
+    keys: [
+      [8, { bob: 0, hair: -2 }],
+      [5, { bob: -1.5, hair: 0 }],
+      [8, { bob: -3, hair: 2 }],
+      [5, { bob: -1.5, hair: 0 }],
+    ],
+  },
+
+  // bored, stretched out along her ledge, head propped on her hand: her mane stirs, then settles a while
+  lie: {
+    loop: true,
+    draw: 'lie',
+    keys: [
+      [12, { hair: -1.4 }],
+      [4, { hair: 0 }],
+      [12, { hair: 1.4 }],
+      [4, { hair: 0 }],
+      [20, { hair: 0, mane: -0.06 }],
+    ],
+  },
+
+  // lying down on her ledge from sitting on it: she leans over onto her arm, stretching out, and
+  // settles; back up the same way
+  liedown: {
+    priority: 1,
+    keys: [
+      [1, { draw: 'lean', mane: 0.12, hair: 1.5 }],
+      [5, { draw: 'lean', mane: 0.05 }],
+      [2, { draw: 'lie', mane: -0.1, sy: 0.96, sx: 1.03 }],
+    ],
+  },
+  getup: {
+    priority: 1,
+    keys: [
+      [2, { draw: 'lean', mane: 0.1 }],
+      [4, { draw: 'lean', mane: 0.04, hair: -1.5 }],
     ],
   },
 
@@ -82,7 +129,7 @@ export const ACTS = {
   // ---- one-shot acts ----
 
   // little nods while the words come out, two drawings on threes
-  talk: { priority: 0, keys: rep(2, [[3, { head: 0.04, mane: 0.08 }], [3, { head: 0, mane: 0.03 }]]) },
+  talk: { priority: 0, keeps: true, keys: rep(2, [[3, { head: 0.04, mane: 0.08 }], [3, { head: 0, mane: 0.03 }]]) },
 
   // the cocked head: anticipation the other way, a smear, then a long hold
   curious: {

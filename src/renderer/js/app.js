@@ -1,4 +1,5 @@
 import { Capri } from './capri.js';
+import { POSES } from './sprite.js';
 import { FxLayer, GRAB_FRAMES } from './fx.js';
 import { Chip, Mask } from './chip.js';
 import { Panel } from './panel.js';
@@ -39,9 +40,12 @@ const SNOOZE_MS = 10 * 60 * 1000;
 const mine = (cfg) => ({ userName: cfg.userName || '', persona: cfg.persona || '', myLines: cfg.myLines || [], memories: cfg.memories || [] });
 
 async function boot() {
-  const [config, image, intro, ...cutins] = await Promise.all([
+  const [config, image, poses, intro, ...cutins] = await Promise.all([
     host.getConfig(),
     loadImage('../../assets/capri/capri-full.png'),
+    // her pose drawings (sprite.js POSES): without one she just doesn't strike that pose
+    Promise.all(Object.keys(POSES).map((name) => loadImage(`../../assets/capri/pose-${name}.png`).catch(() => null)))
+      .then((images) => Object.fromEntries(Object.keys(POSES).map((name, i) => [name, images[i]]))),
     // her intro: her close-up grabbing the screen, and its drawings with her mouth and arm moving
     Promise.all(GRAB_FRAMES.map((name) => loadImage(`../../assets/capri/intro-${name}.webp`).catch(() => null)))
       // decoded now, not the first time each one shows up (a hitch right on "hi", on the wave)
@@ -86,6 +90,7 @@ async function boot() {
     root: document.getElementById('capri'),
     canvas: document.getElementById('sprite'),
     image,
+    poses,
     fx,
     voice,
   });

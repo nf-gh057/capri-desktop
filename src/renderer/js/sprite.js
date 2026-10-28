@@ -2,6 +2,8 @@
 // One texture, one quad: every bit of life (head tilt, mane sway and flare, both arms, sitting with
 // dangling legs, smear frames, afterimages, line boil, speckles, the violet misregistration, glitch
 // slices, teleport collapse) is done in the fragment shader.
+// Her pose drawings (POSES: hand on hip, lying on a ledge) are swapped in for the cut-out's texture
+// now and then. They aren't rigged, only their mane moves; everything else is done to them the same way.
 
 const VERT = `
 attribute vec2 aPos;
@@ -19,7 +21,13 @@ precision highp float;
 varying vec2 vPx;
 
 uniform sampler2D uTex;
-uniform vec2 uSize;
+uniform vec2 uOrigin; // where the drawing's top left is, in sprite px (the cut-out's is 0, 0)
+uniform vec2 uSize;   // and how big it is there
+uniform float uPose;  // 1: a pose drawing (POSES), not the rigged cut-out
+uniform vec2 uFaceP;  // a pose drawing's face, the middle and half size of its mane,
+uniform vec2 uManeP;
+uniform vec2 uManeR;
+uniform vec2 uSway;   // and the height where its mane stops swaying and where it sways the most
 uniform float uSeed;
 uniform float uBoil;
 uniform float uHair;
@@ -80,6 +88,7 @@ vec2 rot(vec2 p, vec2 c, float a) {
 }
 
 vec4 tex(vec2 p) {
+  p -= uOrigin;
   if (p.x < 0.0 || p.y < 0.0 || p.x > uSize.x || p.y > uSize.y) return vec4(0.0);
   return texture2D(uTex, p / uSize);
 }
@@ -216,7 +225,23 @@ vec2 bend(vec2 q) {
   return q;
 }
 
+// A pose drawing: only the mane moves, the same flare and sway as the cut-out's. Like there, the
+// sway grows toward the tips (uSway) and stops above her body; the oval around the mane keeps
+// whatever else reaches that high (a raised foot) still, and the flare keeps her face rigid.
+vec2 bendPose(vec2 q) {
+  float w = smoothstep(uSway.x, uSway.y, q.y) * (1.0 - smoothstep(0.75, 1.0, length((q - uManeP) / uManeR)));
+  if (uMane != 0.0) {
+    vec2 d = q - uManeP;
+    float spikes = 0.55 + 0.9 * vnoise(vec2(atan(d.y, d.x) * 2.6, 4.0));
+    q = uManeP + d / (1.0 + uMane * w * smoothstep(16.0, 30.0, distance(q, uFaceP)) * 0.32 * spikes);
+  }
+  q.x -= uHair * w * (0.65 + 0.35 * sin(q.y * 0.055));
+  q.y -= uHair * 0.22 * w * sin(q.x * 0.045);
+  return q;
+}
+
 vec4 rig(vec2 q) {
+  if (uPose > 0.5) return cel(bendPose(q));
   vec2 qL = armLeft(q);
   vec2 qR = armRight(q);
   vec4 l = armL(qL) > 0.0 ? cel(qL) : vec4(0.0);
@@ -313,14 +338,14 @@ void main() {
 }`;
 
 const UNIFORMS = [
-  'uView', 'uPad', 'uTex', 'uSize', 'uSeed', 'uBoil', 'uHair', 'uHead', 'uMane', 'uArmL', 'uArmR', 'uLongL', 'uLongR',
+  'uView', 'uPad', 'uTex', 'uOrigin', 'uSize', 'uPose', 'uFaceP', 'uManeP', 'uManeR', 'uSway', 'uSeed', 'uBoil', 'uHair', 'uHead', 'uMane', 'uArmL', 'uArmR', 'uLongL', 'uLongR',
   'uSit', 'uKickL', 'uKickR',
   'uSmear', 'uEcho', 'uGlitch', 'uGlitchSeed',
   'uSplit', 'uCollapse', 'uDissolve', 'uSparkle', 'uGrade', 'uSil', 'uMisreg', 'uRim', 'uAlpha', 'uPx',
 ];
 
 export const SPRITE = {
-  width: 240, height: 420, pad: 56,
+  width: 240, height: 420, pad: 64, // pad: room around her for the lying drawings (POSES) and her mane
   head: { x: 116, y: 132 },
   feet: { x: 128, y: 418 },
   hip: 232, // where she sits
@@ -336,10 +361,23 @@ export const SPRITE = {
   },
 };
 
+// Her pose drawings (tools/build-poses.py makes them and prints rect and face), in sprite px:
+//   rect  where the drawing goes: x, y, width, height (standing ones share her feet, lying ones her seat)
+//   face  her face on it (speech and the like follow it)
+//   mane  the middle of her mane, and how far it reaches either way (nothing outside sways)
+//   sway  the height where her mane stops swaying (just above her body), and where it sways the most
+export const POSES = {
+  hip: { rect: [34.3, 36.1, 175.3, 381.9], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
+  lie: { rect: [-57.3, 68.1, 354.6, 166.9], face: [203, 182], mane: [215, 140, 100, 75], sway: [200, 110] },
+  lean: { rect: [-59.5, 64.6, 359.0, 170.4], face: [205, 164], mane: [215, 135, 100, 75], sway: [195, 110] }, // lying down, halfway
+};
+
 export class SpriteRenderer {
-  constructor(canvas, image) {
+  // image: the cut-out; poses: { name: image } for POSES
+  constructor(canvas, image, poses = {}) {
     this.canvas = canvas;
     this.image = image;
+    this.poses = poses;
     this.scale = null;
     this.setup();
     // the GPU can be reset (waking from sleep, a driver update): without this she'd stay gone
@@ -378,17 +416,25 @@ export class SpriteRenderer {
     this.u = {};
     for (const name of UNIFORMS) this.u[name] = gl.getUniformLocation(prog, name);
 
-    const tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const texture = (image) => {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return tex;
+    };
+    // what each drawing needs: its texture, where it goes, and (pose drawings) its face and mane
+    this.drawings = { rig: { tex: texture(this.image), rect: [0, 0, SPRITE.width, SPRITE.height] } };
+    for (const [name, image] of Object.entries(this.poses)) {
+      if (image && POSES[name]) this.drawings[name] = { tex: texture(image), ...POSES[name] };
+    }
+    this.drawn = null;
 
     gl.uniform1i(this.u.uTex, 0);
-    gl.uniform2f(this.u.uSize, SPRITE.width, SPRITE.height);
     gl.uniform1f(this.u.uPad, SPRITE.pad);
     gl.uniform2f(this.u.uView, SPRITE.width + SPRITE.pad * 2, SPRITE.height + SPRITE.pad * 2);
     gl.clearColor(0, 0, 0, 0);
@@ -414,9 +460,28 @@ export class SpriteRenderer {
     this.gl.uniform1f(this.u.uPx, 1 / (scale * dpr));
   }
 
+  // Bind one of her drawings ('rig', the cut-out, or a pose's name).
+  use(name) {
+    const d = this.drawings[name] || this.drawings.rig;
+    if (d === this.drawn) return;
+    this.drawn = d;
+    const { gl, u } = this;
+    gl.bindTexture(gl.TEXTURE_2D, d.tex);
+    gl.uniform2f(u.uOrigin, d.rect[0], d.rect[1]);
+    gl.uniform2f(u.uSize, d.rect[2], d.rect[3]);
+    gl.uniform1f(u.uPose, d.face ? 1 : 0);
+    if (d.face) {
+      gl.uniform2f(u.uFaceP, d.face[0], d.face[1]);
+      gl.uniform2f(u.uManeP, d.mane[0], d.mane[1]);
+      gl.uniform2f(u.uManeR, d.mane[2], d.mane[3]);
+      gl.uniform2f(u.uSway, d.sway[0], d.sway[1]);
+    }
+  }
+
   draw(s) {
     const { gl, u } = this;
     gl.clear(gl.COLOR_BUFFER_BIT);
+    this.use(s.draw || 'rig');
     gl.uniform1f(u.uSeed, s.seed);
     gl.uniform1f(u.uBoil, s.boil);
     gl.uniform1f(u.uHair, s.hair);

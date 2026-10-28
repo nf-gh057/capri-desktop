@@ -6,8 +6,10 @@
 // ("peek"), falling ("fall") when the window under her goes away or you drop her, held up by the
 // pointer ("held"), flying through the air when you throw her or she jumps to another screen
 // ("fly"), and knocked down on the floor after a crash ("down").
+// Bored, she lounges: floating with her hand on her hip, or lying on her ledge instead of sitting
+// on it (this.lounge; those are pose drawings, sprite.js POSES).
 
-import { SpriteRenderer, SPRITE } from './sprite.js';
+import { SpriteRenderer, SPRITE, POSES } from './sprite.js';
 import { ACTS, NEUTRAL, Player } from './acting.js';
 import { sleep, rand, pick, clamp, lerp, ease, tween, reducedMotion, today } from './util.js';
 
@@ -16,6 +18,7 @@ const ON_ONES = 1000 / 24;
 const ASLEEP = 1000 / 6;
 const SLEEP_AFTER = 10 * 60 * 1000;
 const DOZE_AFTER = 20 * 1000; // asleep this long, she comes apart down to her mask
+const BORED_AFTER = 60 * 1000; // nothing going on this long, she may lie down on her ledge
 const GRAVITY = 2600; // px/s²
 const THIGH = 73;     // hip to knee, sprite px (see sprite.js)
 const DEG = Math.PI / 180;
@@ -39,10 +42,10 @@ const INK = [0.08, 0.06, 0.11];
 const RED = [1, 0.13, 0.32];
 
 export class Capri {
-  constructor({ root, canvas, image, fx, voice }) {
+  constructor({ root, canvas, image, poses = {}, fx, voice }) {
     this.root = root;
     this.canvas = canvas;
-    this.sprite = new SpriteRenderer(canvas, image);
+    this.sprite = new SpriteRenderer(canvas, image, poses);
     this.fx = fx;
     this.voice = voice;
 
@@ -52,6 +55,7 @@ export class Capri {
     this.facing = 1; // 1: as drawn (reaching left), -1: mirrored
     this.mode = 'idle'; // idle | work | alert | sleep
     this.stance = 'stand';
+    this.lounge = null;   // 'hip' (standing) or 'lie' (sitting): the pose drawing she's lounging in
     this.perch = null;    // { id, dx }: the window she sits on, and where along it
     this.peekSide = null; // left | right | top
     this.windows = { fg: 0, wins: [] };
@@ -85,7 +89,7 @@ export class Capri {
       seed: 0, boil: 0.9, hair: 0, head: 0, mane: 0, armL: 0, armR: 0, longL: 1, longR: 1, sit: 0, kickL: 0, kickR: 0,
       smear: [0, 0], echo: [0, 0],
       glitch: 0, glitchSeed: 0, split: 0, collapse: 0, dissolve: 0, sparkle: 1, grade: 1,
-      sil: INK, silAmount: 0, misreg: [-2.6, 2.2], alpha: 1,
+      sil: INK, silAmount: 0, misreg: [-2.6, 2.2], alpha: 1, draw: null,
     };
     this.bob = 0;
     this.tilt = 0;
@@ -101,6 +105,7 @@ export class Capri {
     this.nextMove = now + rand(40000, 80000);
     this.nextGaze = now + rand(40000, 90000);
     this.nextShed = now + rand(3000, 8000);
+    this.nextLounge = now + rand(20000, 40000);
     this.nextNotice = 0;
     this.peekUntil = 0;
     this.lastGlyph = 0;
@@ -126,6 +131,7 @@ export class Capri {
     this.onScreenOf = null; // async (cursor) => her window moved to the screen the pointer is on: the pointer there
 
     this.alphaMap = this.buildAlphaMap(image);
+    this.poseMaps = buildPoseMaps(poses);
     this.hull = buildHull(this.alphaMap);
     this.setScale(this.scale);
     this.bindPointer();
@@ -268,8 +274,10 @@ export class Capri {
   head(at = this.pos, facing = this.facing) {
     const s = this.scale;
     const bob = at === this.pos ? this.bob : 0;
-    const dx = (SPRITE.head.x - SPRITE.feet.x) * s * facing;
-    const dy = (SPRITE.feet.y - SPRITE.head.y) * s;
+    const pose = at === this.pos && this.p.draw ? POSES[this.p.draw] : null; // lounging: her face is elsewhere on that drawing
+    const face = pose ? { x: pose.face[0], y: pose.face[1] } : SPRITE.head;
+    const dx = (face.x - SPRITE.feet.x) * s * facing;
+    const dy = (SPRITE.feet.y - face.y) * s;
     if (at === this.pos && this.upside) {
       const y = at.y + dy + bob;
       return { x: at.x - dx, y, top: y - 30 * s };
@@ -279,7 +287,7 @@ export class Capri {
       const face = this.screenPoint(SPRITE.head.x, SPRITE.head.y);
       return { ...face, top: face.y - 70 * s };
     }
-    return { x: at.x + dx, y: at.y - dy + bob, top: at.y - SPRITE.feet.y * s + bob };
+    return { x: at.x + dx, y: at.y - dy + bob, top: at.y - (SPRITE.feet.y - (pose ? pose.rect[1] : 0)) * s + bob };
   }
 
   // Is this screen point on her body? Uses the cut-out's alpha so empty space stays click-through.
@@ -289,17 +297,26 @@ export class Capri {
     const at = this.spritePoint(x, y);
     const sx = at.x;
     let sy = at.y;
-    if (this.p.sit > 0 && sy > SPRITE.hip) {
+    if (this.p.sit > 0 && !this.p.draw && sy > SPRITE.hip) {
       // same fold as the shader: short thighs, legs ridden up
       const c = lerp(1, 0.3, this.p.sit);
       sy = sy <= SPRITE.hip + THIGH * c ? SPRITE.hip + (sy - SPRITE.hip) / c : sy + THIGH * (1 - c);
     }
     for (const [dx, dy] of [[0, 0], [4, 0], [-4, 0], [0, 4], [0, -4]]) {
-      const px = Math.round(sx + dx), py = Math.round(sy + dy);
-      if (px < 0 || py < 0 || px >= SPRITE.width || py >= SPRITE.height) continue;
-      if (this.alphaMap[(py * SPRITE.width + px) * 4 + 3] > 40) return true;
+      if (this.alphaAt(Math.round(sx + dx), Math.round(sy + dy)) > 40) return true;
     }
     return false;
+  }
+
+  // How opaque the drawing on screen is at sprite point (x, y): the cut-out, or the pose she's in.
+  alphaAt(x, y) {
+    const pose = this.p.draw && this.poseMaps[this.p.draw];
+    if (pose) {
+      x -= pose.x;
+      y -= pose.y;
+      return x < 0 || y < 0 || x >= pose.w || y >= pose.h ? 0 : pose.data[(y * pose.w + x) * 4 + 3];
+    }
+    return x < 0 || y < 0 || x >= SPRITE.width || y >= SPRITE.height ? 0 : this.alphaMap[(y * SPRITE.width + x) * 4 + 3];
   }
 
   faceCenter() {
@@ -503,6 +520,9 @@ export class Capri {
     if (this.stance === 'fly') this.flyPose(pose);
     else if (this.stance === 'held') this.heldPose(pose);
     if (this.override) Object.assign(pose, this.override);
+    // lounging, she's in a pose drawing; an act on top swaps in its own drawings, or the cut-out, while it plays
+    const own = this.act && !this.act.player.act.keeps;
+    p.draw = this.override ? null : (own ? act?.draw ?? this.act.player.act.draw : base.draw ?? this.base.act.draw) || null;
 
     p.head = pose.head;
     p.mane = pose.mane;
@@ -589,6 +609,11 @@ export class Capri {
       this.dodgeAt = 0;
     }
 
+    if (this.mode === 'idle' && !this.act && now > this.nextLounge) {
+      this.nextLounge = now + rand(20000, 45000);
+      this.loungeStep(now);
+    }
+
     if (this.mode === 'idle' && now > this.nextMove) {
       this.nextMove = now + rand(25000, 70000);
       this.wanderStep();
@@ -673,6 +698,27 @@ export class Capri {
     else this.flourish();
   }
 
+  // Bored: a hand on her hip while she floats, lying down on her ledge after a while, and back.
+  loungeStep(now) {
+    if (this.pointing || this.dormant) return;
+    if (this.stance === 'stand') this.loungeAs(!this.lounge && Math.random() < 0.6 ? 'hip' : null);
+    else if (this.stance === 'sit' && this.lounge) {
+      if (Math.random() < 0.3) this.loungeAs(null);
+    } else if (this.stance === 'sit' && now - this.lastActivity > BORED_AFTER && Math.random() < 0.6) {
+      this.loungeAs('lie');
+    }
+  }
+
+  loungeAs(kind) {
+    if (this.lounge === kind) return;
+    const was = this.lounge;
+    this.lounge = kind;
+    this.base = this.restBase();
+    if (kind === 'lie') this.perform('liedown');
+    else if (was === 'lie' && this.stance === 'sit') this.perform('getup');
+    else this.twitch(); // no in-between drawn for this one: the swap is one of her glitches, not a jump cut
+  }
+
   flourish() {
     if (this.stance === 'sit') this.perform(pick(['look', 'look', 'split']));
     else this.perform(pick(['spin', 'look', 'hop', 'curious', 'split']), this.towardCenter());
@@ -709,6 +755,7 @@ export class Capri {
     const onTaskbar = stance === 'sit' && perch?.id === 'taskbar';
     if (onTaskbar !== (this.perch?.id === 'taskbar' && this.stance === 'sit')) this.onTaskbar?.(onTaskbar);
     this.stance = stance;
+    this.lounge = null;
     this.perch = perch;
     this.peekSide = peekSide;
     this.p.sit = stance === 'sit' ? 1 : 0;
@@ -727,13 +774,14 @@ export class Capri {
   }
 
   baseAct() {
-    if (this.stance === 'sit') return 'sit';
+    if (this.stance === 'sit') return this.lounge === 'lie' ? 'lie' : 'sit';
     if (this.stance === 'peek') return 'peek';
     if (this.stance === 'fall') return 'fall';
     if (this.stance === 'held') return 'held';
     if (this.stance === 'fly') return this.flight?.kind === 'leap' ? 'leap' : 'tumble';
     if (this.stance === 'down') return 'ko';
-    return this.mode === 'sleep' ? 'sleep' : 'stand';
+    if (this.mode === 'sleep') return 'sleep';
+    return this.lounge === 'hip' ? 'hip' : 'stand';
   }
 
   setMode(mode) {
@@ -747,7 +795,8 @@ export class Capri {
     this.mode = mode;
     if (mode === 'sleep') this.sleptAt = now;
     this.onMode?.(mode, prev);
-    if (this.stance === 'stand') this.base = this.restBase();
+    if (mode !== 'idle' && mode !== 'sleep' && this.lounge) this.loungeAs(null); // something's going on: she drops the pose
+    else if (this.stance === 'stand') this.base = this.restBase();
     const p = this.p;
     if (mode === 'sleep') tween(p, { alpha: 0.55, sparkle: 0.35, boil: 0.4 }, 900, ease.inOut);
     else tween(p, { alpha: 1, sparkle: 1, boil: 0.9 }, 250, ease.out);
@@ -2584,6 +2633,23 @@ function turnAround(p, o, a) {
 // An angle in degrees, brought back between -180 and 180.
 function norm(deg) {
   return ((((deg + 180) % 360) + 360) % 360) - 180;
+}
+
+// Her pose drawings' outlines, for hit tests: { x, y, w, h, data } each, where x, y is its top left
+// in sprite px and data is RGBA at one sprite px each.
+function buildPoseMaps(poses) {
+  const maps = {};
+  for (const [name, image] of Object.entries(poses)) {
+    if (!image || !POSES[name]) continue;
+    const [x, y, w, h] = POSES[name].rect;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(w);
+    c.height = Math.ceil(h);
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(image, 0, 0, w, h);
+    maps[name] = { x: Math.round(x), y: Math.round(y), w: c.width, h: c.height, data: ctx.getImageData(0, 0, c.width, c.height).data };
+  }
+  return maps;
 }
 
 // Her outline at rest (the alpha map), as a convex hull around her middle, in sprite px: how far
