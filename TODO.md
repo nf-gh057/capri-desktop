@@ -94,3 +94,27 @@ Wspólne dla wszystkich etapów:
 - Bez kodów TOTP do rozmowy: dostęp wymaga fizycznie tego telefonu (odblokowanego, z zalogowanym Tailscale), a nie
   konta, które da się przejąć zdalnie. Do zadań z narzędziami (jak etap 3 Telegrama): potwierdzenie odciskiem palca
   (passkey, WebAuthn) zamiast kodu.
+
+## Aktualizacje: Capri sama sprawdza, czy na GitHubie jest nowa wersja
+
+Capri zainstalowana skryptem `install.ps1` to klon gita (`%LOCALAPPDATA%\Capri\capri-desktop`), więc może się
+zaktualizować tak jak ponowne uruchomienie instalatora: `git pull` i pakiety.
+
+- Skąd: repozytorium i gałąź z `origin` jej klonu (u nas `nf-gh057/capri-desktop`, `main`), do zmiany w Mainframe;
+  nic na sztywno w kodzie.
+- Sprawdzanie: przy starcie i co kilka godzin. Najtańsze: `package.json` z GitHuba (raw) i porównanie wersji `x.y.z-n`
+  z `app.getVersion()`; dokładniej: `git fetch` i porównanie commitów (`HEAD` i `origin/main`). Bez sieci: ciche
+  pominięcie, następna próba później.
+- Gdy jest nowa: Capri mówi o tym raz (w swoim stylu), Mainframe pokazuje wersję i listę zmian (tytuły commitów od
+  obecnej) oraz przycisk „Zaktualizuj”. Do wyboru w Mainframe: tylko powiadamiaj (domyślnie) / aktualizuj sama, kiedy nie
+  ma cię przy komputerze.
+- Aktualizacja: `git pull --ff-only`, `npm ci` tylko gdy zmienił się `package-lock.json` (i Electron, gdy brakuje
+  binarki), potem `app.relaunch()`. Odmowa (z powodem w Mainframe), gdy klon ma lokalne zmiany, jest na innej gałęzi albo
+  się rozjechał z GitHubem; nigdy `reset --hard`. W trybie `--dev` (klon programisty) tylko informacja, bez aktualizacji.
+- Gdy coś pójdzie nie tak: powrót do poprzedniego commita (`git reset --keep` na zapamiętany) i ponowne `npm ci`.
+- Bezpieczeństwo: tylko HTTPS z GitHuba i tylko po kliknięciu (albo po świadomym włączeniu trybu automatycznego);
+  aktualizacja uruchamia kod z repozytorium (tak jak instalator), więc nigdy z adresu podanego przez stronę, Telegram
+  czy inny komputer roju.
+- Rój: komputery mówią sobie swoją wersję; Mainframe pokazuje, który jest starszy, a różne wersje protokołu roju nie
+  psują połączenia (komputer ze starszą wersją dostaje informację, że trzeba go zaktualizować).
+- Capri z instalatora autora (`Capri-Setup-x.y.z.exe`, nie klon) tylko informuje o nowej wersji i odsyła do Releases.
