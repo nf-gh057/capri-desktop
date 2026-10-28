@@ -904,6 +904,21 @@ async function chatWithFallback(cfg, messages, send, signal, streamed) {
   }
 }
 
+// No network, and her brain is online (Codex, Claude Code, a provider with a key, an Ollama cloud
+// model): it can't answer. CAPRI_OFFLINE=1 in --dev: as if the network were gone.
+function brainCut(cfg = config.load()) {
+  const online = net.isOnline() && !(DEV && process.env.CAPRI_OFFLINE === '1');
+  return !online && !llm.isLocal(cfg.provider, cfg, pickModel(cfg) || cfg.chatModel);
+}
+
+// A model on this PC to think with meanwhile: Ollama's first one that isn't in its cloud (Ollama woken
+// up if it's installed but asleep). null without one.
+async function localModel() {
+  let list = await ollama.models().catch(() => null);
+  if (!list && (await setup.ollamaState()).installed && (await setup.startOllama()).ok) list = await ollama.models().catch(() => null);
+  return list?.find((m) => !ollama.isCloud(m)) || null;
+}
+
 // She looks at your screen (look.js): a picture of the screen she's on, kept here in memory a moment
 // for her AI to look at, never written anywhere. 1280 px wide at most: enough to read, light to send.
 const snaps = new Map(); // id -> the picture, base64 JPEG
@@ -1035,6 +1050,10 @@ function registerIpc() {
     const cfg = config.load(true); // keys may have been edited by hand
     const { provider } = cfg;
     const models = await refreshModels();
+    // no network and her brain lives online: her chat opens anyway, a model on this PC answers (chat:send)
+    if (!models && brainCut(cfg)) {
+      return { ok: true, provider, model: cfg.chatModel, agent: llm.isAgent(provider), powers: !llm.isAgent(provider) || Boolean(cfg.agentPowers), local: false, warmup: false };
+    }
     if (!models) return { ok: false, error: chatError || 'offline', code: chatErrorCode, provider };
     if (!models.length) return { ok: false, error: 'nomodel', provider };
     const model = pickModel();
@@ -1043,20 +1062,28 @@ function registerIpc() {
     return { ok: true, provider, model, agent: llm.isAgent(provider), powers: !llm.isAgent(provider) || Boolean(cfg.agentPowers), local, warmup: provider === 'ollama' && local };
   });
   // her answer, streamed to the overlay piece by piece as `chat:delta`
-  ipcMain.handle('chat:send', async (_e, { id, messages }) => {
+  // `local`: a model on this PC to answer with instead (her brain online, and no network: see brainCut)
+  ipcMain.handle('chat:send', async (_e, { id, messages, local = null }) => {
     const abort = new AbortController();
     chats.set(id, abort);
+    let streamed = false;
+    const cfg = config.load();
     try {
-      let streamed = false;
       const send = (text) => {
         streamed = true;
         overlay?.webContents.send('chat:delta', { id, text });
       };
-      const cfg = config.load();
+      if (local) {
+        if (local !== (await localModel())) return { ok: false, error: 'no local model', code: 'offline' };
+        return { ok: true, text: await llm.chat('ollama', llmConfig(cfg), { model: local, messages }, send, abort.signal), local };
+      }
+      if (brainCut(cfg)) return { ok: false, error: 'offline', code: 'offline', local: await localModel() };
       const text = await chatWithFallback(cfg, messages, send, abort.signal, () => streamed);
       if (llm.isAgent(cfg.provider)) saveMemory(llm.agentMemory());
       return { ok: true, text };
     } catch (err) {
+      // the network went in the middle of it
+      if (!abort.signal.aborted && !streamed && !local && brainCut(cfg)) return { ok: false, error: 'offline', code: 'offline', local: await localModel() };
       return { ok: false, error: abort.signal.aborted ? 'stopped' : err.message, code: err.code || null };
     } finally {
       chats.delete(id);

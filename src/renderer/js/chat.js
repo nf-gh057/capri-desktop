@@ -303,22 +303,25 @@ export class Chat {
       else this.history.splice(at, 0, { role: 'assistant', content: this.opening });
       this.opening = null;
     }
-    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-REMEMBER)];
-    // Her mood (angry, sulking…) and her language, said again right by your message, for this answer
-    // only. Small local models mostly go by the last thing they read: up in her prompt alone, they
-    // forget it (and answer in English after a conversation in English).
-    if (!this.agent) {
-      const mood = this.bond?.moodLine().replace(/^Right now: /, '');
-      const last = messages.at(-1);
-      messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(Note for you, never repeat it: ${[mood, this.languageNote()].filter(Boolean).join(' ')})` };
-    }
+    const messages = this.messages();
     // nothing yet after a few seconds: Ollama is still loading the model (the first answer after a start),
     // or Claude Code is at work
     const wait = this.agent ? this.t.working : this.cold ? this.t.loading : null;
     const slow = wait && setTimeout(() => {
       if (this.turn === id && !this.answer) this.panel.stream(wait);
     }, LOADING_AFTER_MS);
-    const res = await this.host.chatSend({ id, messages });
+    let res = await this.host.chatSend({ id, messages });
+    // No network, and her brain lives online: a model on this PC answers instead, as her (no agent,
+    // no tools of its own), and she says so under her answer.
+    let note = '';
+    if (!res.ok && res.code === 'offline' && res.local && this.turn === id) {
+      const agent = this.agent;
+      this.agent = false;
+      const local = this.messages();
+      this.agent = agent;
+      res = await this.host.chatSend({ id, messages: local, local: res.local });
+      if (res.ok) note = fmt(this.t.offlineLocal, { model: res.local });
+    }
     clearTimeout(slow);
     if (this.turn !== id) {
       // closed meanwhile: your message goes too, or the next answer would answer it as well
@@ -330,15 +333,17 @@ export class Chat {
       this.history.pop();
       this.panel.setFace('wide');
       // too busy or gone even after trying other models (main.js): said plainly, not the server's JSON
-      this.panel.stream(res.code === 'busy' ? this.t.swamped : res.code === 'gone' ? this.t.gone : `${this.t.failed} ${res.error}`, { done: true });
+      this.panel.stream(res.code === 'busy' ? this.t.swamped : res.code === 'gone' ? this.t.gone
+        : res.code === 'offline' ? this.t.offline : `${this.t.failed} ${res.error}`, { done: true });
       this.panel.setChatBusy(false);
       return;
     }
-    const answer = clean(res.text) || '…';
+    const said = clean(res.text) || '…';
     this.warm = true;
-    this.remember({ role: 'assistant', content: answer });
+    this.remember({ role: 'assistant', content: said });
+    const answer = note ? `${said}\n${note}` : said; // as shown: with the line about her brain offline
     this.panel.stream(answer, { done: true });
-    this.panel.setFace(mood(answer));
+    this.panel.setFace(mood(said));
     this.panel.setChatBusy(false);
     if (this.powersOn || asked) this.after(res.text, answer, asked, early, text);
     this.listApps(); // fresh for the next message
@@ -388,6 +393,20 @@ export class Chat {
     const answer = clean(res.text).replace(/^["“«]\s*|\s*["”»]$/g, '') || '…';
     this.seen = { text: answer, at: Date.now() };
     return say(answer, mood(answer));
+  }
+
+  // What her AI gets: who she is, then the conversation. Her mood (angry, sulking…) and her language
+  // are said again right by your message, for this answer only. Small local models mostly go by the
+  // last thing they read: up in her prompt alone, they forget it (and answer in English after a
+  // conversation in English).
+  messages() {
+    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-REMEMBER)];
+    if (!this.agent) {
+      const mood = this.bond?.moodLine().replace(/^Right now: /, '');
+      const last = messages.at(-1);
+      messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(Note for you, never repeat it: ${[mood, this.languageNote()].filter(Boolean).join(' ')})` };
+    }
+    return messages;
   }
 
   // an answer of hers, kept with your message before it
