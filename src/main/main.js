@@ -1852,8 +1852,14 @@ async function debugHandler(route, body) {
   if (route === 'mainframe') {
     // her settings window: opened, asked something as its page would ({ act, value }), captured ({ capture })
     const win = mainframe.open();
+    // what its page does itself, run in it ({ js }: a click, as you'd make it), and what that gave
+    if (body.js) {
+      await new Promise((resolve) => (win.webContents.isLoading() ? win.webContents.once('did-finish-load', resolve) : resolve()));
+      const value = await win.webContents.executeJavaScript(String(body.js)).catch((err) => `error: ${err.message}`);
+      if (!body.capture) return { ok: true, value };
+    }
     if (body.act) await mainframeAct(body.act, body.value);
-    mainframe.refresh(); // as its page draws what its click brings back
+    if (!body.js) mainframe.refresh(); // as its page draws what its click brings back
     if (!body.capture) return { ok: true, state: mainframeState() };
     await new Promise((resolve) => setTimeout(resolve, 800));
     // further down its page ({ scroll: px })

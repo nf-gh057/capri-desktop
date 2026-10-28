@@ -106,7 +106,9 @@ html,
 body {
   margin: 0;
   height: 100%;
-  overflow: hidden; /* only its sections scroll */
+  /* only its sections scroll: clip, not hidden, as a hidden overflow can still be scrolled by the page
+     itself (bringing a focused box into view) and the whole window then shows nothing */
+  overflow: clip;
   background: var(--bg);
   color: var(--text);
   font: 12px/1.4 var(--font-mono);
@@ -302,6 +304,7 @@ body {
 
 /* a checkbox: a square that fills with cyan */
 .check {
+  position: relative; /* its hidden box stays in it, scrolled with its section */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -310,6 +313,8 @@ body {
 }
 .check input {
   position: absolute;
+  inset: 0 auto auto 0;
+  margin: 0;
   opacity: 0;
 }
 .check span {
