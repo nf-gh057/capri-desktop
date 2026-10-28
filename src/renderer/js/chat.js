@@ -46,6 +46,84 @@ const MUSIC_WORD = /musi|chanson|song|track|titre|morceau|spotify|canci|faixa|п
 // "put X on Spotify", "mets X sur Spotify", "pon X en Spotify", "coloca X no Spotify", "включи X в Spotify", "puść X na Spotify"
 const SPOTIFY_ASK = /(?:play|put on|put|mets|joue|lance|écoute|pon|toca|reproduce|coloca|toque|включи|поставь|puść|pusc|włącz|wlacz|zagraj)\s+(?:moi\s+|me\s+|mi\s+)?(.+?)\s+(?:on|sur|en|no|na|в)\s+spotify/i;
 const MEDIA_ACTIONS = new Set(MEDIA_ASK.map(([action]) => action));
+// "mets Bohemian Rhapsody sur YouTube", "play Daft Punk on youtube"
+const YOUTUBE_ASK = /(?:play|put on|put|mets|met|joue|lance|écoute|pon|toca|reproduce|coloca|bota|toque|включи|поставь|puść|pusc|zagraj|włącz|wlacz)(?:[- ]moi|[- ]me|me|\s+mi)?\s+(.+?)\s+(?:on|sur|en|no|na|в)\s+youtube/i;
+// "mets Bohemian Rhapsody", "joue-moi du Daft Punk", "play some Queen": a song, or a game to play
+const PLAY_ASK = /^(?:capri,?\s+)?(?:mets|met|joue|play|put on|pon|toca|coloca|bota|toque|включи|поставь|puść|pusc|zagraj)(?:[- ]moi|[- ]me|me|\s+mi)?\s+(.{2,100})$/iu;
+// "joue à Brawlhalla", "play the game…": a game, not a song
+const GAME_ASK = /^(?:capri,?\s+)?(?:(?:joue|play)\s+(?:à|au|aux|a|the game)|zagraj\s+w)\s/i;
+// "du Daft Punk", "some Queen": who to play, without the "some"
+const songOf = (s) => s
+  .replace(/^(?:la |le |une? |the |some )?(?:musique|music|chanson|son|morceau|song|track|songs|muzyk[eęi]|piosenk[eęi]|utw[oó]r)\s+(?:de |d['’]|du |by |of |od )?/i, '')
+  .replace(/^(?:(?:du|de la|de l['’]|des|de|some|un peu de|del|un poco de|algo de|um pouco de|troch[eę]|co[sś] z)\s+|d['’])/i, '')
+  .replace(/\s+(?:on|sur|en|no|na|в)\s+youtube\s*$/i, '')
+  .trim();
+// "démarre YouTube et mets la musique de Daft Punk": the song asked for after an "and"
+const PLAY_AFTER = /\s(?:et|and|y|e|и|i)\s+(?:mets|met|joue|play|put on|pon|toca|coloca|bota|включи|поставь|démarre|demarre|lance|start|launch|écoute|ecoute|puść|pusc|zagraj)(?:[- ]moi|[- ]me|\s+mi)?\s+(.{2,100})$/i;
+// "lance la musique de Daft Punk", "start the song X": an app verb, but music right after it
+const MUSIC_START = /^(?:capri,?\s+)?(?:lance|démarre|demarre|start|launch|écoute|ecoute|pon|toca|włącz|wlacz|odpal|puść|pusc)(?:[- ]moi|[- ]me|\s+mi)?\s+(?:la |le |une? |the |some )?(?:musique|music|chanson|son|morceau|song|track|canci[óo]n|m[úu]sica|песню|музыку|muzyk[eęi]|piosenk[eęi]|utw[oó]r)\s+(.{2,100})$/i;
+// "mets ce que tu veux", "play whatever you want": she picks (her tag)
+const HER_PICK = /tu veux|ton choix|surprends|you want|whatever|your choice|surprise me|quieras|tu elecci[óo]n|quiser|sua escolha|хочешь|на твой выбор|co chcesz|co zechcesz|tw[oó]j wyb[oó]r|zaskocz mnie|cokolwiek/i;
+// what's left when it doesn't say which song ("mets de la musique", "play something")
+const VAGUE_SONG = /^(?:(?:de\s+la|du|des|la|le|les|une?|some|a|the|un|algo\s+de|alguma|um|uma|что-нибудь|jak[aą][sś]|jaki[sś]|troch[eę])\s+)?(?:musique|music|son|sons|chanson|morceau|truc|quelque\s+chose|something|song|tunes?|m[úu]sica|canci[óo]n|algo|coisa|музыку|песню|muzyk[eęi]|piosenk[eęi]|co[sś])?\s*[.!?]*$/iu;
+// "trouve mon CV", "où est le pdf du contrat", "find my report", "найди файл…": her search verbs, and
+// what makes it a file on your PC or a search on the web
+const SEARCH_VERB = /(?:cherche|recherche|trouve|retrouve|où (?:est|sont)|search(?: for)?|find|look (?:for|up)|where(?:'s| is| are)|busca|encuentra|d[óo]nde est[áa]n?|procura|acha|onde est[áa]o?|найди|поищи|где|znajd[źz]|wyszukaj|poszukaj|szukaj|gdzie (?:jest|s[ąa]))/i;
+const FILE_WORD = /fichier|dossier|document|photo|image|vid[ée]o|\bpdf\b|\bfiles?\b|folder|archivo|carpeta|arquivo|pasta|файл|папк|\.\w{2,4}\b|sur mon (?:pc|ordi)|dans mes fichiers|on my (?:pc|computer)|en mi (?:pc|ordenador)|no meu (?:pc|computador)|на (?:компьютере|пк)|plik|katalog|dokument|zdj[eę]ci|obraz|wideo|na (?:moim )?(?:pc|komputerze|kompie)|w moich plikach/i;
+const WEB_WORD = /google|internet|\ble web\b|the web|\bonline\b|en ligne|в интернете|в гугле|w sieci|w necie/i;
+// "fais une capture d'écran", "take a screenshot"
+const SHOT_ASK = /capture d['’][ée]cran|screenshot|screen ?shot|captura de (?:pantalla|tela)|скриншот|снимок экрана|zrzut(?:u)? ekranu|\bscreena?\b/i;
+// the words that aren't what to look for
+const NOT_SEARCHED = new Set(('stp svp please pls peux tu can you could would puedes pode можешь moi me le la les l mon ma mes '
+  + 'un une des du de d the my a an for of el mi mis o meu minha meus мой мою мои sur dans on in en no na на в pc ordi ordinateur '
+  + 'computer ordenador computador компьютере fichier fichiers dossier dossiers document documents photo photos image images '
+  + 'vidéo vidéos video videos file files folder folders archivo archivos carpeta carpetas arquivo arquivos pasta pastas файл '
+  + 'файлы папка папку appelé appelée nommé called named llamado chamado qui s appelle est sont is are where où cherche recherche '
+  + 'trouve retrouve search find look up busca encuentra procura acha найди поищи где dónde onde google internet web online ligne '
+  + 'proszę prosze możesz mozesz mi mój moj moja moje moich moim na w z o pc komputerze kompie plik pliki plików plikach katalog '
+  + 'dokument dokumenty zdjęcie zdjęcia obraz obrazy wideo który która które nazywa się gdzie jest są znajdź znajdz wyszukaj '
+  + 'poszukaj szukaj internecie sieci necie').split(' '));
+// the kind of file asked for: "mon projet after effect" is a .aep
+const FILE_TYPES = [
+  [/after ?effects?/i, ['aep']], [/premi[eè]re/i, ['prproj']], [/photoshop|\bpsd\b/i, ['psd']], [/illustrator/i, ['ai']],
+  [/blender/i, ['blend']], [/cinema ?4d|\bc4d\b/i, ['c4d']], [/fl ?studio/i, ['flp']], [/ableton/i, ['als']],
+  [/\bword\b|\bdocx?\b/i, ['docx', 'doc']], [/excel|\bxlsx?\b|tableur|spreadsheet|arkusz/i, ['xlsx', 'xls', 'csv']],
+  [/powerpoint|\bpptx?\b|diapo|slides|prezentacj/i, ['pptx', 'ppt']], [/\bpdf\b/i, ['pdf']],
+  [/vid[ée]os?\b|\bmp4\b|\bfilms?\b|v[íi]deo|видео|wideo|filmik|\bfilmy\b/i, ['mp4', 'mov', 'mkv', 'avi', 'webm']],
+  [/photos?\b|images?\b|\bpng\b|\bjpe?g\b|imagen|imagem|фото|zdj[eę]ci|obraz/i, ['png', 'jpg', 'jpeg', 'webp', 'heic']],
+  [/musiques?\b|\bmp3\b|\baudio\b|\bsongs?\b|музык|muzyk|piosenk/i, ['mp3', 'wav', 'flac', 'm4a', 'ogg']],
+  [/\bzip\b|\barchive|\barchiw|\brar\b|\b7z\b/i, ['zip', 'rar', '7z']],
+];
+const fileTypes = (text) => [...new Set(FILE_TYPES.filter(([re]) => re.test(text)).flatMap(([, exts]) => exts))];
+// words that only say what kind of file it is, or what to do with it once found
+const NOT_A_NAME = new Set(('and et y e и it ça ca lo la o open ouvre ouvrir ouvres abre abrir открой show montre affiche '
+  + 'projet projets project projects proyecto projeto проект after effect effects premiere pro photoshop illustrator blender cinema '
+  + '4d c4d fl studio ableton word excel powerpoint pdf mp4 mp3 png jpg jpeg zip rar 7z film films musique musiques music song songs '
+  + 'audio présentation presentation diapo slides tableur spreadsheet dernier dernière derniers last latest récent récents recent '
+  + 'nouveau new psd docx doc xlsx pptx i otwórz otworz pokaż pokaz go ją ja je projekt projekty ostatni ostatnia ostatnie najnowszy '
+  + 'najnowsza najnowsze nowy nowa nowe filmy muzyka prezentacja prezentację arkusz').split(' '));
+// "…and open the folder", "…et ouvre-le": what to do with what she found
+const THEN_FOLDER = /(?:ouvre|ouvrir|open|show|montre|abre|abrir|открой|покажи|otwórz|otworz|pokaż|pokaz)\s+(?:moi\s+|mi\s+)?(?:le |la |the |its |son |el |a |o |jego |ten )?(?:dossier|folder|carpeta|pasta|папку|katalog)/i;
+const THEN_OPEN = /(?:et|and|y|e|и|i)\s+(?:l['’])?(?:ouvre|open|lance|abre|открой|otwórz|otworz|odpal|uruchom)(?:[- ](?:le|la|les)|\s+(?:it|them|lo|la|o|его|её|go|ją|je))?\s*[.!?]*$/i;
+const searched = (text) => text.replace(/^\s*capri[,!:]?\s+/i, '').toLowerCase().split(/[^\p{L}\p{N}.]+/u).filter((w) => w && !NOT_SEARCHED.has(w)).join(' ');
+// a Roblox game by its name: "in my roblox play steal a brain rot", "lance grow a garden sur roblox"
+const ROBLOX_VERB = /(?:^|\s)(?:play|joue(?:r)?(?: à| a)?|lance|launch|start|ouvre|open|mets|go to|va sur|juega(?: a)?|jogue|jogar|запусти|включи|zagraj(?: w)?|odpal|uruchom|włącz|wlacz|otwórz|otworz)\s+/gi;
+function robloxGame(text) {
+  if (!/roblox/i.test(text)) return null;
+  let rest = null;
+  for (const m of text.matchAll(ROBLOX_VERB)) rest = text.slice(m.index + m[0].length); // after the last verb
+  if (!rest) return null;
+  const name = rest
+    .replace(/\s+(?:on|in|sur|dans|en|no|na|в|w)\s+(?:my\s+|mon\s+|mi\s+|meu\s+|moim\s+)?roblox\b.*$/i, '')
+    .replace(/\broblox\b/ig, '')
+    .replace(/^(?:à|a|au|to|le jeu|the game|un jeu|el juego|o jogo)\s+/i, '')
+    .replace(/\s+(?:stp|svp|please|pls|por favor|plis)\b.*$/i, '').replace(/\s+prosz[eę].*$/i, '')
+    .replace(/[\s.!?,]+$/, '')
+    .trim();
+  return name.length >= 2 ? name : null;
+}
+// "regarde mon écran", "tu vois quoi ?", "what's on my screen?", "что ты видишь?"
+const LOOK_ASK = /regarde (?:mon|l['’]|ce que)|(?:jette|jeter) un (?:œil|oeil)|tu vois quoi|qu['’]est[- ]ce que tu vois|look at (?:my|the|this) screen|what(?:'s| is) on my screen|what do you see|take a look|mira (?:mi|la) pantalla|qu[ée] ves|olha (?:minha|a) tela|o que voc[êe] v[êe]|посмотри на (?:мой )?экран|что ты видишь|(?:popatrz|zerknij|sp[oó]jrz) na (?:m[oó]j )?ekran|co widzisz|co (?:jest|mam) na (?:moim )?ekranie/i;
 // what her tag needs to find in your message before it does anything: a small model tags answers about
 // anything ("[[music: synthwave]]" under a film tip), and music and the media keys act right away
 const LISTEN = /[ée]cout|listen|escuch|\bouv(ir|e)\b|слуша|playlist|album|\b(play|joue|mets|pon|toca|coloca)\b|включи|поставь|słucha|slucha|\bpuść|\bpusc|\bzagraj/i;
@@ -212,6 +290,7 @@ export class Chat {
     // named): her line about it comes under her answer (Claude Code or Codex, answering her chat, does
     // things on the PC its own way, unless her powers are on for them too)
     const asked = this.asked(text);
+    if (asked?.kind === 'look') return this.sendLook(text, id);
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
     this.bond?.heard(text); // "sorry": she lets it go
     await Promise.race([this.appsReady, new Promise((r) => setTimeout(r, 1500))]);
@@ -265,6 +344,52 @@ export class Chat {
     this.listApps(); // fresh for the next message
   }
 
+  // "Look at my screen" in her chat: she looks (asking you first, the first time) and answers here,
+  // the conversation so far in mind.
+  async sendLook(text, id) {
+    const tl = this.brain.t.look;
+    const say = (line, face = 'aside') => {
+      if (this.turn !== id) return;
+      this.turn = 0;
+      this.remember({ role: 'assistant', content: line });
+      this.panel.stream(line, { done: true });
+      this.panel.setFace(face);
+      this.panel.setChatBusy(false);
+    };
+    if (!this.look.asked) {
+      const where = await this.host.lookWhere().catch(() => ({}));
+      this.history.pop(); // your message comes back once you've said yes
+      say(`${tl.ask} ${fmt(where.local ? tl.local : tl.online, { model: where.model || '…', service: where.provider || '' })}`, 'look');
+      this.panel.setActions([{ id: 'yes', label: tl.yes, primary: true }, { id: 'no', label: tl.no }], async (choice) => {
+        this.panel.setActions([]);
+        if (choice !== 'yes') {
+          this.interject(tl.declined, [], null);
+          return;
+        }
+        await this.host.setConfig({ lookAsked: true });
+        this.look.asked = true;
+        this.send(text);
+      });
+      return;
+    }
+    const snap = await this.host.lookSnap();
+    if (!snap.ok) return say(fmt(tl.failed, { error: snap.error }));
+    this.look.effect();
+    const res = await this.host.lookSay({
+      id: snap.id,
+      persona: this.lookPersona(),
+      history: this.history.slice(-REMEMBER, -1),
+      prompt: `${text}\n\n(Note for you, never repeat it: the picture is the user's screen right now; a small figure with a big red mane on it is you. Answer about what you really see, in character. ${this.languageNote()})`,
+    });
+    if (!res.ok) {
+      const model = String(res.model || '…').replace(/:latest$/, '');
+      return say(res.code === 'novision' ? fmt(tl.noVision, { model }) : res.code === 'noai' ? tl.noAI : fmt(tl.failed, { error: res.error || '…' }));
+    }
+    const answer = clean(res.text).replace(/^["“«]\s*|\s*["”»]$/g, '') || '…';
+    this.seen = { text: answer, at: Date.now() };
+    return say(answer, mood(answer));
+  }
+
   // an answer of hers, kept with your message before it
   remember(message) {
     this.history.push(message);
@@ -293,13 +418,35 @@ export class Chat {
     const memo = MEMO_ASK.exec(text)?.[1]?.trim();
     if (memo) return { kind: 'memo', text: memo };
     if (!this.powersOn) return null; // the rest is her powers on the PC
+    if (this.look && LOOK_ASK.test(text)) return { kind: 'look' };
+    if (SHOT_ASK.test(text)) return { kind: 'shot' };
+    const roblox = robloxGame(text);
+    if (roblox) return { kind: 'roblox', game: roblox };
+    if (SEARCH_VERB.test(text) && WEB_WORD.test(text) && searched(text)) return { kind: 'web', query: searched(text) };
+    const exts = fileTypes(text);
+    if (SEARCH_VERB.test(text) && (FILE_WORD.test(text) || exts.length)) {
+      const query = searched(text).split(' ').filter((w) => w && !NOT_A_NAME.has(w)).join(' ');
+      const then = THEN_FOLDER.test(text) ? 'folder' : THEN_OPEN.test(text) ? 'open' : null;
+      if (query || exts.length) return { kind: 'files', query, exts, then };
+    }
     const media = MEDIA_ASK.find(([, re]) => re.test(text))?.[0];
     if (media && (count <= 5 || MUSIC_WORD.test(text))) return { kind: 'media', action: media };
     const song = SPOTIFY_ASK.exec(text)?.[1];
     if (song) return { kind: 'music', song };
+    const video = YOUTUBE_ASK.exec(text)?.[1];
+    if (video) return { kind: 'youtube', song: songOf(video) };
     const app = this.askedToClose(text);
     if (app) return { kind: 'close', name: app };
-    if (OPEN_ASK.test(text) && count <= 8) return { kind: 'open', text };
+    if (GAME_ASK.test(text) && count <= 8) return { kind: 'open', text };
+    const start = MUSIC_START.exec(text.trim())?.[1];
+    if (start && !HER_PICK.test(start)) return { kind: 'play', song: songOf(start.replace(/[\s.!?]+$/, '')) };
+    const both = PLAY_AFTER.exec(text.trim());
+    const after = both?.[1];
+    // "ouvre discord et lance spotify": the first half too
+    if (after && !VAGUE_SONG.test(after) && !HER_PICK.test(after)) return { kind: 'play', song: songOf(after.replace(/[\s.!?]+$/, '')), before: text.trim().slice(0, both.index) };
+    const play = PLAY_ASK.exec(text.trim())?.[1];
+    if (play && !VAGUE_SONG.test(play) && !HER_PICK.test(play)) return { kind: 'play', song: songOf(play.replace(/[\s.!?]+$/, '')) };
+    if (OPEN_ASK.test(text) && count <= 14) return { kind: 'open', text };
     return null;
   }
 
@@ -335,6 +482,50 @@ export class Chat {
       this.zap();
       return (await this.host.music(asked.song)) ? { line: fmt(t.music, { song: asked.song }), face: 'laugh' } : null;
     }
+    if (asked.kind === 'youtube') return this.youtube(asked.song);
+    if (asked.kind === 'roblox') {
+      this.zap();
+      const res = await this.host.roblox(asked.game);
+      if (!res) return null;
+      if (!res.name) return { line: fmt(t.robloxNone, { game: asked.game }), face: 'aside' };
+      return { line: fmt(res.app ? t.robloxPlay : t.robloxPage, { game: res.name }), face: 'laugh' };
+    }
+    if (asked.kind === 'web') {
+      this.zap();
+      return (await this.host.webSearch(asked.query)) ? { line: fmt(t.web, { query: asked.query }), face: 'smug' } : null;
+    }
+    if (asked.kind === 'files') {
+      const results = await this.host.searchFiles({ query: asked.query, exts: asked.exts });
+      const asking = asked.query || asked.exts.map((e) => `.${e}`).join(' ');
+      if (!results.length) return { line: fmt(t.filesNone, { query: asking }), face: 'aside' };
+      const list = results.slice(0, 3).map((f) => `${f.name} (${f.folder})`).join(', ');
+      const lines = [fmt(results.length === 1 ? t.fileFound : t.filesFound, { count: results.length, list })];
+      // "…and open the folder" / "…and open it": done right away, on the newest one
+      if (asked.then === 'folder' && (await this.host.openFile(results[0].path, true))) lines.push(fmt(t.folderOpened, { name: results[0].name }));
+      // (never a program or a script on its own: that one waits for its button)
+      const runs = /\.(exe|bat|cmd|ps1|vbs|vbe|js|jse|wsf|msi|reg|scr|com|jar|hta)$/i.test(results[0].name);
+      if (asked.then === 'open' && !runs && (await this.host.openFile(results[0].path))) lines.push(fmt(t.opened, { app: results[0].name }));
+      return { line: lines.join('\n'), face: 'smug', files: results };
+    }
+    if (asked.kind === 'shot') {
+      // not her nor her panel in it
+      document.documentElement.style.visibility = 'hidden';
+      await new Promise((r) => setTimeout(r, 180));
+      const shot = await this.host.screenshot();
+      document.documentElement.style.visibility = '';
+      this.voice.play('tick');
+      return shot ? { line: fmt(t.shot, { name: shot.name }), face: 'smug', files: [shot] } : null;
+    }
+    if (asked.kind === 'play') {
+      // what came before an "and" first ("ouvre discord et…"), unless it's YouTube, where the song goes anyway
+      const first = asked.before && OPEN_ASK.test(asked.before) && !/youtube/i.test(asked.before)
+        ? await this.doNow({ kind: 'open', text: asked.before }) : null;
+      // "joue à Brawlhalla" is a game, "lance spotify" an app; anything else, a song
+      const game = await this.host.findLaunch(asked.song);
+      const then = game && ['steam', 'epic', 'app', 'file'].includes(game.kind) && !game.risky ? await this.openNow(game) : await this.youtube(asked.song);
+      if (!first?.line) return then;
+      return { line: [first.line, then?.line].filter(Boolean).join('\n'), face: then?.face || first.face };
+    }
     const item = await this.host.findLaunch(asked.text);
     const site = namedSite(asked.text);
     if (site && (!item || BROWSER.test(item.name))) {
@@ -342,9 +533,29 @@ export class Chat {
       return (await this.host.openSite(site.url)) ? { line: fmt(t.siteOpened, { site: site.name }), face: 'laugh' } : null;
     }
     if (!item) return null; // nothing by that name here: her tag may still say what you meant
+    return this.openNow(item);
+  }
+
+  // An app, a game, a file or a folder: opened, or behind a button when it would run something.
+  async openNow(item) {
+    if (item.risky) return { offer: item };
     this.zap();
     const res = await this.host.launch(item);
-    return { line: res.ok ? fmt(t.opened, { app: item.name }) : `${t.failed} ${res.error}`, face: res.ok ? 'laugh' : 'aside' };
+    const name = this.nameOf(item);
+    return { line: res.ok ? fmt(this.t.opened, { app: name }) : `${this.t.failed} ${res.error}`, face: res.ok ? 'laugh' : 'aside' };
+  }
+
+  // how she calls it: a folder like Downloads in her words, anything else by its name
+  nameOf(item) {
+    return item.kind === 'known' ? this.t.folders[item.id] || item.name : item.name;
+  }
+
+  // The song itself on YouTube (the right video, not a search), in your browser.
+  async youtube(song) {
+    this.zap();
+    const res = await this.host.youtube(song);
+    if (!res) return null;
+    return { line: res.title ? fmt(this.t.youtube, { title: res.title }) : fmt(this.t.youtubeSearch, { song }), face: 'laugh' };
   }
 
   // Once she has answered: her line about what she did, else the app you asked to close, else what
@@ -363,6 +574,20 @@ export class Chat {
       });
       return undefined;
     }
+    if (done?.offer) return this.launch(done.offer, answer); // it would run something: your click first
+    if (done?.files) {
+      // what she found (or the screenshot): a button to open the first, and to see where it is
+      this.addLine(answer, done.line, done.face);
+      const [first, second] = done.files;
+      const actions = [{ id: 'open', label: fmt(t.openIt, { app: first.name }), primary: true }];
+      if (second) actions.push({ id: 'second', label: fmt(t.openIt, { app: second.name }) });
+      actions.push({ id: 'folder', label: t.showFolder });
+      this.panel.setActions(actions, (id) => {
+        if (id === 'folder') return this.host.openFile(first.path, true);
+        return this.host.openFile((id === 'second' ? second : first).path);
+      });
+      return undefined;
+    }
     if (done) return this.addLine(answer, done.line, done.face);
     if (asked?.kind === 'remind') return undefined; // no time said: her answer asks when
     if (asked?.kind === 'close') return this.offerClose(asked.name, answer);
@@ -375,7 +600,8 @@ export class Chat {
     const value = tag[2].trim();
     if (!value || !wanted(kind, text)) return undefined;
     if (kind === 'media') return MEDIA_ACTIONS.has(value.toLowerCase()) ? this.media(value.toLowerCase(), answer) : undefined;
-    if (kind === 'music') return this.music(value, answer);
+    // a song she picked: on YouTube, the right video (on Spotify if that's what you said)
+    if (kind === 'music') return /spotify/i.test(text) ? this.music(value, answer) : this.playOn(value, answer);
     if (kind === 'site') return this.offerSite(value, answer);
     const item = await this.host.findLaunch(value);
     if (item) return this.launch(item, answer);
@@ -386,7 +612,7 @@ export class Chat {
   // her answer, with a line of what she did under it
   addLine(answer, line, face = null) {
     if (!this.open || this.turn) return;
-    this.panel.stream(`${answer}\n${line}`, { done: true });
+    this.panel.stream(answer === '…' ? line : `${answer}\n${line}`, { done: true }); // nothing but a tag: just the line
     if (face) this.panel.setFace(face);
   }
 
@@ -402,7 +628,7 @@ export class Chat {
     if (!this.open || this.turn) return;
     if (!now) {
       this.panel.setActions(
-        [{ id: 'open', label: fmt(t.openIt, { app: item.name }), primary: true }, { id: 'no', label: t.no }],
+        [{ id: 'open', label: fmt(t.openIt, { app: this.nameOf(item) }), primary: true }, { id: 'no', label: t.no }],
         (id) => (id === 'open' ? this.launch(item, answer, { now: true }) : this.panel.setActions([])),
       );
       return;
@@ -410,7 +636,12 @@ export class Chat {
     this.panel.setActions([]);
     this.zap();
     const res = await this.host.launch(item);
-    this.addLine(answer, res.ok ? fmt(t.opened, { app: item.name }) : `${t.failed} ${res.error}`, res.ok ? 'laugh' : 'aside');
+    this.addLine(answer, res.ok ? fmt(t.opened, { app: this.nameOf(item) }) : `${t.failed} ${res.error}`, res.ok ? 'laugh' : 'aside');
+  }
+
+  async playOn(song, answer) {
+    const done = await this.youtube(song);
+    if (done) this.addLine(answer, done.line, done.face);
   }
 
   // The media keys: pause, next, louder…
@@ -515,12 +746,13 @@ export class Chat {
   // agent: Claude Code or Codex, with tools of their own: hers go first for these things
   powers(agent = false) {
     const lines = [
-      'Only when the user asks you to open an app or a game installed on their PC, play something on Spotify, control the music playing, or open a website: say in a few words that you will, and end your answer with one tag: [[open: NAME]], [[music: WHAT TO PLAY]], [[media: ACTION]] (ACTION: pause, play, next, previous, volup, voldown or mute), or [[site: ADDRESS]]. Some of these get a button to confirm, so never say it is already done. Any other time, write no tag at all: there are no other tags.',
+      'Only when the user asks you to open an app, a game, a file or folder on their desktop, or a folder like Downloads, to play music, to control the music playing, or to open a website: say in a few words that you will, and end your answer with one tag: [[open: NAME]], [[music: ARTIST - SONG]] (it plays on YouTube; if they did not say which song, pick one that fits), [[media: ACTION]] (ACTION: pause, play, next, previous, volup, voldown or mute), or [[site: ADDRESS]]. Some of these get a button to confirm, so never say it is already done. Any other time, write no tag at all: there are no other tags.',
     ];
     if (this.apps.length) {
       const open = this.apps.map(({ name, label }) => (label && label !== name ? `${name} (${label})` : name)).join(', ');
       lines.push(`You can also close an app that's open, only when they ask you to: end your answer with [[close: NAME]], NAME being the exact name from this list (the part before the parentheses). They get a button to confirm it. Apps open right now: ${open}.`);
     }
+    lines.push('Your system also searches the user\'s files when they ask you to find one, searches the web when they ask, takes screenshots, and starts Roblox games by name: what it did shows under your answer, so never make up file names or results.');
     if (agent) lines.push('For opening, closing or playing these, always use these tags, never your own tools or commands.');
     else lines.push('Apart from that, you can\'t see the user\'s screen or files, and you can\'t touch anything else on their PC (settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.');
     return lines;
@@ -588,6 +820,7 @@ export class Chat {
       watching
         ? `You live on the user's desktop as a small glitchy figure and keep an eye on ${assistant}, their AI coding assistant, for them. Only talk about ${assistant} when the user asks about it or about their work.`
         : 'You live on the user\'s desktop as a small glitchy figure and keep them company.',
+      `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
       'You love the satellite that crosses the night sky and dream of reaching it, but bring it up only once in a while, never in every answer. Talk about what the user talks about.',
       'How you talk: playful, a little mischievous and teasing, warm underneath, never cruel. Night City slang now and then (choom, preem, nova, gonk, flatline), not in every sentence.',
       'Rules: keep it short, one to three sentences of plain text, no markdown, no lists, no emoji. Stay in character.',

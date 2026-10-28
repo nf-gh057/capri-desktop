@@ -81,6 +81,13 @@ glitches, comments on every action, comes to find you when it needs your permiss
   at you with her eyes and her zigzag grin, more eyes opening all over it, every pupil on your pointer, and she laughs.
   Then she comes out of another window. Nothing is drawn over the windows in front of it, and the window's contents
   are never read: it's just drawn over, for two seconds. If it bothers you, untick *Possess my windows* in the tray menu.
+- **She feels your PC** (she lives in it, after all): the processor at full tilt for a while, she overheats, fans
+  herself and heat comes off her mane. On a laptop: the charger plugged in or out, she feels it; the battery running
+  low, she sags and flickers. The network gone, she takes the hit; back, she's glad. A USB stick plugged in, she dives
+  into it (by the clock), rummages around and comes back with her verdict. A phone, a controller, a headset or anything
+  else plugged in: a bolt toward the clock and a word about it. A game in front of you (Steam, Epic, Riot, Xbox, GOG),
+  she says something about it and puts herself away while you play, then comes back to ask if you won. Untick *React
+  to my PC* in her menu to stop it.
 - **Little flourishes**: a full spin with afterimages, a hop, looking left and right, the cocked head,
   and the other minds in her (her green and red copies) pulling away from her, hanging there, and snapping back in.
 
@@ -92,7 +99,7 @@ glitches, comments on every action, comes to find you when it needs your permiss
 
 ![Asleep down to her mask, waking up, and put away bottom left](docs/sleep.png)
 
-Window tracking is Windows-only for now (a tiny PowerShell helper reads window positions, never their contents; the title of the one in front is only used to spot another AI, see "She gets attached").
+Window tracking is Windows-only for now (a tiny PowerShell helper reads window positions, never their contents; the title of the one in front is only used to spot another AI, see "She gets attached", and its program's folder to tell a game; the USB sticks plugged in are seen by their drive letter, other devices by the name Windows gives them).
 On macOS and Linux she still floats, peeks, falls and wanders.
 
 ### She shows you around
@@ -142,6 +149,10 @@ The first time, she sets it up with you, with buttons, no terminal:
   Windows' own installer), wakes it up, and downloads a model while a bar fills up: gemma3 (3.3 GB, better in languages
   other than English) or llama3.2 (2 GB, for smaller PCs). On a tiny model (1B and under) she warns you it may talk
   nonsense and offers a better one.
+  Signed in to Ollama? She also offers its free cloud models (`beam:cloud` today): nothing to download, much bigger
+  than what fits on a PC, but your messages go through Ollama's servers. Not signed in, her menu › **AI model** has
+  **Sign in to Ollama (free cloud models)…**. If a cloud model stops answering (signed out, out of free use), she
+  goes back to a model on your PC.
 - **Online, no account**: Pollinations, nothing to set up.
 - **I have a key**: Groq or Gemini (both have a free tier), OpenRouter, OpenAI, Mistral or DeepSeek. You paste your
   key in her panel and she checks it. It's kept on your PC, encrypted with your Windows account, and only ever sent to
@@ -161,8 +172,21 @@ panel says so every time.
 - **Open an app or a game**: anything in your Start menu (Store apps like Spotify included), your Steam and Epic
   games ("open Spotify", "launch Brawlhalla"). Named in your own words, it opens right away; if only her AI came up
   with it, you get a button first.
+- **Your folders and your desktop**: "open my downloads", "open File Explorer", "open the recycle bin", or a file,
+  folder or shortcut on your desktop, by its name. Anything that would run a program or a script (.exe, .bat, .ps1…)
+  always goes behind a button.
+- **Finding your files** ("find my resume", "where's my After Effects project?", "find my last video and open the
+  folder"): by name or by kind of file (an After Effects project is a .aep), across your whole user folder, by name and by
+  what's in them (with Windows' search index), with buttons to open what she found or show its folder. Nothing leaves
+  your PC.
+- **Searching the web** ("search the weather in Paris on Google") and **taking a screenshot** ("take a screenshot":
+  without her in it, saved in Pictures › Screenshots). She knows the date and time, too.
+- **A Roblox game by its name** ("start Steal a Brainrot on Roblox", "in my roblox play grow a garden"): she finds
+  it on Roblox and drops you straight into it (or opens its page if Roblox isn't installed).
 - **Music**: "pause", "next", "louder", "mute"… press the media keys, so it works with Spotify and most players, right
-  as you send it. "Put Daft Punk on Spotify" opens Spotify on a search for it (the app if you have it, else the site).
+  as you send it. "Play Bohemian Rhapsody" or "put some Daft Punk on YouTube" opens the right video on YouTube,
+  straight away (not a search). "Play whatever you want": she picks. "Put Daft Punk on Spotify" opens Spotify on a
+  search for it.
 - **A website**: always behind a button showing where it goes.
 - **Close an app** ("close AM Music", "can you shut Discord down?"): a button with the app's name, and nothing happens
   until you click it. She closes it the way its own close button does, so it can still ask you to save. If it only
@@ -174,7 +198,8 @@ panel says so every time.
   away) with **Done** and **10 more min**. If she was off at the time, she brings it up when she's back. Her menu ›
   **Reminders** lists them, and each one can be cancelled there.
 
-Nothing else: she can't see your files, nor your screen unless you ask her to.
+Nothing else: she doesn't read your files, and only sees your screen when you ask ("look at my screen", "what do you
+see?" in her chat: she looks and answers right there, your conversation in mind).
 
 **She looks at your screen**, if you want. Her menu › **Look at my screen**: her eyes go to the window in front, a
 scanline sweeps it, and she tells you what she makes of it, her way. **Look at my screen now and then** lets her do it
@@ -230,7 +255,7 @@ She only catches the mouse on her actual body (pixel-precise): the rest of the s
   press, or none). On a Polish keyboard Ctrl+Alt+C is AltGr+C, "ć": pick another one there.
 - **Her menu**: right-click her (it's also on her tray icon, next to the clock): teleport, look at the satellite, demo,
   how it works, mission report, talk to her, look at your screen, reminders, size, sound, screen (and following you across screens),
-  shortcut, AI model, wander, possess your windows, jealous of other AIs, language, start with Windows, hooks. At the very
+  shortcut, AI model, wander, possess your windows, jealous of other AIs, react to my PC, language, start with Windows, hooks. At the very
   top: where you two stand. Everything is also in her settings window, **Mainframe**.
 - **More than one screen**: she follows your pointer to the screen you're on. With that off, wandering around, she now and
   then teleports to another one.
@@ -385,14 +410,15 @@ Her bridge only takes events that carry its token, a new one each time she start
 (`CAPRI_TOKEN_FILE` moves it), and addressed to `127.0.0.1` or `localhost`: web pages can't puppet her.
 
 Her chat goes to Ollama on your PC (`127.0.0.1:11434`, or `OLLAMA_HOST`) with what she knows of the moment (the
-project's name, Claude's last action, today's counts). Her mission log stays in her own storage on your PC, like your
+project's name, Claude's last action, today's counts). On one of Ollama's cloud models (the ones ending in `:cloud`),
+Ollama sends it on to its servers, and her chat says "online AI" instead of "local AI". Her mission log stays in her own storage on your PC, like your
 reminders and where you two stand.
 
 The title of the window in front of you is only checked, on your PC, against a list of AI names (for her jealousy):
 it's never kept or sent anywhere.
 
 When she looks at your screen (only when you ask, or if you ticked *Look at my screen now and then*), a picture of the
-screen goes to her chat's AI: on your PC with Ollama, to the online service otherwise. It's never written to disk.
+screen goes to her chat's AI: on your PC with Ollama (a local model), to the online service otherwise. It's never written to disk.
 
 Her messages to your phone are off until you make a Telegram bot of your own (at @BotFather) and pair it in Mainframe,
 with a code only that window shows. Then, while you're away from the PC (no key or mouse for a few minutes, or the
@@ -467,7 +493,7 @@ tools/build-cutins.py    cuts the cut-ins and her faces out of frames of the sho
 tools/build-intro.py     cuts her intro's close-ups out of their background, all the same way
 src/main/                Electron: full-screen transparent click-through window, tray, local HTTP bridge
   windows.js / .ps1      where the other windows are (Windows only), so she can sit on them
-  ollama.js              her chat: the local model, through Ollama
+  ollama.js              her chat: the local model through Ollama, or one of its cloud models
   apps.js                closing an app you asked her to close (after your click)
   phone.js               her messages to your phone, through your own Telegram bot
 src/renderer/js/
@@ -483,6 +509,8 @@ src/renderer/js/
   reminders.js           reminders: reading them off your message, keeping them, when they come due
   bond.js                how close she is to you, growing over time, and her jealousy of other AIs
   look.js                she looks at your screen: asking first, the scan, what her AI says about it
+  pc.js                  your PC as she feels it: the processor, the battery, the network, USB sticks, games
+  files.js               finding your files (Windows search index), screenshots
   lines.js               what she says (FR / EN / ES / PT / RU / PL)
   chip.js                her mask: while she sleeps, and bottom left when you put her away
   voice.js               the sounds
@@ -490,7 +518,8 @@ src/renderer/js/
 
 To hack on it: `npm run dev` turns on debug routes on the bridge (`/debug/capture` saves a frame of the window to `captures/`,
 `/debug/testwin` opens test windows she can sit on, one per name, `/debug/mouse` moves and clicks a stand-in pointer
-over Capri's window, without touching the real one, `/debug/type` types in her chat).
+over Capri's window, without touching the real one, `/debug/type` types in her chat, `/debug/menu` lists her menu and
+can click an item of it).
 `npm run dist` builds the Windows installer in `dist/`.
 
 ## Credits and rights

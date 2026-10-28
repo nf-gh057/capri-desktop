@@ -13,6 +13,7 @@ import { StowKey } from './stowkey.js';
 import { Bond, Jealousy } from './bond.js';
 import { Reminders, clock } from './reminders.js';
 import { Look } from './look.js';
+import { Pc } from './pc.js';
 import { linesFor } from './lines.js';
 import { pick, fmt, reducedMotion } from './util.js';
 
@@ -255,6 +256,12 @@ async function boot() {
   // looking at your screen (look.js): when you ask, or now and then if you turned it on
   const look = new Look({ capri, panel, brain, chat, guide, host, fx, voice, active: () => performance.now() - lastMove });
   look.configure(config);
+  chat.look = look; // "regarde mon écran" in her chat
+  // your PC as she feels it (pc.js): the processor, the battery, the network, a USB stick, a game
+  const pc = new Pc({ capri, panel, brain, host, voice, chat, guide });
+  pc.enabled = config.pcReact !== false;
+  let wantsOut = config.visible !== false; // not put away in your settings (Ctrl+Alt+C, her menu)
+  pc.wantsOut = () => wantsOut;
 
   // Clicking her: what's going on, or she offers to talk. Sulking, she turns her back on you.
   capri.onClick = () => {
@@ -500,13 +507,14 @@ async function boot() {
   };
 
   // what's in here, for --dev scripts (debug route `eval`)
-  window.dev = { capri, brain, panel, chat, guide, fx, voice, bond, jealousy, reminders, look, screens: () => screens };
+  window.dev = { capri, brain, panel, chat, guide, fx, voice, bond, jealousy, reminders, look, pc, setup, screens: () => screens };
 
   host.onClaudeEvent((evt) => brain.handle(evt));
   host.onWindows((data) => {
     capri.setWindows(data);
     brain.onWindows(data);
     jealousy.onWindows(data);
+    pc.onWindows(data);
   });
   // the windows as they are now: the watcher only speaks again when something changes
   host.windowsNow().then((data) => data && capri.setWindows(data));
@@ -603,6 +611,8 @@ async function boot() {
     followOn = cfg.follow !== false;
     capri.follows = followOn;
     look.configure(cfg);
+    pc.enabled = cfg.pcReact !== false;
+    wantsOut = cfg.visible !== false;
     reminders.sync(cfg.reminders); // one may have been cancelled from her menu
     capri.wander = cfg.wander;
     capri.possessWindows = cfg.possess;

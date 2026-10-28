@@ -86,6 +86,13 @@ glitche, commente chaque action, vient te chercher quand elle attend ta permissi
   sur ta souris, et elle rit. Puis elle ressort d'une autre fenêtre. Rien n'est dessiné sur les fenêtres posées devant,
   et le contenu de la fenêtre n'est jamais lu : c'est juste dessiné par-dessus, deux secondes.
   Si ça te gêne, décoche *Posséder mes fenêtres* dans le menu de l'icône.
+- **Elle sent ton PC** (elle vit dedans, après tout) : processeur à fond pendant un moment, elle surchauffe, s'évente
+  et de la chaleur monte de sa crinière. Sur un portable : le chargeur branché ou débranché, elle le sent ; batterie
+  faible, elle s'affaisse et clignote. Plus de réseau, elle encaisse le coup ; il revient, elle est contente. Une clé
+  USB branchée, elle plonge dedans (près de l'horloge), fouille un peu et revient donner son avis. Un téléphone, une
+  manette, un casque ou autre chose branché : un éclair vers l'horloge et un mot dessus. Un jeu devant toi (Steam, Epic,
+  Riot, Xbox, GOG), elle le commente et se range pendant que tu joues, puis revient te demander si tu as gagné.
+  Décoche *Réagir à mon PC* dans son menu pour arrêter.
 - **Petites fioritures** : un tour complet avec des images rémanentes, un saut, un regard à gauche puis à droite, la tête penchée,
   et ses autres esprits (ses copies verte et rouge) qui se détachent d'elle, flottent un instant et reviennent d'un coup.
 
@@ -97,7 +104,7 @@ glitche, commente chaque action, vient te chercher quand elle attend ta permissi
 
 ![Elle s'endort jusqu'à son masque, se réveille, et rangée en bas à gauche](docs/sleep.png)
 
-Le suivi des fenêtres ne marche que sous Windows pour l'instant (un petit script PowerShell lit la position des fenêtres, jamais leur contenu ; le titre de celle qui est devant sert seulement à repérer une autre IA, voir « Elle s'attache à toi »).
+Le suivi des fenêtres ne marche que sous Windows pour l'instant (un petit script PowerShell lit la position des fenêtres, jamais leur contenu ; le titre de celle qui est devant sert seulement à repérer une autre IA, voir « Elle s'attache à toi », et le dossier de son programme à reconnaître un jeu ; les clés USB branchées ne sont vues que par leur lettre, les autres appareils par le nom que Windows leur donne).
 Sur macOS et Linux, elle flotte, dépasse des bords, tombe et se balade quand même.
 
 ### Elle te fait visiter
@@ -150,6 +157,10 @@ La première fois, elle règle tout avec toi, avec des boutons, sans terminal :
   winget, l'installeur de Windows), le réveille, et télécharge un modèle pendant qu'une barre se remplit : gemma3
   (3,3 Go, meilleur dans les autres langues que l'anglais) ou llama3.2 (2 Go, pour les petits PC). Sur un tout petit
   modèle (1B et moins), elle te prévient qu'elle risque de dire n'importe quoi et t'en propose un meilleur.
+  Connecté à Ollama ? Elle propose aussi ses modèles cloud gratuits (`beam:cloud` en ce moment) : rien à télécharger,
+  bien plus gros que ce qui tient sur un PC, mais tes messages passent par les serveurs d'Ollama. Pas connecté, son
+  menu › **Modèle IA** a **Me connecter à Ollama (modèles cloud gratuits)…**. Si un modèle cloud ne répond plus
+  (déconnecté, plus d'usage gratuit), elle repasse sur un modèle de ton PC.
 - **En ligne, sans compte** : Pollinations, rien à régler.
 - **J'ai une clé** : Groq ou Gemini (tous les deux ont une offre gratuite), OpenRouter, OpenAI, Mistral ou DeepSeek.
   Tu colles ta clé dans son panneau et elle la vérifie. Elle reste sur ton PC, chiffrée avec ton compte Windows, et ne
@@ -170,9 +181,21 @@ fan d'elle, et le panneau du chat le dit à chaque fois.
 - **Ouvrir une appli ou un jeu** : tout ce qui est dans ton menu Démarrer (les applis du Store comme Spotify
   comprises), tes jeux Steam et Epic (« ouvre Spotify », « lance Brawlhalla »). Si tu l'as nommé toi-même, ça s'ouvre
   tout de suite ; si c'est son IA qui l'a proposé, tu as d'abord un bouton.
+- **Tes dossiers et ton bureau** : « ouvre mes téléchargements », « ouvre l'explorateur de fichiers », « ouvre la
+  corbeille », ou un fichier, un dossier ou un raccourci posé sur ton bureau, par son nom. Ce qui lancerait un programme
+  ou un script (.exe, .bat, .ps1…) passe toujours par un bouton.
+- **Chercher tes fichiers** (« trouve mon CV », « où est mon projet After Effects ? », « trouve ma dernière vidéo et
+  ouvre le dossier ») : par nom ou par sorte de fichier (un projet After Effects, c'est un .aep), dans tout ton dossier utilisateur, par
+  nom et par contenu (avec l'index de recherche de Windows), avec des boutons pour ouvrir ce qu'elle a trouvé ou voir le
+  dossier. Rien ne sort de ton PC.
+- **Chercher sur le web** (« cherche la météo de Paris sur Google ») et **faire une capture d'écran** (« fais une
+  capture d'écran » : sans elle dessus, rangée dans Images › Screenshots). Elle sait aussi la date et l'heure.
+- **Un jeu Roblox par son nom** (« lance Steal a Brainrot sur Roblox », « in my roblox play grow a garden ») : elle le
+  trouve sur Roblox et te lance directement dedans (ou ouvre sa page si Roblox n'est pas installé).
 - **La musique** : « pause », « suivante », « plus fort », « coupe le son »… appuient sur les touches multimédia, donc
-  ça marche avec Spotify et la plupart des lecteurs, dès que tu envoies. « Mets Daft Punk sur Spotify » ouvre Spotify
-  sur une recherche (l'appli si tu l'as, sinon le site).
+  ça marche avec Spotify et la plupart des lecteurs, dès que tu envoies. « Mets Bohemian Rhapsody » ou « mets-moi du
+  Daft Punk sur YouTube » ouvre le bon clip sur YouTube, directement (pas une recherche). « Mets la musique que tu
+  veux » : c'est elle qui choisit. « Mets Daft Punk sur Spotify » ouvre Spotify sur une recherche.
 - **Un site** : toujours derrière un bouton qui montre où il mène.
 - **Fermer une appli** (« ferme AM Music », « tu peux couper Discord ? ») : un bouton au nom de l'appli, et rien ne se
   passe tant que tu ne cliques pas. Elle la ferme comme son propre bouton de fermeture, donc l'appli peut encore te
@@ -185,7 +208,8 @@ fan d'elle, et le panneau du chat le dit à chaque fois.
   es, même rangée) avec **C'est fait** et **Dans 10 min**. Si elle était éteinte à ce moment-là, elle t'en parle en
   revenant. Son menu › **Rappels** les liste, et chacun s'annule de là.
 
-Rien d'autre : elle ne voit pas tes fichiers, ni ton écran sauf si tu le lui demandes.
+Rien d'autre : elle ne lit pas tes fichiers, et ne voit ton écran que si tu le lui demandes (« regarde mon écran »,
+« tu vois quoi ? » dans son chat : elle regarde et te répond là, en gardant votre conversation en tête).
 
 **Elle regarde ton écran**, si tu veux. Son menu › **Regarde mon écran** : elle pose ses yeux sur la fenêtre qui est
 devant, une ligne de scan la balaie, et elle te dit ce qu'elle en pense, à sa façon. **Regarder mon écran de temps en
@@ -246,7 +270,7 @@ Elle n'attrape la souris que sur son corps (au pixel près) : tout le reste de l
   un autre, un que tu appuies, ou aucun). Sur un clavier polonais Ctrl+Alt+C, c'est AltGr+C, « ć » : choisis-en un autre.
 - **Son menu** : clic droit sur elle (il est aussi sur son icône près de l'horloge) : téléporter, regarder le satellite,
   démo, comment ça marche, rapport de mission, lui parler, regarder ton écran, rappels, taille, son, écran (et te suivre d'un écran à
-  l'autre), raccourci, modèle IA, se balader, posséder tes fenêtres, jalouse des autres IA, langue, lancement au démarrage,
+  l'autre), raccourci, modèle IA, se balader, posséder tes fenêtres, jalouse des autres IA, réagir à ton PC, langue, lancement au démarrage,
   hooks. Tout en haut : où vous en êtes, elle et toi. Tout est aussi dans sa fenêtre de réglages, **Mainframe**.
 - **Plusieurs écrans** : elle suit ton pointeur sur l'écran où tu es. Sans ça, en se baladant, elle se téléporte de temps
   en temps sur un autre.
@@ -408,14 +432,16 @@ Son bridge n'accepte que les événements qui portent son jeton, un nouveau à c
 ne peut la manipuler.
 
 Son chat va à Ollama sur ton PC (`127.0.0.1:11434`, ou `OLLAMA_HOST`) avec ce qu'elle sait du moment (le nom du
-projet, la dernière action de Claude, les compteurs du jour). Son journal de mission reste dans son propre stockage,
+projet, la dernière action de Claude, les compteurs du jour). Sur un modèle cloud d'Ollama (ceux qui finissent par
+`:cloud`), Ollama l'envoie à ses serveurs, et son chat dit « IA en ligne » au lieu d'« IA locale ». Son journal de mission reste dans son propre stockage,
 sur ton PC, comme vos rappels et où vous en êtes, elle et toi.
 
 Le titre de la fenêtre qui est devant toi est seulement comparé, sur ton PC, à une liste de noms d'IA (pour sa
 jalousie) : il n'est ni gardé ni envoyé nulle part.
 
 Quand elle regarde ton écran (seulement si tu le lui demandes, ou si tu as coché *Regarder mon écran de temps en
-temps*), une image de l'écran va à l'IA de son chat : sur ton PC avec Ollama, chez le service en ligne sinon. Elle
+temps*), une image de l'écran va à l'IA de son chat : sur ton PC avec Ollama (un modèle local), chez le service en
+ligne sinon. Elle
 n'est jamais écrite sur le disque.
 
 Ses messages sur ton téléphone sont coupés tant que tu n'as pas créé ton propre bot Telegram (chez @BotFather) et ne
@@ -494,7 +520,7 @@ tools/build-cutins.py    découpe les cut-ins et ses expressions dans des images
 tools/build-intro.py     détoure les gros plans de son intro, tous de la même façon
 src/main/                Electron : fenêtre transparente plein écran, clic à travers, tray, bridge HTTP local
   windows.js / .ps1      où sont les autres fenêtres (Windows), pour qu'elle s'assoie dessus
-  ollama.js              son chat : le modèle local, via Ollama
+  ollama.js              son chat : le modèle local via Ollama, ou un de ses modèles cloud
   apps.js                fermer une appli que tu lui demandes de fermer (après ton clic)
   phone.js               ses messages sur ton téléphone, par ton propre bot Telegram
 src/renderer/js/
@@ -510,6 +536,8 @@ src/renderer/js/
   reminders.js           les rappels : les lire dans ton message, les garder, quand ils tombent
   bond.js                son lien avec toi, qui grandit, et sa jalousie des autres IA
   look.js                elle regarde ton écran : la permission, le scan, ce que son IA en dit
+  pc.js                  ton PC comme elle le sent : processeur, batterie, réseau, clés USB, jeux
+  files.js               chercher tes fichiers (l'index de recherche de Windows), les captures d'écran
   lines.js               ce qu'elle dit (FR / EN / ES / PT / RU / PL)
   chip.js                son masque : quand elle dort, et en bas à gauche quand tu la ranges
   voice.js               les sons
@@ -517,7 +545,8 @@ src/renderer/js/
 
 Pour bosser dessus : `npm run dev` active des routes de debug sur le bridge (`/debug/capture` enregistre une image de la fenêtre dans `captures/`,
 `/debug/testwin` ouvre des fenêtres de test sur lesquelles elle peut s'asseoir, une par nom, `/debug/mouse` bouge et clique un pointeur
-factice sur la fenêtre de Capri, sans toucher au vrai, `/debug/type` écrit dans son chat).
+factice sur la fenêtre de Capri, sans toucher au vrai, `/debug/type` écrit dans son chat, `/debug/menu` liste son menu
+et peut cliquer sur un de ses éléments).
 `npm run dist` fabrique l'installeur Windows dans `dist/`.
 
 ## Crédits et droits

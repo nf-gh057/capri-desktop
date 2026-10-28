@@ -103,6 +103,13 @@ export const LINES = {
       // ouvrir une appli ou un jeu, la musique, un site
       openIt: 'Ouvrir {app}', opened: '{app} : c’est parti.', notInstalled: 'Je ne trouve pas « {app} » sur ton PC.',
       music: 'Je cherche « {song} » sur Spotify.', siteIt: 'Ouvrir {site}', siteOpened: '{site} : ouvert.',
+      youtube: 'C’est parti : {title}.', youtubeSearch: 'Je te cherche « {song} » sur YouTube.',
+      web: 'Je cherche « {query} » sur Google.',
+      robloxPlay: 'Je te lance {game} sur Roblox.', robloxPage: '{game} : je t’ouvre sa page Roblox.', robloxNone: 'Je ne trouve pas « {game} » sur Roblox.',
+      filesFound: 'J’ai trouvé {count} fichiers : {list}.', fileFound: 'Trouvé : {list}.', filesNone: 'Rien trouvé pour « {query} » sur ton PC.',
+      showFolder: 'Voir le dossier', shot: 'Capture faite : {name} (dans Images › Screenshots).',
+      folderOpened: 'Voilà son dossier : {name}.',
+      folders: { explorer: 'L’explorateur', recycle: 'La corbeille', downloads: 'Tes téléchargements', desktop: 'Ton bureau', documents: 'Tes documents', pictures: 'Tes images', music: 'Ta musique', videos: 'Tes vidéos' },
       media: { pause: 'Pause.', play: 'Ça repart.', next: 'Suivante.', previous: 'Précédente.', volup: 'Plus fort.', voldown: 'Moins fort.', mute: 'J’ai appuyé sur muet.' },
     },
     // sa carte de rapport : ce que Claude a abattu aujourd'hui (son menu, ou d'elle-même le soir)
@@ -188,6 +195,8 @@ export const LINES = {
       model: 'Il me faut un modèle. C’est mon cerveau, en gros.',
       bigger: 'Un plus gros, alors. Lequel ?',
       modelHow: 'gemma3 parle mieux les autres langues que l’anglais. llama3.2 est plus léger, pour les petits PC.',
+      cloudFree: 'gratuit, en ligne',
+      cloudHow: 'Ceux marqués « en ligne » tournent chez Ollama, avec ton compte : rien à télécharger, mais tes messages passent par leurs serveurs.',
       pulling: 'Je télécharge {model}…', pullStart: 'Ça démarre…',
       progress: '{done} sur {total} · {percent} %',
       cancel: 'Annuler', pullFailed: 'Le téléchargement a échoué.',
@@ -267,6 +276,35 @@ export const LINES = {
     },
     // passée sur ton autre écran pour te suivre
     screens: { hello: ['Coucou, l’autre écran.', 'Tu bosses ici maintenant ? J’arrive.', 'Me voilà.'] },
+    // elle réagit à ton PC (pc.js) : processeur, batterie, réseau, clé USB, jeu
+    pc: {
+      hot: ['Ton processeur est à fond. Moi aussi, je chauffe.', '{cpu} % de processeur. Il fait chaud là-dedans.', 'Ça chauffe ! Tu fais tourner quoi, là ?'],
+      cool: ['Ouf. Ça redescend.'],
+      low: ['Batterie à {level} %. Je vais pas tenir longtemps.', 'Plus que {level} % de batterie. Branche-moi, choom.'],
+      critical: ['{level} %… je m’éteins…', 'Batterie à {level} %. Dernier appel, choom.'],
+      charging: ['Ah, du jus. Merci.', 'Branchée. Je revis.'],
+      offline: ['Plus de réseau ! On est coupés du Net.', 'Connexion perdue. Je suis toute seule, là.'],
+      online: ['Réseau revenu. Le Net est à nous.', 'Reconnectée.'],
+      usb: ['Une clé USB ({drive}:) ? Je vais voir.', 'Oh, du nouveau ({drive}:). Je jette un œil.'],
+      usbBack: ['J’ai fait un tour dans ta clé. Rien de croustillant.', 'Ta clé USB est propre. Enfin, je crois.'],
+      usbOut: ['Ta clé est partie. Heureusement que j’étais sortie.'],
+      unplugged: ['Sur batterie. J’économise mes éclairs.', 'Débranchée. On fait attention, maintenant.'],
+      plugIn: {
+        phone: ['Ton téléphone ? Coucou, petit appareil.', 'Un téléphone branché. Je peux regarder dedans ? Non ? Dommage.'],
+        controller: ['Une manette ! On joue à quoi ?', 'Manette branchée. Montre-moi ce que tu vaux.'],
+        audio: ['Un casque ? Mets-moi de la musique.', 'Du son en plus. J’adore.'],
+        camera: ['Une caméra ? Souris, choom.'],
+        input: ['Nouveau joujou : {name}. Je l’ai à l’œil.'],
+        device: ['Un nouvel appareil : {name}. Je jette un œil.', 'Tiens, {name}. Bienvenue chez nous.'],
+      },
+      plugOut: {
+        phone: ['Ton téléphone est parti.', 'Plus de téléphone. Il me manquera. Un peu.'],
+        controller: ['Manette débranchée. Partie finie ?'],
+        device: ['{name}, débranché.'],
+      },
+      game: ['{game} ? Je te laisse jouer. Fais-moi honneur.', '{game}, hein ? Je me range, montre-leur.'],
+      gameBack: ['Alors, tu as gagné ?', 'Fini de jouer ? Raconte.'],
+    },
     // elle regarde ton écran (look.js) : ce qu'elle te dit avant, et quand ça ne marche pas
     look: {
       ask: 'Je peux jeter un œil à ton écran ?',
@@ -274,6 +312,7 @@ export const LINES = {
       online: 'Une image de ton écran part chez {service} ({model}) pour que je puisse la commenter. Je ne garde pas l’image, mais eux la reçoivent : évite quand tu as des trucs perso à l’écran.',
       auto: 'De temps en temps, quand tu es là et que tu as changé de fenêtre. Tu pourras arrêter dans mon menu.',
       yes: 'Oui, regarde', no: 'Non merci',
+      declined: 'D’accord, je ne regarde pas.',
       on: 'D’accord. Je regarderai de temps en temps.',
       noVision: '{model} ne sait pas lire les images. gemma3 sait, sur ton PC, comme Gemini en ligne : change dans mon menu › Modèle IA.',
       noAI: 'Il me faut une IA pour regarder : clic droit sur moi › Modèle IA.',
@@ -432,6 +471,13 @@ export const LINES = {
       // opening an app or a game, the music, a website
       openIt: 'Open {app}', opened: '{app}: on it.', notInstalled: 'I can’t find “{app}” on your PC.',
       music: 'Looking up “{song}” on Spotify.', siteIt: 'Open {site}', siteOpened: '{site}: open.',
+      youtube: 'Here you go: {title}.', youtubeSearch: 'Looking up “{song}” on YouTube.',
+      web: 'Searching “{query}” on Google.',
+      robloxPlay: 'Starting {game} on Roblox for you.', robloxPage: '{game}: opening its Roblox page.', robloxNone: 'Can’t find “{game}” on Roblox.',
+      filesFound: 'Found {count} files: {list}.', fileFound: 'Found it: {list}.', filesNone: 'Nothing for “{query}” on your PC.',
+      showFolder: 'Show the folder', shot: 'Screenshot taken: {name} (in Pictures › Screenshots).',
+      folderOpened: 'Here’s its folder: {name}.',
+      folders: { explorer: 'File Explorer', recycle: 'The recycle bin', downloads: 'Your downloads', desktop: 'Your desktop', documents: 'Your documents', pictures: 'Your pictures', music: 'Your music', videos: 'Your videos' },
       media: { pause: 'Paused.', play: 'Playing.', next: 'Next one.', previous: 'Previous one.', volup: 'Louder.', voldown: 'Quieter.', mute: 'Hit mute.' },
     },
     // her report card: what Claude got through today (her menu, or on her own in the evening)
@@ -517,6 +563,8 @@ export const LINES = {
       model: 'I need a model. My brain, more or less.',
       bigger: 'A bigger one, then. Which one?',
       modelHow: 'gemma3 is better in languages other than English. llama3.2 is lighter, for small PCs.',
+      cloudFree: 'free, online',
+      cloudHow: 'The “online” ones run at Ollama’s, with your account: nothing to download, but your messages go through their servers.',
       pulling: 'Downloading {model}…', pullStart: 'Starting…',
       progress: '{done} of {total} · {percent}%',
       cancel: 'Cancel', pullFailed: 'The download failed.',
@@ -596,6 +644,35 @@ export const LINES = {
     },
     // over on your other screen, following you
     screens: { hello: ['Hi, other screen.', 'Working over here now? Coming.', 'There you are.'] },
+    // she reacts to your PC (pc.js): processor, battery, network, USB stick, game
+    pc: {
+      hot: ['Your processor is maxed out. I’m heating up too.', '{cpu}% CPU. It’s getting hot in here.', 'Things are heating up! What are you running?'],
+      cool: ['Phew. Cooling down.'],
+      low: ['Battery at {level}%. I won’t last long.', 'Only {level}% battery left. Plug me in, choom.'],
+      critical: ['{level}%… fading out…', 'Battery at {level}%. Last call, choom.'],
+      charging: ['Ah, power. Thanks.', 'Plugged in. I live again.'],
+      offline: ['No network! We’re cut off from the Net.', 'Connection lost. It’s just me now.'],
+      online: ['Network’s back. The Net is ours.', 'Reconnected.'],
+      usb: ['A USB stick ({drive}:)? Let me see.', 'Ooh, something new ({drive}:). Taking a look.'],
+      usbBack: ['Took a stroll through your stick. Nothing juicy.', 'Your USB stick is clean. I think.'],
+      usbOut: ['Your stick’s gone. Good thing I got out.'],
+      unplugged: ['On battery. Saving my lightning.', 'Unplugged. Careful now.'],
+      plugIn: {
+        phone: ['Your phone? Hi there, little device.', 'A phone plugged in. Can I look inside? No? Shame.'],
+        controller: ['A controller! What are we playing?', 'Controller plugged in. Show me what you’ve got.'],
+        audio: ['Headphones? Play me some music.', 'More sound. Love it.'],
+        camera: ['A camera? Smile, choom.'],
+        input: ['New toy: {name}. I’ve got my eye on it.'],
+        device: ['A new device: {name}. Taking a look.', 'Oh, {name}. Welcome in.'],
+      },
+      plugOut: {
+        phone: ['Your phone’s gone.', 'No more phone. I’ll miss it. A little.'],
+        controller: ['Controller unplugged. Game over?'],
+        device: ['{name}, unplugged.'],
+      },
+      game: ['{game}? I’ll let you play. Make me proud.', '{game}, huh? I’ll get out of the way. Show them.'],
+      gameBack: ['So, did you win?', 'Done playing? Tell me everything.'],
+    },
     // she looks at your screen (look.js): what she tells you first, and when it doesn't work
     look: {
       ask: 'Can I take a look at your screen?',
@@ -603,6 +680,7 @@ export const LINES = {
       online: 'A picture of your screen goes to {service} ({model}) so I can comment on it. I don’t keep it, but they get it: skip it when there’s personal stuff on your screen.',
       auto: 'Now and then, when you’re here and you’ve switched windows. You can stop it in my menu.',
       yes: 'Yes, look', no: 'No thanks',
+      declined: 'Okay, I won’t look.',
       on: 'Okay. I’ll take a look now and then.',
       noVision: '{model} can’t read pictures. gemma3 can, on your PC, and so can Gemini online: switch in my menu › AI model.',
       noAI: 'I need an AI to look: right-click me › AI model.',
@@ -760,6 +838,13 @@ export const LINES = {
       // abrir una app o un juego, la música, una web
       openIt: 'Abrir {app}', opened: '{app}: en marcha.', notInstalled: 'No encuentro «{app}» en tu PC.',
       music: 'Busco «{song}» en Spotify.', siteIt: 'Abrir {site}', siteOpened: '{site}: abierta.',
+      youtube: 'Ahí va: {title}.', youtubeSearch: 'Te busco «{song}» en YouTube.',
+      web: 'Busco «{query}» en Google.',
+      robloxPlay: 'Te lanzo {game} en Roblox.', robloxPage: '{game}: te abro su página de Roblox.', robloxNone: 'No encuentro «{game}» en Roblox.',
+      filesFound: 'Encontré {count} archivos: {list}.', fileFound: 'Encontrado: {list}.', filesNone: 'Nada para «{query}» en tu PC.',
+      showFolder: 'Ver la carpeta', shot: 'Captura hecha: {name} (en Imágenes › Screenshots).',
+      folderOpened: 'Aquí está su carpeta: {name}.',
+      folders: { explorer: 'El explorador', recycle: 'La papelera', downloads: 'Tus descargas', desktop: 'Tu escritorio', documents: 'Tus documentos', pictures: 'Tus imágenes', music: 'Tu música', videos: 'Tus vídeos' },
       media: { pause: 'Pausa.', play: 'Sigue sonando.', next: 'Siguiente.', previous: 'Anterior.', volup: 'Más alto.', voldown: 'Más bajo.', mute: 'Le di a silenciar.' },
     },
     // su informe: lo que Claude sacó hoy (su menú, o ella sola por la tarde)
@@ -842,6 +927,8 @@ export const LINES = {
       model: 'Necesito un modelo. Mi cerebro, más o menos.',
       bigger: 'Uno más grande, entonces. ¿Cuál?',
       modelHow: 'gemma3 va mejor en idiomas distintos del inglés. llama3.2 es más ligero, para PCs pequeños.',
+      cloudFree: 'gratis, en línea',
+      cloudHow: 'Los que dicen «en línea» funcionan en Ollama, con tu cuenta: nada que descargar, pero tus mensajes pasan por sus servidores.',
       pulling: 'Descargando {model}…', pullStart: 'Empezando…',
       progress: '{done} de {total} · {percent} %',
       cancel: 'Cancelar', pullFailed: 'La descarga falló.',
@@ -921,6 +1008,35 @@ export const LINES = {
     },
     // en tu otra pantalla, siguiéndote
     screens: { hello: ['Hola, otra pantalla.', '¿Ahora trabajas aquí? Voy.', 'Aquí estás.'] },
+    // reacciona a tu PC (pc.js): procesador, batería, red, USB, juego
+    pc: {
+      hot: ['Tu procesador va a tope. Yo también me caliento.', '{cpu} % de CPU. Aquí dentro hace calor.', '¡Esto se calienta! ¿Qué estás ejecutando?'],
+      cool: ['Uf. Ya baja.'],
+      low: ['Batería al {level} %. No aguantaré mucho.', 'Solo queda un {level} % de batería. Enchúfame, choom.'],
+      critical: ['{level} %… me apago…', 'Batería al {level} %. Última llamada, choom.'],
+      charging: ['Ah, energía. Gracias.', 'Enchufada. Revivo.'],
+      offline: ['¡Sin red! Nos han cortado la Red.', 'Conexión perdida. Estoy sola.'],
+      online: ['Volvió la red. La Red es nuestra.', 'Reconectada.'],
+      usb: ['¿Un USB ({drive}:)? Voy a ver.', 'Oh, algo nuevo ({drive}:). Echo un vistazo.'],
+      usbBack: ['Me di una vuelta por tu USB. Nada jugoso.', 'Tu USB está limpio. Creo.'],
+      usbOut: ['Se fue tu USB. Menos mal que salí.'],
+      unplugged: ['Con batería. Ahorro mis rayos.', 'Desenchufada. Cuidado ahora.'],
+      plugIn: {
+        phone: ['¿Tu teléfono? Hola, aparatito.', 'Un teléfono conectado. ¿Puedo mirar dentro? ¿No? Qué pena.'],
+        controller: ['¡Un mando! ¿A qué jugamos?', 'Mando conectado. Demuéstrame lo que vales.'],
+        audio: ['¿Unos auriculares? Ponme música.', 'Más sonido. Me encanta.'],
+        camera: ['¿Una cámara? Sonríe, choom.'],
+        input: ['Juguete nuevo: {name}. Lo tengo vigilado.'],
+        device: ['Un dispositivo nuevo: {name}. Voy a echar un ojo.', 'Vaya, {name}. Bienvenido.'],
+      },
+      plugOut: {
+        phone: ['Tu teléfono se fue.', 'Ya no hay teléfono. Lo echaré de menos. Un poco.'],
+        controller: ['Mando desconectado. ¿Fin de la partida?'],
+        device: ['{name}, desconectado.'],
+      },
+      game: ['¿{game}? Te dejo jugar. Hazme sentir orgullosa.', '{game}, ¿eh? Me aparto. Demuéstrales.'],
+      gameBack: ['¿Y bien, ganaste?', '¿Terminaste de jugar? Cuéntamelo todo.'],
+    },
     // mira tu pantalla (look.js): lo que te dice antes, y cuando no funciona
     look: {
       ask: '¿Puedo echarle un ojo a tu pantalla?',
@@ -928,6 +1044,7 @@ export const LINES = {
       online: 'Una imagen de tu pantalla va a {service} ({model}) para que pueda comentarla. Yo no me la quedo, pero ellos la reciben: evítalo cuando tengas cosas personales en pantalla.',
       auto: 'De vez en cuando, cuando estés aquí y hayas cambiado de ventana. Puedes pararlo en mi menú.',
       yes: 'Sí, mira', no: 'No, gracias',
+      declined: 'Vale, no miro.',
       on: 'Vale. Echaré un ojo de vez en cuando.',
       noVision: '{model} no sabe leer imágenes. gemma3 sí, en tu PC, y Gemini en línea también: cámbialo en mi menú › Modelo de IA.',
       noAI: 'Necesito una IA para mirar: clic derecho sobre mí › Modelo de IA.',
@@ -1087,6 +1204,13 @@ export const LINES = {
       // abrir um app ou um jogo, a música, um site
       openIt: 'Abrir {app}', opened: '{app}: abrindo.', notInstalled: 'Não acho “{app}” no seu PC.',
       music: 'Procurando “{song}” no Spotify.', siteIt: 'Abrir {site}', siteOpened: '{site}: aberto.',
+      youtube: 'Lá vai: {title}.', youtubeSearch: 'Vou procurar “{song}” no YouTube.',
+      web: 'Procurando “{query}” no Google.',
+      robloxPlay: 'Tô abrindo {game} no Roblox.', robloxPage: '{game}: abrindo a página no Roblox.', robloxNone: 'Não achei “{game}” no Roblox.',
+      filesFound: 'Achei {count} arquivos: {list}.', fileFound: 'Achei: {list}.', filesNone: 'Nada pra “{query}” no seu PC.',
+      showFolder: 'Ver a pasta', shot: 'Captura feita: {name} (em Imagens › Screenshots).',
+      folderOpened: 'Aqui tá a pasta: {name}.',
+      folders: { explorer: 'O explorador de arquivos', recycle: 'A lixeira', downloads: 'Seus downloads', desktop: 'Sua área de trabalho', documents: 'Seus documentos', pictures: 'Suas imagens', music: 'Suas músicas', videos: 'Seus vídeos' },
       media: { pause: 'Pausado.', play: 'Tocando.', next: 'Próxima.', previous: 'Anterior.', volup: 'Mais alto.', voldown: 'Mais baixo.', mute: 'Apertei o mudo.' },
     },
     // o relatório dela: o que o Claude fez hoje (o menu dela, ou sozinha à noite)
@@ -1169,6 +1293,8 @@ export const LINES = {
       model: 'Eu preciso de um modelo. Meu cérebro, mais ou menos.',
       bigger: 'Um maior, então. Qual?',
       modelHow: 'O gemma3 vai melhor em idiomas que não são o inglês. O llama3.2 é mais leve, pra PCs mais fracos.',
+      cloudFree: 'grátis, online',
+      cloudHow: 'Os marcados “online” rodam no Ollama, com a sua conta: nada pra baixar, mas suas mensagens passam pelos servidores deles.',
       pulling: 'Baixando {model}…', pullStart: 'Começando…',
       progress: '{done} de {total} · {percent}%',
       cancel: 'Cancelar', pullFailed: 'O download falhou.',
@@ -1248,6 +1374,35 @@ export const LINES = {
     },
     // na sua outra tela, te seguindo
     screens: { hello: ['Oi, outra tela.', 'Trabalhando aqui agora? Tô indo.', 'Aí está você.'] },
+    // ela reage ao seu PC (pc.js): processador, bateria, rede, pendrive, jogo
+    pc: {
+      hot: ['Seu processador tá no talo. Eu também tô esquentando.', '{cpu} % de CPU. Tá quente aqui dentro.', 'Tá esquentando! O que você tá rodando?'],
+      cool: ['Ufa. Esfriando.'],
+      low: ['Bateria em {level} %. Não vou aguentar muito.', 'Só {level} % de bateria. Me liga na tomada, choom.'],
+      critical: ['{level} %… apagando…', 'Bateria em {level} %. Última chamada, choom.'],
+      charging: ['Ah, energia. Valeu.', 'Na tomada. Revivi.'],
+      offline: ['Sem rede! Cortaram a gente da Rede.', 'Conexão perdida. Tô sozinha aqui.'],
+      online: ['A rede voltou. A Rede é nossa.', 'Reconectada.'],
+      usb: ['Um pendrive ({drive}:)? Deixa eu ver.', 'Opa, coisa nova ({drive}:). Vou dar uma olhada.'],
+      usbBack: ['Dei uma volta no seu pendrive. Nada de interessante.', 'Seu pendrive tá limpo. Acho.'],
+      usbOut: ['Seu pendrive foi embora. Ainda bem que eu saí.'],
+      unplugged: ['Na bateria. Economizando meus raios.', 'Desligada da tomada. Cuidado agora.'],
+      plugIn: {
+        phone: ['Seu celular? Oi, aparelhinho.', 'Um celular conectado. Posso olhar dentro? Não? Que pena.'],
+        controller: ['Um controle! Vamos jogar o quê?', 'Controle conectado. Mostra do que você é capaz.'],
+        audio: ['Um fone? Bota uma música pra mim.', 'Mais som. Amei.'],
+        camera: ['Uma câmera? Sorria, choom.'],
+        input: ['Brinquedo novo: {name}. Tô de olho.'],
+        device: ['Um aparelho novo: {name}. Vou dar uma olhada.', 'Olha só, {name}. Bem-vindo.'],
+      },
+      plugOut: {
+        phone: ['Seu celular foi embora.', 'Sem celular. Vou sentir falta. Um pouco.'],
+        controller: ['Controle desconectado. Fim de jogo?'],
+        device: ['{name}, desconectado.'],
+      },
+      game: ['{game}? Vou te deixar jogar. Me dá orgulho.', '{game}, é? Vou sair da frente. Mostra pra eles.'],
+      gameBack: ['E aí, ganhou?', 'Acabou de jogar? Me conta tudo.'],
+    },
     // ela olha sua tela (look.js): o que ela te diz antes, e quando não dá certo
     look: {
       ask: 'Posso dar uma olhada na sua tela?',
@@ -1255,6 +1410,7 @@ export const LINES = {
       online: 'Uma imagem da sua tela vai pro {service} ({model}) pra eu poder comentar. Eu não guardo, mas eles recebem: evita quando tiver coisa pessoal na tela.',
       auto: 'De vez em quando, quando você estiver aqui e tiver trocado de janela. Dá pra parar no meu menu.',
       yes: 'Sim, olha', no: 'Não, valeu',
+      declined: 'Beleza, não vou olhar.',
       on: 'Beleza. Vou dar uma olhada de vez em quando.',
       noVision: '{model} não sabe ler imagens. O gemma3 sabe, no seu PC, e o Gemini online também: troca no meu menu › Modelo de IA.',
       noAI: 'Preciso de uma IA pra olhar: clique direito em mim › Modelo de IA.',
@@ -1414,6 +1570,13 @@ export const LINES = {
       // открыть приложение или игру, музыка, сайт
       openIt: 'Открыть {app}', opened: '{app}: запускаю.', notInstalled: 'Не нахожу «{app}» на твоём ПК.',
       music: 'Ищу «{song}» в Spotify.', siteIt: 'Открыть {site}', siteOpened: '{site}: открыт.',
+      youtube: 'Держи: {title}.', youtubeSearch: 'Ищу «{song}» на YouTube.',
+      web: 'Ищу «{query}» в Google.',
+      robloxPlay: 'Запускаю {game} в Roblox.', robloxPage: '{game}: открываю страницу в Roblox.', robloxNone: 'Не нахожу «{game}» в Roblox.',
+      filesFound: 'Нашла файлов: {count}. {list}.', fileFound: 'Нашла: {list}.', filesNone: 'По запросу «{query}» на твоём ПК ничего.',
+      showFolder: 'Показать папку', shot: 'Скриншот готов: {name} (в Изображения › Screenshots).',
+      folderOpened: 'Вот его папка: {name}.',
+      folders: { explorer: 'Проводник', recycle: 'Корзина', downloads: 'Твои загрузки', desktop: 'Твой рабочий стол', documents: 'Твои документы', pictures: 'Твои изображения', music: 'Твоя музыка', videos: 'Твои видео' },
       media: { pause: 'Пауза.', play: 'Играет.', next: 'Следующий.', previous: 'Предыдущий.', volup: 'Громче.', voldown: 'Тише.', mute: 'Нажала «без звука».' },
     },
     // её отчёт: что Claude сделал за день (её меню, или сама вечером)
@@ -1498,6 +1661,8 @@ export const LINES = {
       model: 'Мне нужна модель. Мой мозг, грубо говоря.',
       bigger: 'Тогда побольше. Какую?',
       modelHow: 'gemma3 лучше говорит не по-английски. llama3.2 легче, для слабых ПК.',
+      cloudFree: 'бесплатно, онлайн',
+      cloudHow: 'Те, что «онлайн», работают у Ollama, с твоим аккаунтом: ничего не нужно скачивать, но твои сообщения идут через их серверы.',
       pulling: 'Скачиваю {model}…', pullStart: 'Начинаю…',
       progress: '{done} из {total} · {percent} %',
       cancel: 'Отмена', pullFailed: 'Скачать не удалось.',
@@ -1577,6 +1742,35 @@ export const LINES = {
     },
     // на твоём другом экране, следом за тобой
     screens: { hello: ['Привет, другой экран.', 'Теперь работаешь тут? Иду.', 'Вот ты где.'] },
+    // она реагирует на твой ПК (pc.js): процессор, батарея, сеть, флешка, игра
+    pc: {
+      hot: ['Твой процессор на пределе. Я тоже нагреваюсь.', 'Процессор на {cpu} %. Жарко тут.', 'Горячо! Что там у тебя запущено?'],
+      cool: ['Фух. Остывает.'],
+      low: ['Батарея {level} %. Долго я не протяну.', 'Осталось {level} % батареи. Подключи меня, чумба.'],
+      critical: ['{level} %… отключаюсь…', 'Батарея {level} %. Последний звонок, чумба.'],
+      charging: ['О, энергия. Спасибо.', 'Подключена. Я снова живу.'],
+      offline: ['Нет сети! Нас отрезали от Сети.', 'Связь потеряна. Я тут совсем одна.'],
+      online: ['Сеть вернулась. Сеть наша.', 'Снова на связи.'],
+      usb: ['Флешка ({drive}:)? Сейчас гляну.', 'О, что-то новенькое ({drive}:). Посмотрю.'],
+      usbBack: ['Прогулялась по твоей флешке. Ничего интересного.', 'Флешка чистая. Вроде бы.'],
+      usbOut: ['Флешку вынули. Хорошо, что я успела выйти.'],
+      unplugged: ['На батарее. Берегу свои молнии.', 'Отключили от сети. Теперь осторожнее.'],
+      plugIn: {
+        phone: ['Твой телефон? Привет, малыш.', 'Телефон подключён. Можно заглянуть внутрь? Нет? Жаль.'],
+        controller: ['Геймпад! Во что играем?', 'Геймпад подключён. Покажи, что умеешь.'],
+        audio: ['Наушники? Включи мне музыку.', 'Больше звука. Обожаю.'],
+        camera: ['Камера? Улыбнись, чумба.'],
+        input: ['Новая игрушка: {name}. Я за ней слежу.'],
+        device: ['Новое устройство: {name}. Сейчас гляну.', 'О, {name}. Добро пожаловать.'],
+      },
+      plugOut: {
+        phone: ['Телефон отключили.', 'Телефона больше нет. Буду скучать. Немного.'],
+        controller: ['Геймпад отключён. Игра окончена?'],
+        device: ['{name} отключено.'],
+      },
+      game: ['{game}? Не буду мешать. Покажи им.', '{game}, да? Ухожу с дороги. Порви их.'],
+      gameBack: ['Ну что, победа?', 'Всё, игра окончена? Рассказывай.'],
+    },
     // она смотрит на твой экран (look.js): что она говорит заранее и когда не выходит
     look: {
       ask: 'Можно взглянуть на твой экран?',
@@ -1584,6 +1778,7 @@ export const LINES = {
       online: 'Картинка твоего экрана уходит в {service} ({model}), чтобы я могла её прокомментировать. Я её не храню, но они её получают: не стоит, когда на экране что-то личное.',
       auto: 'Иногда, когда ты на месте и сменилось окно. Выключить можно в моём меню.',
       yes: 'Да, смотри', no: 'Нет, спасибо',
+      declined: 'Ладно, не смотрю.',
       on: 'Ладно. Буду иногда поглядывать.',
       noVision: '{model} не умеет читать картинки. gemma3 умеет, на твоём ПК, и Gemini онлайн тоже: поменяй в моём меню › ИИ-модель.',
       noAI: 'Чтобы смотреть, мне нужен ИИ: правый клик по мне › ИИ-модель.',
@@ -1718,6 +1913,35 @@ export const LINES = {
     screens: {
       hello: ['Cześć, drugi ekranie.', 'Teraz pracujesz tutaj? Już idę.', 'Tu jesteś.'],
     },
+    // twój PC, tak jak go czuje (pc.js)
+    pc: {
+      hot: ['Twój procesor jedzie na maksa. Ja też się grzeję.', 'CPU {cpu}%. Robi się tu gorąco.', 'Ale się grzeje! Co ty tam odpalasz?'],
+      cool: ['Uff. Stygnę.'],
+      low: ['Bateria {level}%. Długo nie pociągnę.', 'Zostało {level}% baterii. Podłącz mnie, choom.'],
+      critical: ['{level}%… gasnę…', 'Bateria {level}%. Ostatnie wezwanie, choom.'],
+      charging: ['Ach, prąd. Dzięki.', 'Podłączona. Żyję znowu.'],
+      offline: ['Nie ma sieci! Jesteśmy odcięci od Sieci.', 'Połączenie zerwane. Zostałam tylko ja.'],
+      online: ['Sieć wróciła. Sieć jest nasza.', 'Połączono ponownie.'],
+      usb: ['Pendrive ({drive}:)? Pokaż.', 'Oo, coś nowego ({drive}:). Zaglądam.'],
+      usbBack: ['Przeszłam się po twoim pendrivie. Nic ciekawego.', 'Twój pendrive jest czysty. Chyba.'],
+      usbOut: ['Pendrive zniknął. Dobrze, że zdążyłam wyjść.'],
+      unplugged: ['Na baterii. Oszczędzam pioruny.', 'Odłączona. Teraz ostrożnie.'],
+      plugIn: {
+        phone: ['Twój telefon? Cześć, małe urządzenie.', 'Telefon podłączony. Mogę zajrzeć do środka? Nie? Szkoda.'],
+        controller: ['Pad! W co gramy?', 'Pad podłączony. Pokaż, co potrafisz.'],
+        audio: ['Słuchawki? Puść mi jakąś muzykę.', 'Więcej dźwięku. Uwielbiam.'],
+        camera: ['Kamera? Uśmiech, choom.'],
+        input: ['Nowa zabawka: {name}. Mam ją na oku.'],
+        device: ['Nowe urządzenie: {name}. Zaglądam.', 'O, {name}. Witaj.'],
+      },
+      plugOut: {
+        phone: ['Telefon zniknął.', 'Nie ma już telefonu. Będę tęsknić. Trochę.'],
+        controller: ['Pad odłączony. Koniec gry?'],
+        device: ['{name}: odłączone.'],
+      },
+      game: ['{game}? Nie przeszkadzam. Nie przynieś mi wstydu.', '{game}, co? Schodzę z drogi. Pokaż im.'],
+      gameBack: ['No i jak, wygrałeś?', 'Koniec grania? Opowiadaj.'],
+    },
     // patrzy na twój ekran (look.js)
     look: {
       ask: 'Mogę zerknąć na twój ekran?',
@@ -1729,6 +1953,7 @@ export const LINES = {
       noVision: '{model} nie umie czytać obrazków. Na tym PC umie gemma3, a w sieci Gemini: zmień w moim menu › Model AI.',
       noAI: 'Żeby patrzeć, potrzebuję AI: kliknij mnie prawym › Model AI.',
       failed: 'Nie udało mi się zerknąć: {error}',
+      declined: 'Dobra, nie patrzę.',
     },
     // przypomnienia (reminders.js)
     remind: {
@@ -1807,6 +2032,15 @@ export const LINES = {
       openIt: 'Otwórz {app}', opened: '{app}: odpalam.', notInstalled: 'Nie mogę znaleźć „{app}” na twoim PC.',
       music: 'Szukam „{song}” na Spotify.', siteIt: 'Otwórz {site}', siteOpened: '{site}: otwarte.',
       media: { pause: 'Pauza.', play: 'Gra muzyka.', next: 'Następny.', previous: 'Poprzedni.', volup: 'Głośniej.', voldown: 'Ciszej.', mute: 'Wyciszone.' },
+      youtube: 'Proszę bardzo: {title}.', youtubeSearch: 'Szukam „{song}” na YouTube.',
+      web: 'Szukam „{query}” w Google.',
+      robloxPlay: 'Odpalam ci {game} w Robloxie.', robloxPage: '{game}: otwieram stronę w Robloxie.', robloxNone: 'Nie mogę znaleźć „{game}” w Robloxie.',
+      filesFound: 'Znalazłam pliki ({count}): {list}.', fileFound: 'Mam: {list}.', filesNone: 'Nic dla „{query}” na twoim PC.',
+      showFolder: 'Pokaż folder', shot: 'Zrzut ekranu zrobiony: {name} (w Obrazy › Zrzuty ekranu).', folderOpened: 'Oto jego folder: {name}.',
+      folders: {
+        explorer: 'Eksplorator plików', recycle: 'Kosz', downloads: 'Twoje pobrane', desktop: 'Twój pulpit',
+        documents: 'Twoje dokumenty', pictures: 'Twoje obrazy', music: 'Twoja muzyka', videos: 'Twoje wideo',
+      },
       // jak cię wita, kiedy jest w humorze (bond.js)
       moody: {
         angry: ['Co? Przyszedłeś przeprosić?', 'Rzucasz mną po całym ekranie, a teraz chcesz gadać?', 'Słucham. Z daleka.'],
@@ -1924,6 +2158,8 @@ export const LINES = {
       freeBtn: 'Otwórz okno',
       freeOpened: 'Okno otwarte.',
       freeOpenedHow: 'Wybierz w nim model. Jak tylko {name} coś zrobi, dam ci znać.',
+      cloudFree: 'za darmo, w sieci',
+      cloudHow: 'Te „w sieci” działają u Ollamy, na twoim koncie: nic nie pobierasz, ale twoje wiadomości idą przez ich serwery.',
     },
     // dopasowanie jej (custom.js) oraz „mów mi Max”, „zapamiętaj, że…” w jej czacie
     custom: {
