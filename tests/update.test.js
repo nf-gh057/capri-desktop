@@ -109,3 +109,12 @@ test('her packages failing after an update: back to where she was, with hers', a
   assert.equal(git(her, 'rev-parse', 'HEAD'), before);
   assert.deepEqual(runs, ['{"broken":true}', LOCK]);
 });
+
+test('versions: upstream first, then our commit on it', () => {
+  assert.equal(update.newer('0.4.4-11', '0.4.4-7'), true);
+  assert.equal(update.newer('0.4.5-1', '0.4.4-30'), true);
+  assert.equal(update.newer('0.4.4-7', '0.4.4-7'), false);
+  assert.equal(update.newer('0.4.4-7', '0.4.4-11'), false);
+  assert.equal(update.newer('0.4.4', '0.4.4-1'), false);
+  assert.equal(update.newer('1.0.0-1', '0.9.9-99'), true);
+});

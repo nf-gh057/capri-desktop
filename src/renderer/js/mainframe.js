@@ -231,6 +231,16 @@ function swarm(s, t) {
     !w.peers.length && el('p', { class: 'note' }, t.swarmNone),
     w.peers.map((p) => row(null, el('span', { class: 'grow reminder' }, `${p.name} · ${p.status}`),
       button('✕', 'swarmRemove', p.id, { title: t.swarmRemove }))),
+    check(t.swarmUpdate, w.update, 'swarmUpdate'),
+    // your other devices with Capri on Tailscale: one click (Tailscale vouches that they're yours)
+    el('h3', { class: 'subhead' }, t.swarmFound),
+    w.found.length
+      ? w.found.map((f) => row(null, el('span', { class: 'grow reminder' }, `${f.name}${f.version ? ` · v${f.version}` : ''}`),
+        button(t.swarmJoin, 'swarmJoinTailnet', f.id)))
+      : el('p', { class: 'note' }, t.swarmNoneFound),
+    row(null, button(t.swarmLook, 'swarmLook', null, { class: 'grow' })),
+    // or with a code (a device on another Tailscale account)
+    el('h3', { class: 'subhead' }, t.swarmByCode),
     w.invite
       ? [el('p', { class: 'note' }, t.swarmInviteHow), el('p', { class: 'note' }, el('span', { class: 'code' }, w.invite)),
         row(null, button(t.phoneTotpCancel, 'swarmInviteCancel', null, { class: 'grow' }))]

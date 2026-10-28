@@ -711,6 +711,9 @@ async function boot() {
       case 'bondSync': // how close she is to you, as your other PCs have it (her swarm)
         bond.sync(cmd.bond);
         break;
+      case 'swarmJoined': // another of your devices joined her swarm
+        if (!capri.stowed) panel.say({ kind: 'info', face: 'laugh', line: fmt(pick(brain.t.swarm.joined), { pc: cmd.pc || '…' }), hold: 4500 });
+        break;
       case 'hiveRejoined': // back on the network after being on her own: she's caught up with the others
         if (!capri.stowed) panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.rejoined), { pc: cmd.pc || '…' }), hold: 5000 });
         break;

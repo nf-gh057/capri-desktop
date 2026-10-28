@@ -89,6 +89,12 @@ Ograniczenia: rozmowy agentów (wątek Codexa, sesja Claude Code) zostają na sw
 - Zmiany ze znacznikiem czasu i komputera; po powrocie wyspy do sieci scalanie bez gubienia: rozmowy po czasie,
   wspomnienia i przypomnienia jako suma (z usunięciami), więź jako suma przyrostów. Capri komentuje powrót.
 
+### Dołączanie i aktualizacje roju (zrobione)
+- Dołączanie jednym kliknięciem: każda Capri szuka pozostałych w sieci Tailscale (`/swarm/hello`), a urządzenie na
+  tym samym koncie Tailscale dołącza bez kodu (`/swarm/tailnet`); kod zostaje dla urządzeń z innych kont. Kod QR
+  skanowany Signalem odpadł: Signal nie przekazuje danych do innych programów, a QR wymagałby kamery przy komputerze.
+- Rój wykrywa nowszą wersję na innym komputerze i aktualizuje się z GitHuba, kiedy nie siedzisz przy danym komputerze.
+
 ### Etap 4: telefon w roju
 - Bota Telegrama czyta tylko jeden komputer naraz (lider roju); „nie ma cię” = przy żadnym komputerze.
 

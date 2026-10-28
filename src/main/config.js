@@ -44,6 +44,7 @@ const DEFAULTS = {
   swarm: null,       // her swarm (swarm.js): { id, pub, key (sealed), peers: [{ id, name, pub, host, port }] }
   swarmOn: false,    // she's one Capri on all your PCs, on the one you're at (through Tailscale)
   swarmName: '',     // this PC's name in her swarm ('': its Windows name)
+  swarmUpdate: true, // another of your PCs runs a newer her: this one updates too (main.js hiveUpgrade)
   updateCheck: true, // she looks for a new version of herself on GitHub (her git clone's origin)
   updateAuto: false, // and updates herself once you've been away a while (else: on your click)
   updateTold: null,  // the new version she last told you about (its commit), so she says it once

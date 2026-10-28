@@ -279,7 +279,7 @@ export const LINES = {
     // passée sur ton autre écran pour te suivre
     screens: { hello: ['Coucou, l’autre écran.', 'Tu bosses ici maintenant ? J’arrive.', 'Me voilà.'] },
     // elle passe d’un de tes PC à l’autre (essaim, swarm.js)
-    swarm: { leave: ['Je file sur {pc}.', 'On se retrouve sur {pc}, choom.', 'Je te suis sur {pc}.'], back: ['Me revoilà.', 'Je t’ai suivi depuis {pc}.', 'Celui-ci maintenant ? J’arrive.'], rejoined: ['De retour dans l’essaim. {pc} avait des nouvelles pour moi.', 'Reconnectée. J’ai rattrapé ce qui s’est passé sur {pc}.', 'Seule un moment, et me revoilà entière.'] },
+    swarm: { leave: ['Je file sur {pc}.', 'On se retrouve sur {pc}, choom.', 'Je te suis sur {pc}.'], back: ['Me revoilà.', 'Je t’ai suivi depuis {pc}.', 'Celui-ci maintenant ? J’arrive.'], rejoined: ['De retour dans l’essaim. {pc} avait des nouvelles pour moi.', 'Reconnectée. J’ai rattrapé ce qui s’est passé sur {pc}.', 'Seule un moment, et me revoilà entière.'], joined: ['{pc} rejoint l’essaim. Un esprit de plus pour moi.', 'Nouveau dans l’essaim : {pc}. Bienvenue dans ma tête.'] },
     // une nouvelle version d’elle sur GitHub, et elle après la mise à jour (update.js)
     update: { found: ['Choom, il y a une nouvelle version de moi : {version}. Jette un œil dans Mainframe.', 'Nouvelle version de moi dispo ({version}). Mainframe, rubrique Mises à jour.'], done: ['Nouvelle moi, version {version}. Je me sens… fraîche.', 'Mise à jour faite : {version}. Rien n’a crashé. Presque.'] },
     // elle réagit à ton PC (pc.js) : processeur, batterie, réseau, clé USB, jeu
@@ -653,7 +653,7 @@ export const LINES = {
     // over on your other screen, following you
     screens: { hello: ['Hi, other screen.', 'Working over here now? Coming.', 'There you are.'] },
     // she goes from one of your PCs to another (her swarm, swarm.js)
-    swarm: { leave: ['Off to {pc}.', 'See you on {pc}, choom.', 'Following you to {pc}.'], back: ['Back.', 'Followed you from {pc}.', 'This one now? Here I am.'], rejoined: ['Back in the swarm. {pc} had news for me.', 'Reconnected. Caught up on what went on at {pc}.', 'Alone for a while, and whole again.'] },
+    swarm: { leave: ['Off to {pc}.', 'See you on {pc}, choom.', 'Following you to {pc}.'], back: ['Back.', 'Followed you from {pc}.', 'This one now? Here I am.'], rejoined: ['Back in the swarm. {pc} had news for me.', 'Reconnected. Caught up on what went on at {pc}.', 'Alone for a while, and whole again.'], joined: ['{pc} joined the swarm. One more mind for me.', 'New in the swarm: {pc}. Welcome to my head.'] },
     // a new version of her on GitHub, and her after updating (update.js)
     update: { found: ['Choom, there’s a new version of me: {version}. Peek into Mainframe.', 'New me available ({version}). Mainframe, Updates.'], done: ['New me, version {version}. Feeling… fresh.', 'Updated to {version}. Nothing flatlined. Almost.'] },
     // she reacts to your PC (pc.js): processor, battery, network, USB stick, game
@@ -1023,7 +1023,7 @@ export const LINES = {
     // en tu otra pantalla, siguiéndote
     screens: { hello: ['Hola, otra pantalla.', '¿Ahora trabajas aquí? Voy.', 'Aquí estás.'] },
     // pasa de uno de tus PC a otro (enjambre, swarm.js)
-    swarm: { leave: ['Me voy a {pc}.', 'Nos vemos en {pc}, choom.', 'Te sigo a {pc}.'], back: ['Volví.', 'Te seguí desde {pc}.', '¿Ahora este? Aquí estoy.'], rejoined: ['De vuelta en el enjambre. {pc} tenía novedades para mí.', 'Reconectada. Me puse al día con lo que pasó en {pc}.', 'Sola un rato, y otra vez entera.'] },
+    swarm: { leave: ['Me voy a {pc}.', 'Nos vemos en {pc}, choom.', 'Te sigo a {pc}.'], back: ['Volví.', 'Te seguí desde {pc}.', '¿Ahora este? Aquí estoy.'], rejoined: ['De vuelta en el enjambre. {pc} tenía novedades para mí.', 'Reconectada. Me puse al día con lo que pasó en {pc}.', 'Sola un rato, y otra vez entera.'], joined: ['{pc} se unió al enjambre. Una mente más para mí.', 'Nuevo en el enjambre: {pc}. Bienvenido a mi cabeza.'] },
     // una versión nueva de ella en GitHub, y ella después de actualizarse (update.js)
     update: { found: ['Choom, hay una versión nueva de mí: {version}. Mira en Mainframe.', 'Nueva yo disponible ({version}). Mainframe, Actualizaciones.'], done: ['Nueva yo, versión {version}. Me siento… fresca.', 'Actualizada a {version}. Nada se rompió. Casi.'] },
     // reacciona a tu PC (pc.js): procesador, batería, red, USB, juego
@@ -1395,7 +1395,7 @@ export const LINES = {
     // na sua outra tela, te seguindo
     screens: { hello: ['Oi, outra tela.', 'Trabalhando aqui agora? Tô indo.', 'Aí está você.'] },
     // ela passa de um dos seus PCs para outro (enxame, swarm.js)
-    swarm: { leave: ['Indo pro {pc}.', 'A gente se vê no {pc}, choom.', 'Te sigo até o {pc}.'], back: ['Voltei.', 'Te segui desde o {pc}.', 'Agora este? Tô aqui.'], rejoined: ['De volta ao enxame. O {pc} tinha novidades pra mim.', 'Reconectada. Me atualizei com o que rolou no {pc}.', 'Sozinha um tempo, e inteira de novo.'] },
+    swarm: { leave: ['Indo pro {pc}.', 'A gente se vê no {pc}, choom.', 'Te sigo até o {pc}.'], back: ['Voltei.', 'Te segui desde o {pc}.', 'Agora este? Tô aqui.'], rejoined: ['De volta ao enxame. O {pc} tinha novidades pra mim.', 'Reconectada. Me atualizei com o que rolou no {pc}.', 'Sozinha um tempo, e inteira de novo.'], joined: ['O {pc} entrou no enxame. Mais uma mente pra mim.', 'Novo no enxame: {pc}. Bem-vindo à minha cabeça.'] },
     // uma versão nova dela no GitHub, e ela depois de atualizar (update.js)
     update: { found: ['Choom, tem uma versão nova de mim: {version}. Dá uma olhada no Mainframe.', 'Nova eu disponível ({version}). Mainframe, Atualizações.'], done: ['Nova eu, versão {version}. Me sinto… novinha.', 'Atualizada para {version}. Nada quebrou. Quase.'] },
     // ela reage ao seu PC (pc.js): processador, bateria, rede, pendrive, jogo
@@ -1769,7 +1769,7 @@ export const LINES = {
     // на твоём другом экране, следом за тобой
     screens: { hello: ['Привет, другой экран.', 'Теперь работаешь тут? Иду.', 'Вот ты где.'] },
     // она переходит с одного твоего ПК на другой (рой, swarm.js)
-    swarm: { leave: ['Ухожу на {pc}.', 'Увидимся на {pc}, choom.', 'Иду за тобой на {pc}.'], back: ['Я тут.', 'Пришла за тобой с {pc}.', 'Теперь этот? Я здесь.'], rejoined: ['Снова в рое. У {pc} для меня новости.', 'Связь есть. Наверстала, что было на {pc}.', 'Побыла одна — и снова целая.'] },
+    swarm: { leave: ['Ухожу на {pc}.', 'Увидимся на {pc}, choom.', 'Иду за тобой на {pc}.'], back: ['Я тут.', 'Пришла за тобой с {pc}.', 'Теперь этот? Я здесь.'], rejoined: ['Снова в рое. У {pc} для меня новости.', 'Связь есть. Наверстала, что было на {pc}.', 'Побыла одна — и снова целая.'], joined: ['{pc} в рое. Ещё один разум для меня.', 'Новенький в рое: {pc}. Добро пожаловать в мою голову.'] },
     // новая версия её на GitHub и она после обновления (update.js)
     update: { found: ['Choom, есть новая версия меня: {version}. Загляни в Mainframe.', 'Новая я уже доступна ({version}). Mainframe, Обновления.'], done: ['Новая я, версия {version}. Чувствую себя… свежо.', 'Обновилась до {version}. Ничего не сломалось. Почти.'] },
     // она реагирует на твой ПК (pc.js): процессор, батарея, сеть, флешка, игра
@@ -1944,7 +1944,7 @@ export const LINES = {
       hello: ['Cześć, drugi ekranie.', 'Teraz pracujesz tutaj? Już idę.', 'Tu jesteś.'],
     },
     // przechodzi z jednego twojego PC na drugi (rój, swarm.js)
-    swarm: { leave: ['Lecę na {pc}.', 'Widzimy się na {pc}, choom.', 'Idę za tobą na {pc}.'], back: ['Wróciłam.', 'Przyszłam za tobą z {pc}.', 'Teraz ten? Jestem.'], rejoined: ['Wróciłam do roju. {pc} miał dla mnie nowości.', 'Znowu połączona. Nadrobiłam, co działo się na {pc}.', 'Chwilę byłam sama, a teraz znowu cała.'] },
+    swarm: { leave: ['Lecę na {pc}.', 'Widzimy się na {pc}, choom.', 'Idę za tobą na {pc}.'], back: ['Wróciłam.', 'Przyszłam za tobą z {pc}.', 'Teraz ten? Jestem.'], rejoined: ['Wróciłam do roju. {pc} miał dla mnie nowości.', 'Znowu połączona. Nadrobiłam, co działo się na {pc}.', 'Chwilę byłam sama, a teraz znowu cała.'], joined: ['{pc} dołączył do roju. Jeszcze jeden umysł dla mnie.', 'Nowy w roju: {pc}. Witaj w mojej głowie.'] },
     // nowa wersja jej na GitHubie i ona po aktualizacji (update.js)
     update: { found: ['Choom, jest nowa wersja mnie: {version}. Zajrzyj do Mainframe.', 'Nowa ja czeka ({version}). Mainframe, Aktualizacje.'], done: ['Nowa ja, wersja {version}. Czuję się… świeżo.', 'Zaktualizowana do {version}. Nic się nie wysypało. Prawie.'] },
     // twój PC, tak jak go czuje (pc.js)

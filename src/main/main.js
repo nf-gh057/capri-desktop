@@ -57,6 +57,7 @@ let hiveInvite = null;    // { text, until }: a code for another PC, shown in Ma
 let screenLocked = false;
 let hiveFake = null;      // --dev: { locked, idle } instead of this PC's (two Capris on one PC)
 let hiveIsland = false;   // --dev: as if this PC had no network (her swarm down, her mind kept)
+let hiveFound = [];       // Capris on your other devices on Tailscale, not in her swarm yet: [{ host, port, name, version }]
 // her shared mind (mind.js), while her swarm is on: what one Capri knows on all your PCs
 let mind = null;
 let mindSaveTimer = null;
@@ -724,6 +725,8 @@ function mainframeState() {
           p.version && p.version !== app.getVersion() ? `v${p.version}` : ''].filter(Boolean).join(' · '), // another version: shown
       })) : (cfg.swarm?.peers || []).map((p) => ({ id: p.id, name: p.name, status: t.swarmOff })),
       here: hive ? hive.state().here : true,
+      found: hiveFound.map(({ host, port, name, version }) => ({ id: `${host}:${port}`, name, version })),
+      update: cfg.swarmUpdate !== false,
     },
     system: {
       lang: cfg.lang,
@@ -809,11 +812,14 @@ async function mainframeAct(name, value) {
     case 'updateCheckNow': await checkUpdate(); break;
     case 'updateApply': applyUpdate(); break; // she restarts when it's done
     case 'updateCheck': case 'updateAuto': updateConfig({ [name]: Boolean(value) }); break;
-    case 'swarmOn': updateConfig({ swarmOn: Boolean(value) }); await syncHive(); break;
+    case 'swarmOn': updateConfig({ swarmOn: Boolean(value) }); await syncHive(); await hiveLook(); break;
     case 'swarmName': if (typeof value === 'string' && value.trim()) { updateConfig({ swarmName: value.trim().slice(0, 40) }); await syncHive(true); } break;
     case 'swarmInvite': hiveInviteNew(); break;
     case 'swarmInviteCancel': hive?.stopPairing(); hiveInvite = null; break;
     case 'swarmJoin': if (typeof value === 'string') await hiveJoin(value); break;
+    case 'swarmLook': await hiveLook(); break;
+    case 'swarmJoinTailnet': if (typeof value === 'string') await hiveJoinTailnet(value); break;
+    case 'swarmUpdate': updateConfig({ swarmUpdate: Boolean(value) }); break;
     case 'swarmRemove': if (typeof value === 'string') await hive?.remove(value); break;
     case 'tailscaleGet': shell.openExternal('https://tailscale.com/download/windows'); break;
     case 'tailscaleCheck': await syncHive(); break;
@@ -1599,6 +1605,18 @@ async function applyUpdate() {
   }
 }
 
+// Another of your PCs (her swarm) runs a newer her: this one looks on GitHub, and updates as soon as
+// you're not at it (or not using it for a minute), nothing of hers in the middle of an answer
+async function hiveUpgrade() {
+  if (!hive || config.load().swarmUpdate === false || app.isPackaged || updateBusy || updateLocked()) return;
+  const ahead = hive.state().peers.find((p) => p.online && p.version && update.newer(p.version, app.getVersion()));
+  if (!ahead) return;
+  if (updateInfo?.state !== 'behind' && Date.now() - updateAt > 10 * 60 * 1000) await checkUpdate();
+  if (updateInfo?.state !== 'behind' || update.blocked(updateInfo)) return;
+  const quiet = hiveAway !== null || powerMonitor.getSystemIdleTime() >= 60;
+  if (quiet && !chats.size && !phoneTurns.size) applyUpdate();
+}
+
 // every 10 minutes: time to look again, and (if you said so) to update while you're away
 function watchUpdates() {
   const cfg = config.load();
@@ -1690,6 +1708,12 @@ async function syncHive(fresh = false) {
       onEvent: (peer, evt) => overlay?.webContents.send('claude:event', { ...evt, remote: true, pc: peer.name }),
       mind: mindOpen(id.id),
       onMind: (keys, peer) => mindApply(keys, peer),
+      trust: hiveTrust,
+      onJoined: (peer) => {
+        hiveFound = hiveFound.filter((f) => f.id !== peer.id);
+        sendCommand('swarmJoined', { pc: peer.name });
+        mainframe?.refresh();
+      },
     });
     link.hosts = hosts;
     hive = link;
@@ -1903,6 +1927,46 @@ function hiveInviteNew() {
   }
   hiveError = null;
   hiveInvite = hive.startPairing(address);
+}
+
+// A device at `address` on Tailscale is yours: signed in with the same account as this one (this
+// device itself only in --dev, where two Capris share it)
+async function hiveTrust(address) {
+  const ts = await swarm.tailscale().catch(() => null);
+  if (!ts?.ip || ts.user === null || ts.user === undefined) return false;
+  if (address === ts.ip) return DEV;
+  return ts.peers.some((p) => p.ip === address && p.user === ts.user);
+}
+
+// Capris on your other devices on Tailscale (online, same account), not in her swarm yet
+async function hiveLook() {
+  if (!hive) {
+    hiveFound = [];
+    return;
+  }
+  const ts = hiveTailscale?.ip ? await swarm.tailscale().catch(() => null) : null;
+  const targets = (ts?.peers || []).filter((p) => p.online && p.ip && p.user === ts.user).map((p) => ({ host: p.ip, port: swarm.PORT }));
+  // --dev: other Capris on this PC to look at, "address:port,..."
+  if (DEV && process.env.CAPRI_SWARM_LOOK) {
+    for (const spot of process.env.CAPRI_SWARM_LOOK.split(',')) {
+      const [host, port] = spot.trim().split(/:(?=\d+$)/);
+      if (host && Number(port)) targets.push({ host, port: Number(port) });
+    }
+  }
+  hiveFound = await hive.look(targets).catch(() => []);
+  mainframe?.refresh();
+}
+
+async function hiveJoinTailnet(spot) {
+  const found = hiveFound.find((f) => `${f.host}:${f.port}` === spot);
+  if (!hive || !found) return;
+  hiveError = null;
+  try {
+    await hive.joinTailnet(found.host, found.port);
+    hiveFound = hiveFound.filter((f) => f !== found);
+  } catch (err) {
+    hiveError = err.message;
+  }
 }
 
 async function hiveJoin(text) {
@@ -2125,8 +2189,14 @@ function main() {
     watchPhone();
     syncPhoneChat();
     syncHive();
-    setInterval(() => config.load().swarmOn && syncHive(), 60000);
-    watchUpdates(); // Tailscale installed, signed in, or its address changed
+    // Tailscale installed, signed in, or its address changed; your other PCs' Capris on it; a newer her on one of them
+    setInterval(async () => {
+      if (!config.load().swarmOn) return;
+      await syncHive();
+      await hiveLook();
+      hiveUpgrade();
+    }, 60000);
+    watchUpdates();
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     // a screen plugged in, unplugged, or rearranged: her window fitted again, and she learns of it

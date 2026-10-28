@@ -3,10 +3,12 @@
 // Her swarm: one Capri on several PCs, wherever they are, linked through Tailscale (a private
 // WireGuard network: each device keeps one 100.x.y.z address, whatever network it's on).
 //
-// Each Capri has a key of her own (X25519). Two PCs pair once with a code shown in Mainframe on one
-// and pasted on the other; from then on, every pair shares a key of its own, and everything between
-// them is sealed with it (AES-256-GCM) on top of WireGuard, with a time and a one-time number that
-// can't be played again. A PC that joins learns the rest of the swarm from the one it paired with.
+// Each Capri has a key of her own (X25519). Two PCs pair once: on your Tailscale network, with a
+// click, as Tailscale vouches that both devices are yours (the same account); else with a code shown
+// in Mainframe on one and pasted on the other. From then on, every pair shares a key of its own, and
+// everything between them is sealed with it (AES-256-GCM) on top of WireGuard, with a time and a
+// one-time number that can't be played again. A PC that joins learns the rest of the swarm from the
+// one it paired with.
 // What comes from another PC is only its state (here, locked, how long idle), what its coding agents
 // are doing (for her to tell you where you are), and her shared mind (mind.js): never something to run.
 //
@@ -105,7 +107,8 @@ const same = (a, b) => {
 
 const TAILSCALE = ['tailscale', 'C:\\Program Files\\Tailscale\\tailscale.exe'];
 
-// Tailscale here: { ip, name, peers: [{ name, ip, online }] }, or null (not installed, not signed in)
+// Tailscale here: { ip, name, user, peers: [{ name, ip, online, user }] } (user: the account a device
+// is signed in with), or null (not installed, not signed in)
 async function tailscale() {
   for (const exe of TAILSCALE) {
     const out = await new Promise((resolve) => {
@@ -119,8 +122,9 @@ async function tailscale() {
       return {
         ip: ip4(s.Self?.TailscaleIPs),
         name: s.Self?.HostName || null,
+        user: s.Self?.UserID ?? null,
         state: 'Running',
-        peers: Object.values(s.Peer || {}).map((p) => ({ name: p.HostName, ip: ip4(p.TailscaleIPs), online: Boolean(p.Online) })),
+        peers: Object.values(s.Peer || {}).map((p) => ({ name: p.HostName, ip: ip4(p.TailscaleIPs), online: Boolean(p.Online), user: p.UserID ?? null })),
       };
     } catch {
       return null;
@@ -158,10 +162,11 @@ function cleanEvent(evt) {
 // { locked, idle } (idle: seconds since a key or the mouse); `onChange(state)`: who's where changed;
 // `onPeers(peers)`: the list to save; `onEvent(peer, evt)`: what an agent did on another PC (cleaned).
 // `mind`: her shared mind (mind.js), swapped with each PC as it answers; `onMind(keys, peer)`: what of
-// it changed here. `hosts`: the addresses to listen on.
+// it changed here. `trust(address)`: whether a device at that address is yours (Tailscale says so):
+// it may join without a code. `onJoined(peer)`: one did. `hosts`: the addresses to listen on.
 function createSwarm({
   me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, onEvent = () => {},
-  mind = null, onMind = () => {}, every = 3000, gone = 12000,
+  mind = null, onMind = () => {}, trust = async () => false, onJoined = () => {}, every = 3000, gone = 12000,
 }) {
   const known = new Map(peers.map((p) => [p.id, { ...p }]));
   const keys = new Map(); // id -> shared key
@@ -279,6 +284,39 @@ function createSwarm({
     return reply;
   }
 
+  // `/swarm/tailnet`: another device of yours on Tailscale, joining with a click. Tailscale vouches for
+  // it (the same account as this one); it gets the rest of the swarm back.
+  async function onTailnet(body, remote) {
+    const { id, pub, name, port: theirPort } = body || {};
+    if (typeof pub !== 'string' || nodeId(pub) !== id || id === me.id) throw new SwarmError('badPair');
+    if (!(await trust(remote))) throw new SwarmError('notYours');
+    const fresh = !known.has(id);
+    const others = [...known.values()].filter((p) => p.id !== id).map(record);
+    const peer = record({ id, pub, name, host: remote, port: Number(theirPort) || PORT });
+    known.set(id, peer);
+    saved();
+    if (fresh) {
+      for (const other of others) send(other, 'introduce', [peer]).catch(() => {});
+      onJoined({ id, name: peer.name });
+    }
+    tick();
+    return { id: me.id, pub: me.pub, name: me.name, peers: others };
+  }
+
+  // Joining a Capri on another device of yours, on Tailscale (`host`: its address there): { name }
+  async function joinTailnet(host, theirPort = PORT) {
+    if (!(await trust(host))) throw new SwarmError('notYours'); // only one of your own devices
+    const reply = await post(host, theirPort, '/swarm/tailnet', { id: me.id, pub: me.pub, name: me.name, port });
+    if (typeof reply.pub !== 'string' || nodeId(reply.pub) !== reply.id || reply.id === me.id) throw new SwarmError('badPair');
+    known.set(reply.id, record({ id: reply.id, pub: reply.pub, name: reply.name, host, port: theirPort }));
+    for (const p of reply.peers || []) {
+      if (p?.pub && nodeId(p.pub) === p.id && p.id !== me.id && !known.has(p.id)) known.set(p.id, record(p));
+    }
+    saved();
+    tick();
+    return { name: reply.name };
+  }
+
   // Joining through another PC's code: { name } of that PC, or a SwarmError
   async function join(text) {
     const inv = readInvite(text);
@@ -384,18 +422,25 @@ function createSwarm({
       res.writeHead(code, { 'content-type': 'application/json' });
       res.end(JSON.stringify(json));
     };
-    if (req.method !== 'POST' || !['/swarm', '/swarm/pair'].includes(req.url)) return reply(404, { error: 'notFound' });
+    if (req.method !== 'POST' || !['/swarm', '/swarm/pair', '/swarm/tailnet', '/swarm/hello'].includes(req.url)) return reply(404, { error: 'notFound' });
     let text = '';
     req.setEncoding('utf8');
     req.on('data', (c) => {
       text += c;
       if (text.length > MAX_BODY) req.destroy();
     });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
-        const body = JSON.parse(text);
+        const body = JSON.parse(text || '{}');
         const remote = String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
-        reply(200, req.url === '/swarm' ? onMessage(body, remote) : onPair(body, remote));
+        const routes = {
+          '/swarm': () => onMessage(body, remote),
+          '/swarm/pair': () => onPair(body, remote),
+          '/swarm/tailnet': () => onTailnet(body, remote),
+          // a Capri here, for your other devices looking for her: who, and which version
+          '/swarm/hello': () => ({ capri: true, id: me.id, name: me.name, version: me.version || null }),
+        };
+        reply(200, await routes[req.url]());
       } catch (err) {
         reply(err instanceof SwarmError ? 403 : 400, { error: err instanceof SwarmError ? err.message : 'bad' });
       }
@@ -459,7 +504,18 @@ function createSwarm({
     }
   }
 
-  return { start, stop, join, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward };
+  // Capris on these addresses (your other devices) not in the swarm yet: [{ host, port, id, name, version }]
+  async function look(targets) {
+    const found = await Promise.all(targets.map(async ({ host, port: p = PORT }) => {
+      const hi = await post(host, p, '/swarm/hello', {}, 2500).catch(() => null);
+      return hi?.capri && typeof hi.id === 'string' && hi.id !== me.id && !known.has(hi.id)
+        ? { host, port: p, id: hi.id, name: String(hi.name || host).slice(0, 60), version: hi.version || null }
+        : null;
+    }));
+    return found.filter(Boolean);
+  }
+
+  return { start, stop, join, joinTailnet, look, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward };
 }
 
 module.exports = { createSwarm, identity, nodeId, pairKey, seal, open, invite, readInvite, tailscale, cleanEvent, SwarmError, PORT, hostName: () => os.hostname() };

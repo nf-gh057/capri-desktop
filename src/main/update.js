@@ -134,7 +134,16 @@ function handOff(dir, from, relaunch) {
   });
 }
 
+// A version as x.y.z-n (this fork's: upstream's, then our commit on it), newer than another?
+function newer(a, b) {
+  const parts = (v) => String(v || '').split(/[.-]/).map((n) => Number(n) || 0);
+  const x = parts(a);
+  const y = parts(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+}
+
 // back to the commit she was on (when what comes after `apply` can't go on)
 const rollback = (dir, from) => git(dir, ['reset', '--keep', from]);
 
-module.exports = { check, blocked, apply, install, finish, handOff, rollback };
+module.exports = { check, blocked, apply, install, finish, handOff, rollback, newer };

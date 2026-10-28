@@ -202,3 +202,30 @@ test('her mind goes along the swarm: an island catches up when it is back, and t
   assert.equal(minds.b.get('persona'), 'calm');
   assert.ok(told.some(([who, from, keys]) => who === 'laptop' && from === 'desk' && keys.includes('persona')));
 });
+
+test('on Tailscale, a device of yours joins with a click; one that is not yours does not', async (t) => {
+  const yours = new Set(['127.0.0.1']); // stands for "the same Tailscale account"
+  const joined = [];
+  const a = node(t, 'desk', 49271, { trust: async (address) => yours.has(address), onJoined: (p) => joined.push(p.name) });
+  const b = node(t, 'laptop', 49272, { trust: async (address) => yours.has(address) });
+  const c = node(t, 'tablet', 49273, { trust: async (address) => yours.has(address) });
+  await Promise.all([a.s.start(), b.s.start(), c.s.start()]);
+  // found: the Capris on the addresses looked at, not already in her swarm, not itself
+  const found = await b.s.look([{ host: '127.0.0.1', port: 49271 }, { host: '127.0.0.1', port: 49272 }, { host: '127.0.0.1', port: 49299 }]);
+  assert.deepEqual(found.map((f) => f.name), ['desk']);
+  assert.deepEqual(await b.s.joinTailnet('127.0.0.1', 49271), { name: 'desk' });
+  assert.deepEqual(joined, ['laptop']);
+  assert.deepEqual(a.peers().map((p) => p.name), ['laptop']);
+  assert.deepEqual(await b.s.look([{ host: '127.0.0.1', port: 49271 }]), []); // already in it
+  // the tablet joins the desk: the laptop learns of it
+  await c.s.joinTailnet('127.0.0.1', 49271);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.deepEqual(b.peers().map((p) => p.name).sort(), ['desk', 'tablet']);
+  // not yours: refused on both sides
+  yours.clear();
+  const d = node(t, 'stranger', 49274, { trust: async () => true });
+  await d.s.start();
+  await assert.rejects(d.s.joinTailnet('127.0.0.1', 49271), { message: 'notYours' }); // the desk says no
+  await assert.rejects(b.s.joinTailnet('127.0.0.1', 49274), { message: 'notYours' }); // the laptop won't even ask
+  assert.equal(a.peers().length, 2);
+});

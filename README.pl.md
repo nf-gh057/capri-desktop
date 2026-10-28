@@ -518,8 +518,15 @@ Jedna Capri na wszystkich twoich komputerach: w domu, w pracy, na laptopie w sie
 [Tailscale](https://tailscale.com), prywatną sieć (WireGuard), w której każde twoje urządzenie ma jeden adres
 (`100.x.y.z`) niezależnie od sieci i samo przechodzi przez domowe routery i sieci komórkowe. Zainstaluj go i zaloguj się
 na każdym komputerze tym samym kontem (do użytku prywatnego za darmo; `install.ps1 -Tailscale` go instaluje). Potem
-w Mainframe › **Rój**: włącz go, na jednym komputerze **Dodaj komputer**, a linijkę, którą pokaże, wklej w **Dołącz** na
-drugim (działa raz, przez 10 minut). Komputer, który dołącza, poznaje resztę roju od tego, do którego dołączył.
+w Mainframe › **Rój** włącz go na każdym komputerze: pod **Twoje urządzenia z Capri** każdy pokazuje pozostałe, które
+znajdzie w twojej sieci Tailscale, a **Dołącz** je łączy, bez przepisywania czegokolwiek (Tailscale poświadcza, że oba
+są twoje: to samo konto; urządzenie z innego konta zostaje tam odrzucone). Dla urządzenia z innego konta: na jednym
+**Dodaj komputer**, a linijkę, którą pokaże, wklej w **Dołącz** na drugim (działa raz, przez 10 minut). Komputer,
+który dołącza, poznaje resztę roju od tego, do którego dołączył.
+
+Zainstalowany skryptem rój sam się aktualizuje: gdy jeden komputer ma nowszą Capri, pozostałe sprawdzają GitHuba
+i aktualizują się, gdy tylko nie siedzisz przy nich (albo nie używasz ich od minuty), nigdy w trakcie odpowiedzi
+(**Aktualizuj razem z rojem**, domyślnie włączone).
 
 Co kilka sekund każdy komputer mówi pozostałym, czy ma zablokowany ekran i ile minęło od klawiatury lub myszy. Capri jest
 na odblokowanym, którego używałeś ostatnio (inny musi być wyraźnie świeższy, żeby przeskoczyła), a na pozostałych chowa

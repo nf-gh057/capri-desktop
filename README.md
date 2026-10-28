@@ -515,8 +515,15 @@ One Capri on all your PCs: at home, at work, a laptop on mobile data. They link 
 [Tailscale](https://tailscale.com), a private network (WireGuard) where each of your devices keeps one address
 (`100.x.y.z`) whatever network it's on, and gets through home routers and mobile networks by itself. Install it and sign
 in on each PC with the same account (free for personal use; `install.ps1 -Tailscale` puts it in). Then in Mainframe ›
-**Swarm**: turn it on, **Add a PC** on one, and paste the line it shows into **Join** on the other (it works once, for
-10 minutes). A PC that joins learns the rest of the swarm from the one it joined.
+**Swarm**, turn it on on each PC: under **Your devices with Capri**, each one lists the others it finds on your
+Tailscale network, and **Join** links them, nothing to copy over (Tailscale vouches that both are yours: the same
+account; one on another account is refused there). For a device on another account: **Add a PC** on one, and paste
+the line it shows into **Join** on the other (it works once, for 10 minutes). A PC that joins learns the rest of the
+swarm from the one it joined.
+
+Installed with the script, the swarm keeps itself up to date: when one PC runs a newer Capri, the others look on
+GitHub and update as soon as you're not at them (or not using them for a minute), never in the middle of an answer
+(**Update along with the swarm**, on by default).
 
 Every few seconds each PC tells the others whether its screen is locked and how long since a key or the mouse. She's on
 the unlocked one you used last (another must be clearly fresher for her to hop), and put away into her biochip on the
