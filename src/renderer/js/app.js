@@ -707,6 +707,12 @@ async function boot() {
         capri.wake();
         panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.back), { pc: cmd.from || '…' }), hold: 3000 });
         break;
+      case 'updateFound': // a new version of her on GitHub (said once per version)
+        if (!capri.stowed) panel.say({ kind: 'info', face: 'look', line: fmt(pick(brain.t.update.found), { version: cmd.version || '…' }), hold: 7000 });
+        break;
+      case 'updated': // she's just been updated
+        if (!capri.stowed) panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.update.done), { version: cmd.version || '…' }), hold: 6000 });
+        break;
       case 'remindIn': // --dev: a reminder `ms` from now
         reminders.add(Date.now() + (cmd.ms ?? 3000), cmd.text ?? '');
         break;

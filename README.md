@@ -25,6 +25,8 @@ glitches, comments on every action, comes to find you when it needs your permiss
 > - **Polish**: she speaks it, and understands it in her chat (reminders, music, files...).
 > - **A one-line installer** for Windows that also puts in what's missing (winget included): see "Install".
 > - **Versions** `x.y.z-n`: mochiiwuff's version, then which of this fork's commits on top of it (`0.4.4-2`).
+> - **Her own updates**: installed with the script, she looks for a new version on GitHub, tells you, and updates
+>   herself on your click (Mainframe › Updates), or while you're away if you say so.
 
 ![Capri telling you Claude is done](docs/done.png)
 
@@ -324,7 +326,12 @@ It puts in what she needs and then Capri herself, asking about the optional part
 - **Capri** from this fork in `%LOCALAPPDATA%\Capri\capri-desktop`, with a Start menu and desktop shortcut, then she
   starts.
 
-Run it again to bring her up to date. With options: `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex`
+Run it again to bring her up to date, or let her do it: Mainframe › **Updates** shows a new version on GitHub, what
+changed, and **Update and restart** (she looks a minute after starting and every 6 hours, and tells you once). Only a
+fast-forward of her branch: changes of yours in her folder, or commits GitHub doesn't have, and she leaves it to you.
+Her packages are installed again only when they changed, by a small helper once she's closed (her own Electron is among
+them), and if that fails she goes back to the version before. You can also let her update herself once you've been away
+from the PC a quarter of an hour. With options: `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex`
 (no questions: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Tailscale`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). In a
 clone, double-click **`install.cmd`** instead: it installs that clone in place. `install.cmd -Uninstall` takes her
 hooks out of Claude Code and Codex and removes her shortcuts and folder (Git, Node.js and Ollama stay).
@@ -591,6 +598,8 @@ src/main/                Electron: full-screen transparent click-through window,
   phone.js               her messages to your phone, through your own Telegram bot, and her chat there
   totp.js                the code from your authenticator app that unlocks her chat on Telegram
   swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
+  update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
+scripts/update-finish.js her packages after an update, once she's closed, and her started again (back if it fails)
 src/renderer/js/
   sprite.js              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
   acting.js              the exposure sheets: every move, drawing by drawing
@@ -627,7 +636,8 @@ can click an item of it, `/debug/mainframe` opens Mainframe, acts in it and capt
 acts as if the network were gone, with `CAPRI_SCREENS=2` she cuts your screen in two, and `CAPRI_TELEGRAM_API` points
 her phone at a Telegram of your own. A second Capri on the same PC, for her swarm: `CAPRI_PROFILE=b` (settings of its
 own), with `CAPRI_PORT`, `CAPRI_SWARM_PORT` and `CAPRI_TOKEN_FILE` of its own; `/debug/swarm` makes her PC locked or
-idle as you say.
+idle as you say. In `--dev` (a developer's clone) she only tells of a new version: `CAPRI_UPDATE_DEV=1` lets her update
+that clone too.
 `npm run dist` builds the Windows installer in `dist/`.
 
 ## Credits and rights

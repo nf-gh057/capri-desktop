@@ -44,6 +44,10 @@ const DEFAULTS = {
   swarm: null,       // her swarm (swarm.js): { id, pub, key (sealed), peers: [{ id, name, pub, host, port }] }
   swarmOn: false,    // she's one Capri on all your PCs, on the one you're at (through Tailscale)
   swarmName: '',     // this PC's name in her swarm ('': its Windows name)
+  updateCheck: true, // she looks for a new version of herself on GitHub (her git clone's origin)
+  updateAuto: false, // and updates herself once you've been away a while (else: on your click)
+  updateTold: null,  // the new version she last told you about (its commit), so she says it once
+  updatedFrom: null, // the version she was before updating, until she's said she's new
   phoneOn: false,    // she writes to your phone when something happens while you're away
   phoneAway: 5,      // away: this many minutes without a key or the mouse, or the screen locked (0: always)
   phoneDetail: 'line', // what she writes: 'line' (her words and the project) or 'quote' (with a bit of what was said)

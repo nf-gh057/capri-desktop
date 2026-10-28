@@ -130,7 +130,7 @@ async function tailscale() {
 
 // --- the swarm ---------------------------------------------------------------------------------
 
-// `me`: { id, pub, key, name }; `peers`: [{ id, name, pub, host, port }]; `here()`: this PC now,
+// `me`: { id, pub, key, name, version }; `peers`: [{ id, name, pub, host, port }]; `here()`: this PC now,
 // { locked, idle } (idle: seconds since a key or the mouse); `onChange(state)`: who's where changed;
 // `onPeers(peers)`: the list to save. `hosts`: the addresses to listen on.
 function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, every = 3000, gone = 12000 }) {
@@ -184,7 +184,7 @@ function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here,
 
   function hereNow() {
     const h = here();
-    return { name: me.name, locked: Boolean(h.locked), idle: Math.max(0, Number(h.idle) || 0), active };
+    return { name: me.name, version: me.version || null, locked: Boolean(h.locked), idle: Math.max(0, Number(h.idle) || 0), active };
   }
 
   // what came in, sealed: its answer (sealed too)
@@ -266,7 +266,8 @@ function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here,
 
   function heard(peer, body) {
     const now = Date.now();
-    status.set(peer.id, { seen: now, locked: Boolean(body?.locked), idle: Math.max(0, Number(body?.idle) || 0), at: now });
+    const version = typeof body?.version === 'string' ? body.version.slice(0, 40) : null;
+    status.set(peer.id, { seen: now, locked: Boolean(body?.locked), idle: Math.max(0, Number(body?.idle) || 0), at: now, version });
     if (typeof body?.name === 'string' && body.name && body.name !== peer.name) {
       peer.name = body.name.slice(0, 60);
       saved();
@@ -325,7 +326,7 @@ function createSwarm({ me, peers = [], port = PORT, hosts = ['127.0.0.1'], here,
       peers: [...known.values()].map((p) => {
         const s = status.get(p.id);
         const online = Boolean(s && now - s.seen <= gone);
-        return { id: p.id, name: p.name, host: p.host, online, locked: online && s.locked, active: p.id === active };
+        return { id: p.id, name: p.name, host: p.host, online, locked: online && s.locked, active: p.id === active, version: s?.version || null };
       }),
     };
   }

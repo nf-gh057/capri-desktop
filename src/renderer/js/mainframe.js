@@ -189,6 +189,23 @@ function phoneChat(p, t) {
     row(null, button(t.phoneTotpRemove, 'phoneTotpRemove', null, { class: 'grow' }))];
 }
 
+// Her updates: her version, what's new on GitHub, and updating (on a click, or while you're away)
+function updates(s, t) {
+  const u = s.update;
+  return section(t.secUpdate,
+    el('p', { class: 'headline' }, `v${u.version}`),
+    u.remote && el('p', { class: 'note reminder' }, u.remote),
+    u.note && el('p', { class: 'note' }, u.note),
+    u.changes.map((title) => el('p', { class: 'note reminder' }, `• ${title}`)),
+    u.why && el('p', { class: 'note is-error' }, u.why),
+    u.can && row(null, button(t.updateApply, 'updateApply', null, { class: 'grow is-on' })),
+    !u.packaged && [
+      row(null, u.at && el('span', { class: 'note grow' }, u.at), button(t.updateCheckNow, 'updateCheckNow')),
+      check(t.updateCheck, u.check, 'updateCheck'),
+      u.check && check(t.updateAuto, u.auto, 'updateAuto'),
+    ]);
+}
+
 // Her swarm: this PC, Tailscale, your other PCs with where she is, and adding or joining one
 function swarm(s, t) {
   const w = s.swarm;
@@ -241,7 +258,7 @@ function draw(next) {
   document.getElementById('version').textContent = `v${state.version}`;
   const top = sections.scrollTop; // drawn again in place, not back at the top
   const typed = [...sections.querySelectorAll('[data-keep]')].map((input) => [input.dataset.keep, input.value, input === document.activeElement]);
-  sections.replaceChildren(brain(state, t), capri(state, t), watch(state, t), phone(state, t), swarm(state, t), system(state, t));
+  sections.replaceChildren(brain(state, t), capri(state, t), watch(state, t), phone(state, t), swarm(state, t), updates(state, t), system(state, t));
   for (const [keep, value, focused] of typed) {
     const input = sections.querySelector(`[data-keep="${keep}"]`);
     if (!input) continue;

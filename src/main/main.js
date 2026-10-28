@@ -25,6 +25,7 @@ const { createMainframe } = require('./mainframe');
 const phone = require('./phone');
 const totp = require('./totp');
 const swarm = require('./swarm');
+const update = require('./update');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -54,6 +55,11 @@ let hiveError = null;
 let hiveInvite = null;    // { text, until }: a code for another PC, shown in Mainframe
 let screenLocked = false;
 let hiveFake = null;      // --dev: { locked, idle } instead of this PC's (two Capris on one PC)
+// her own updates (update.js): what GitHub has, and what she's doing about it
+let updateInfo = null;
+let updateBusy = null;    // 'checking' or 'applying'
+let updateError = null;
+let updateAt = 0;         // when she last looked
 // the watcher only speaks when something changes: the overlay asks for this when it (re)loads
 let lastWindows = null;
 let chatModels = null; // the provider's models, as last seen (null: not reached)
@@ -695,6 +701,7 @@ function mainframeState() {
       hours: String(phoneHours(cfg)),
       open: phoneOpen ? t.phoneOpenUntil(phoneTime(phoneOpen.until, cfg)) : null,
     },
+    update: updateState(cfg, t),
     swarm: {
       on: Boolean(cfg.swarmOn),
       name: hiveName(cfg),
@@ -704,7 +711,8 @@ function mainframeState() {
       error: hiveError && (t[`swarmErr${hiveError[0].toUpperCase()}${hiveError.slice(1)}`] || hiveError),
       peers: hive ? hive.state().peers.map((p) => ({
         id: p.id, name: p.name,
-        status: p.active ? t.swarmHere : !p.online ? t.swarmOffline : p.locked ? t.swarmLocked : t.swarmOnline,
+        status: [p.active ? t.swarmHere : !p.online ? t.swarmOffline : p.locked ? t.swarmLocked : t.swarmOnline,
+          p.version && p.version !== app.getVersion() ? `v${p.version}` : ''].filter(Boolean).join(' · '), // another version: shown
       })) : (cfg.swarm?.peers || []).map((p) => ({ id: p.id, name: p.name, status: t.swarmOff })),
       here: hive ? hive.state().here : true,
     },
@@ -789,6 +797,9 @@ async function mainframeAct(name, value) {
       break;
     case 'phoneHours': if (one(['1', '4', '8'])) updateConfig({ phoneUnlockHours: Number(value) }); break;
     case 'phoneLock': phoneLock('phoneBotLockedNow'); break;
+    case 'updateCheckNow': await checkUpdate(); break;
+    case 'updateApply': applyUpdate(); break; // she restarts when it's done
+    case 'updateCheck': case 'updateAuto': updateConfig({ [name]: Boolean(value) }); break;
     case 'swarmOn': updateConfig({ swarmOn: Boolean(value) }); await syncHive(); break;
     case 'swarmName': if (typeof value === 'string' && value.trim()) { updateConfig({ swarmName: value.trim().slice(0, 40) }); await syncHive(true); } break;
     case 'swarmInvite': hiveInviteNew(); break;
@@ -1518,6 +1529,107 @@ function registerIpc() {
 // Only in --dev: lets scripts drive the overlay and grab frames of it (no desktop content, just our window).
 const testWins = new Map(); // name -> test window
 
+// --- Her updates ------------------------------------------------------------------------------------
+// Installed with install.ps1, she's a git clone: she looks at her branch on GitHub (her `origin`) a
+// minute after starting and every 6 hours, tells you once about a new version, and updates herself
+// when you click (or, if you said so, once you've been away a quarter of an hour). A developer's clone
+// (--dev) is only told: they pull themselves.
+
+const UPDATE_EVERY = 6 * 60 * 60 * 1000;
+// her packages failed after the last update and she's back where she was (update-finish.js says so
+// once, to this start only: not to the next one)
+const updateRolledBack = process.env.CAPRI_UPDATE_FAILED === '1';
+delete process.env.CAPRI_UPDATE_FAILED;
+const updateLocked = () => DEV && process.env.CAPRI_UPDATE_DEV !== '1';
+
+async function checkUpdate() {
+  if (app.isPackaged || updateBusy) return updateInfo;
+  updateBusy = 'checking';
+  mainframe?.refresh();
+  try {
+    updateInfo = await update.check(ROOT);
+    updateAt = Date.now();
+    updateError = null;
+  } catch (err) {
+    updateError = err.output || err.message;
+  }
+  updateBusy = null;
+  // a new version: she says so once (per version)
+  if (updateInfo?.state === 'behind' && updateInfo.theirs !== config.load().updateTold) {
+    updateConfig({ updateTold: updateInfo.theirs });
+    sendCommand('updateFound', { version: updateInfo.version || '' });
+  }
+  mainframe?.refresh();
+  return updateInfo;
+}
+
+async function applyUpdate() {
+  if (updateBusy || updateLocked()) return;
+  const info = await checkUpdate();
+  if (info?.state !== 'behind' || update.blocked(info)) return;
+  updateBusy = 'applying';
+  mainframe?.refresh();
+  let done = null;
+  try {
+    done = await update.apply(ROOT, info);
+    updateConfig({ updatedFrom: app.getVersion() });
+    // her packages changed: a helper installs them once she's closed, then starts her again
+    if (done.install) await update.handOff(ROOT, done.from, [process.execPath, ...process.argv.slice(1)]);
+    else app.relaunch();
+    app.quit();
+  } catch (err) {
+    if (done) await update.rollback(ROOT, done.from).catch(() => {});
+    updateConfig({ updatedFrom: null });
+    updateBusy = null;
+    updateError = err.output || err.message;
+    mainframe?.refresh();
+  }
+}
+
+// every 10 minutes: time to look again, and (if you said so) to update while you're away
+function watchUpdates() {
+  const cfg = config.load();
+  if (cfg.updatedFrom && !updateRolledBack) setTimeout(() => sendCommand('updated', { version: app.getVersion(), from: cfg.updatedFrom }), 8000);
+  if (cfg.updatedFrom) updateConfig({ updatedFrom: null });
+  const tick = async () => {
+    const now = config.load();
+    if (now.updateCheck === false || app.isPackaged) return;
+    if (Date.now() - updateAt > UPDATE_EVERY) await checkUpdate();
+    const away = ['idle', 'locked'].includes(powerMonitor.getSystemIdleState(15 * 60));
+    if (now.updateAuto && away && updateInfo?.state === 'behind' && !update.blocked(updateInfo) && !updateLocked() && !chats.size && !phoneTurns.size) applyUpdate();
+  };
+  setTimeout(tick, 60000);
+  setInterval(tick, 10 * 60 * 1000);
+}
+
+// what Mainframe shows of it
+function updateState(cfg, t) {
+  const info = updateInfo;
+  const why = update.blocked(info);
+  const note = app.isPackaged ? t.updatePackaged
+    : updateBusy === 'checking' ? t.updateChecking
+    : updateBusy === 'applying' ? t.updateWorking
+    : updateError ? t.updateFailed(updateError)
+    : !info ? ''
+    : { notGit: t.updateNotGit, offline: t.updateOffline, current: t.updateCurrent, ahead: t.updateAhead }[info.state]
+      || t.updateFound(info.version || '?', info.behind);
+  return {
+    version: app.getVersion(),
+    check: cfg.updateCheck !== false,
+    auto: Boolean(cfg.updateAuto),
+    packaged: app.isPackaged,
+    note,
+    changes: ['behind', 'diverged'].includes(info?.state) ? info.changes.slice(0, 6).map((c) => c.title) : [],
+    // her packages failed the last time: she went back to where she was (update-finish.js)
+    why: updateRolledBack && info?.state === 'behind' ? t.updateFailed(t.updateRolledBack)
+      : why === 'dirty' ? t.updateWhyDirty : why === 'branch' ? t.updateWhyBranch(info.branch) : why === 'diverged' ? t.updateWhyDiverged
+      : info?.state === 'behind' && updateLocked() ? t.updateWhyDev : null,
+    can: info?.state === 'behind' && !why && !updateLocked() && !updateBusy,
+    remote: info?.remote ? info.remote.replace(/^https:\/\/(www\.)?github\.com\//, '').replace(/\.git$/, '') : null,
+    at: updateAt ? t.updateChecked(phoneTime(updateAt, cfg)) : null,
+  };
+}
+
 // --- Her swarm --------------------------------------------------------------------------------------
 // One Capri on all your PCs (swarm.js): each one tells the others whether its screen is locked and
 // how long since a key or the mouse; she's on the one you're at, put away on the others. A PC alone
@@ -1554,7 +1666,7 @@ async function syncHive(fresh = false) {
   if (want && !hive) {
     const id = hiveIdentity();
     const link = swarm.createSwarm({
-      me: { id: id.id, pub: id.pub, key: id.key, name: hiveName() },
+      me: { id: id.id, pub: id.pub, key: id.key, name: hiveName(), version: app.getVersion() },
       peers: config.load().swarm?.peers || [],
       port: HIVE_PORT,
       hosts,
@@ -1806,7 +1918,8 @@ function main() {
     watchPhone();
     syncPhoneChat();
     syncHive();
-    setInterval(() => config.load().swarmOn && syncHive(), 60000); // Tailscale installed, signed in, or its address changed
+    setInterval(() => config.load().swarmOn && syncHive(), 60000);
+    watchUpdates(); // Tailscale installed, signed in, or its address changed
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     // a screen plugged in, unplugged, or rearranged: her window fitted again, and she learns of it

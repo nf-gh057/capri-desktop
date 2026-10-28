@@ -25,6 +25,8 @@ glitchuje, komentuje każdą akcję, przychodzi po ciebie, kiedy trzeba twojej z
 > - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…).
 > - **Instalator w jednej linijce** dla Windows, który dokłada też to, czego brakuje (łącznie z wingetem): patrz „Instalacja”.
 > - **Wersje** `x.y.z-n`: wersja mochiiwuff, a po myślniku numer commitu tego forka na niej (`0.4.4-2`).
+> - **Sama się aktualizuje**: zainstalowana skryptem szuka nowej wersji na GitHubie, mówi ci o niej i aktualizuje się
+>   po twoim kliknięciu (Mainframe › Aktualizacje) albo, jeśli tak ustawisz, kiedy nie ma cię przy komputerze.
 
 ![Capri mówi ci, że Claude skończył](docs/done.png)
 
@@ -324,7 +326,12 @@ Dokłada to, czego potrzebuje, a potem samą Capri, pytając o części opcjonal
 - **Tailscale**, jeśli chcesz (domyślnie nie): to, co łączy ją na wszystkich twoich komputerach, do roju.
 - **Capri** z tego forka w `%LOCALAPPDATA%\Capri\capri-desktop`, ze skrótem w menu Start i na pulpicie, a potem ją uruchamia.
 
-Uruchom go jeszcze raz, żeby ją zaktualizować. Z opcjami:
+Uruchom go jeszcze raz, żeby ją zaktualizować, albo zostaw to jej: Mainframe › **Aktualizacje** pokazuje nową wersję
+z GitHuba, co się zmieniło, i **Zaktualizuj i uruchom ponownie** (sprawdza minutę po starcie i co 6 godzin, mówi ci raz).
+Tylko przewinięcie jej gałęzi do przodu: gdy masz zmiany w jej folderze albo commity, których GitHub nie ma, zostawia to
+tobie. Pakiety instaluje od nowa tylko wtedy, gdy się zmieniły, przez małego pomocnika, kiedy jest już zamknięta (jej
+własny Electron jest wśród nich), a gdy to się nie uda, wraca do poprzedniej wersji. Możesz też pozwolić jej
+aktualizować się samej, kiedy nie ma cię przy komputerze od kwadransa. Z opcjami:
 `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex`
 (bez pytań: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Tailscale`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). W sklonowanym
 repozytorium kliknij dwa razy **`install.cmd`**: instaluje ten klon na miejscu. `install.cmd -Uninstall` wyjmuje jej hooki
@@ -598,6 +605,8 @@ src/main/                Electron: pełnoekranowe przezroczyste okno przepuszcza
   phone.js               jej wiadomości na twój telefon, przez twojego własnego bota na Telegramie, i rozmowa tam
   totp.js                kod z aplikacji uwierzytelniającej, który odblokowuje rozmowę przez Telegram
   swarm.js               rój: parowanie komputerów, szyfrowane wiadomości między nimi, przy którym jesteś
+  update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
+scripts/update-finish.js pakiety po aktualizacji, kiedy jest zamknięta, i ponowne uruchomienie (powrót, gdy się nie uda)
   files.js               szukanie twoich plików (indeks wyszukiwania Windows), zrzuty ekranu
 src/renderer/js/
   sprite.js              shader WebGL: przechył głowy, rozkładanie grzywy, siedzenie, smużenie, powidoki, kolory, glitch
@@ -628,7 +637,8 @@ kursorem nad oknem Capri, bez ruszania prawdziwego, `/debug/type` pisze w jej cz
 kliknąć jego pozycję, `/debug/mainframe` otwiera Mainframe, coś w nim robi i robi mu zrzut). Z `CAPRI_OFFLINE=1` zachowuje się,
 jakby nie było sieci, z `CAPRI_SCREENS=2` dzieli twój ekran na dwa, a `CAPRI_TELEGRAM_API` kieruje jej telefon do twojego
 własnego Telegrama. Druga Capri na tym samym PC, do roju: `CAPRI_PROFILE=b` (własne ustawienia), z własnymi
-`CAPRI_PORT`, `CAPRI_SWARM_PORT` i `CAPRI_TOKEN_FILE`; `/debug/swarm` udaje, że jej PC jest zablokowany albo bezczynny.
+`CAPRI_PORT`, `CAPRI_SWARM_PORT` i `CAPRI_TOKEN_FILE`; `/debug/swarm` udaje, że jej PC jest zablokowany albo bezczynny. W trybie `--dev` (klon programisty) tylko mówi o nowej
+wersji: `CAPRI_UPDATE_DEV=1` pozwala jej zaktualizować także taki klon.
 `npm run dist` buduje instalator Windows w `dist/`.
 
 ## Autorzy i prawa

@@ -95,7 +95,12 @@ Wspólne dla wszystkich etapów:
   konta, które da się przejąć zdalnie. Do zadań z narzędziami (jak etap 3 Telegrama): potwierdzenie odciskiem palca
   (passkey, WebAuthn) zamiast kodu.
 
-## Aktualizacje: Capri sama sprawdza, czy na GitHubie jest nowa wersja
+## Aktualizacje: Capri sama sprawdza, czy na GitHubie jest nowa wersja (zrobione: `src/main/update.js`, Mainframe › AKTUALIZACJE)
+
+Zrobione tak: `git fetch` gałęzi z `origin` (bez osobnego czytania `package.json` przez HTTP); pakiety od nowa tylko
+gdy zmieniły się zależności (sam numer wersji w `package-lock.json` się nie liczy), przez `scripts/update-finish.js`
+uruchamiany Node.js z systemu po zamknięciu Capri; tryb automatyczny po 15 min nieobecności. Zostało: zmiana
+repozytorium z Mainframe (dziś: `origin` klonu, ustawiany przez `install.ps1 -Repo`).
 
 Capri zainstalowana skryptem `install.ps1` to klon gita (`%LOCALAPPDATA%\Capri\capri-desktop`), więc może się
 zaktualizować tak jak ponowne uruchomienie instalatora: `git pull` i pakiety.
@@ -117,4 +122,4 @@ zaktualizować tak jak ponowne uruchomienie instalatora: `git pull` i pakiety.
   czy inny komputer roju.
 - Rój: komputery mówią sobie swoją wersję; Mainframe pokazuje, który jest starszy, a różne wersje protokołu roju nie
   psują połączenia (komputer ze starszą wersją dostaje informację, że trzeba go zaktualizować).
-- Capri z instalatora autora (`Capri-Setup-x.y.z.exe`, nie klon) tylko informuje o nowej wersji i odsyła do Releases.
+- Capri z instalatora oryginalnego projektu (`Capri-Setup-x.y.z.exe`, nie klon) tylko informuje o nowej wersji i odsyła do Releases.
