@@ -1,10 +1,26 @@
-**English** · [Français](README.fr.md)
+**English** · [Polski](README.pl.md)
 
 # Capri
 
 Capri, the *Project Capricorn* construct from Cyberpunk: Edgerunners season 2, lives on your desktop
 and tells you what your coding AI is up to: **Claude Code**, **Codex** or **Antigravity**. She teleports,
 glitches, comments on every action, comes to find you when it needs your permission, and loses it when the job is done.
+
+> **This is a fork** of [mochiiwuff/capri-desktop](https://github.com/mochiiwuff/capri-desktop), kept up to date with
+> it. On top of everything below, it adds:
+>
+> - **Codex as her brain**: her chat can run on Codex (your ChatGPT plan) through one `codex app-server` that stays
+>   up, her words streaming in as they come, with how long Codex thinks (low, medium, high) picked in Mainframe.
+>   With Claude Code or Codex answering, her own powers (apps, sites, music, files) are yours to turn on or off.
+> - **Mainframe**, her settings window: everything in her menu on one page, and what's only set up there (her phone,
+>   what her chat shows). Right-click her › **Settings…**.
+> - **Messages to your phone** through a Telegram bot of your own: when Claude or Codex needs you, finishes or crashes
+>   while you're away from the PC, and her evening report. See "What leaves your machine".
+> - **A brain without the network**: with Ollama and a model on your PC, she keeps thinking when the network goes
+>   (see "No network?" below).
+> - **Polish**: she speaks it, and understands it in her chat (reminders, music, files...).
+> - **A one-line installer** for Windows that also puts in what's missing (winget included): see "Install".
+> - **Versions** `x.y.z-n`: mochiiwuff's version, then which of this fork's commits on top of it (`0.4.4-2`).
 
 ![Capri telling you Claude is done](docs/done.png)
 
@@ -164,6 +180,13 @@ itself: your messages go to `claude -p` in the folder you pick, continuing one c
 does. In that last one, permission mode `default` only lets it read (nobody is there to say yes); `acceptEdits` lets it
 edit files without asking. **Forget our conversations** clears what she remembers of your chats.
 
+Or **Codex** (signed in with your ChatGPT plan): one `codex app-server` runs while you chat (started when her chat
+opens, closed after 15 minutes unused), so there's no new Codex for every message and her words show up as they come.
+It works in the folder you pick, read-only or allowed to edit (`workspace-write`), and remembers the conversation across
+restarts. **Codex reasoning** (low, medium, high) trades speed for thought: low answers in a couple of seconds. With
+Claude Code or Codex answering, **Her powers with an agent** decides whether she still opens apps, sites, music and
+files herself (off, the agent does things its own way); reminders, your name and "remember this" work either way.
+
 **No network?** With her brain online (Codex, Claude Code, a service with a key, an Ollama cloud model), losing the
 network would leave her without a thought. **Install [Ollama](https://ollama.com) with a model on your PC** (gemma3 is a
 good pick): then, with no network, a model on your PC answers in her place, as her, in a narrower way (no Codex or
@@ -277,16 +300,40 @@ own. You can choose another one in her menu.
 
 ## Install
 
-### Quick start (Windows, no coding)
+### Quick start (Windows): this fork, in one line
 
-1. Download **`Capri-Setup-x.y.z.exe`** from the [latest release](https://github.com/mochiiwuff/capri-desktop/releases/latest)
-   and run it. It installs for your user only (no admin rights), adds a desktop shortcut and starts Capri.
-   You don't need Node.js or anything else.
-2. The installer isn't signed (a code-signing certificate costs money), so Windows SmartScreen may say
-   "Windows protected your PC": click **More info**, then **Run anyway**.
-3. Capri shows up and introduces herself. Click **Plug me in**: that connects her to Claude Code.
-4. Close Claude Code completely and open it again (it reads its hooks when a session starts). As soon as Claude does
+In PowerShell (Start › type `powershell` › Enter):
+
+```powershell
+irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1 | iex
+```
+
+It puts in what she needs and then Capri herself, asking about the optional parts:
+
+- **winget**, Windows' package manager, where it's missing (Windows LTSC, Server, Sandbox): through Microsoft's own
+  WinGet module, else straight from its release on GitHub.
+- **Git** and **Node.js** 20 or newer, if they aren't there (Node.js may ask for admin rights while it installs).
+- **Ollama with a model** (gemma3, about 5 GB in all; yes by default): her brain on your PC, and what keeps her thinking
+  without the network.
+- **Codex** or **Claude Code**, if you want them (no by default): the coding assistants she watches.
+- **Capri** from this fork in `%LOCALAPPDATA%\Capri\capri-desktop`, with a Start menu and desktop shortcut, then she
+  starts.
+
+Run it again to bring her up to date. With options: `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex`
+(no questions: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). In a
+clone, double-click **`install.cmd`** instead: it installs that clone in place. `install.cmd -Uninstall` takes her
+hooks out of Claude Code and Codex and removes her shortcuts and folder (Git, Node.js and Ollama stay).
+
+Then:
+
+1. Capri shows up and introduces herself. Click **Plug me in**: that connects her to Claude Code (or, right-click her ›
+   **Watch** › **Codex**).
+2. Close Claude Code completely and open it again (it reads its hooks when a session starts). As soon as Claude does
    something, she tells you **"I can see Claude!"**: that's how you know it worked.
+3. Everything else is in **Mainframe** (right-click her › **Settings…**): her AI, Codex, her phone, what her chat shows.
+
+The original's installer (`Capri-Setup-x.y.z.exe`, on [mochiiwuff's releases](https://github.com/mochiiwuff/capri-desktop/releases/latest))
+installs mochiiwuff's Capri, without this fork's additions.
 
 Her menu: **right-click her**. It's also on her tray icon, which Windows 11 often hides behind the **^** next to the clock.
 
@@ -304,7 +351,7 @@ asleep. You can just leave her there.
 You need [Node.js](https://nodejs.org) 20 or newer.
 
 ```bash
-git clone https://github.com/mochiiwuff/capri-desktop.git
+git clone https://github.com/nf-gh057/capri-desktop.git
 cd capri-desktop
 npm install
 npm start
@@ -387,8 +434,8 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
 - Nothing leaves your PC (see below), unless you pair her with a Telegram bot of your own: she only talks to Claude Code
   through a hook on `127.0.0.1`.
 - What she changes on your system: the hook in `~/.claude/settings.json` (a backup is written first, and you can remove
-  it from her menu), and a startup entry only if you tick "Start with Windows". She uninstalls like any app, from
-  Windows Settings › Apps.
+  it from her menu), and a startup entry only if you tick "Start with Windows". Installed with `install.ps1`,
+  `install.cmd -Uninstall` removes her (and her hooks); installed from the original's installer, Windows Settings › Apps.
 - The SmartScreen warning comes from the installer not being signed, not from anything it does.
 
 ## FAQ
@@ -526,10 +573,21 @@ src/renderer/js/
   voice.js               the sounds
 ```
 
+```
+install.ps1 / .cmd       the Windows installer: winget, Git, Node.js, Ollama, Codex or Claude Code, Capri, shortcuts
+scripts/version.js       this fork's version: mochiiwuff's, then our commit on top of it (npm run bump)
+```
+
+**Versions**: `x.y.z-n` is mochiiwuff's version `x.y.z` and this fork's `n`th commit on top of it; `n` goes back to 1
+when mochiiwuff's version goes up. `npm run bump` before each commit sets the next one (it reads mochiiwuff's version
+from the `upstream` remote).
+
 To hack on it: `npm run dev` turns on debug routes on the bridge (`/debug/capture` saves a frame of the window to `captures/`,
 `/debug/testwin` opens test windows she can sit on, one per name, `/debug/mouse` moves and clicks a stand-in pointer
 over Capri's window, without touching the real one, `/debug/type` types in her chat, `/debug/menu` lists her menu and
-can click an item of it).
+can click an item of it, `/debug/mainframe` opens Mainframe, acts in it and captures it). With `CAPRI_OFFLINE=1` she
+acts as if the network were gone, with `CAPRI_SCREENS=2` she cuts your screen in two, and `CAPRI_TELEGRAM_API` points
+her phone at a Telegram of your own.
 `npm run dist` builds the Windows installer in `dist/`.
 
 ## Credits and rights
