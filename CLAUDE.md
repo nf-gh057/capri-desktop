@@ -32,6 +32,8 @@ pracy nad Capri: `docs/ROZWOJ.md`.
 - Commituj i pushuj, gdy użytkownik o to prosi albo gdy kończysz zleconą funkcję, którą sprawdziłeś.
 - **Nie commituj cudzej pracy**: jeśli w drzewie są niezacommitowane zmiany, których nie robiłeś, weź do commita tylko
   swoje fragmenty (np. łatka z twoich hunków i `git apply --cached`) i powiedz o tamtych użytkownikowi.
+  **Wyjątek: `TODO.md`.** Inna sesja dopisuje tam równolegle pomysły użytkownika, żeby nie przerywać tej: commituj je
+  razem ze swoimi zmianami.
 
 ## Gałęzie
 

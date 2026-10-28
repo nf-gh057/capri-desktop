@@ -147,3 +147,10 @@ zaktualizować tak jak ponowne uruchomienie instalatora: `git pull` i pakiety.
 - Ograniczenie menu pod prawym przyciskiem myszy.
 - Głos klonowany z postaci z anime albo z własnego nagrania.
 - Zróżnicowane komentarze Capri do podejmowanych akcji (mniej powtórzeń tych samych tekstów).
+- Równoległe monitorowanie różnych AI naraz.
+- Komunikacja z Hermesem.
+- Do decyzji: telefon parowany raz dla całego roju. Komputery same przekazują sobie token bota i sekret TOTP
+  (zaszyfrowanym kanałem roju, tylko między twoimi urządzeniami, na każdym zapisane kontem Windows), więc każdy
+  może przejąć telefon i działa jeden kod w aplikacji uwierzytelniającej. Za: parowanie raz, telefon działa, nawet
+  gdy komputer z botem jest wyłączony. Przeciw: token trafia na każdy komputer roju, więc przejęcie któregokolwiek
+  daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
