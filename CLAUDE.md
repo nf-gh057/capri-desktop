@@ -12,6 +12,9 @@ pracy nad Capri: `docs/ROZWOJ.md`.
 - `origin` = fork `nf-gh057/capri-desktop` (tu idzie każdy push). `upstream` = repozytorium autora oryginału
   `mochiiwuff/capri-desktop`, z zablokowanym wysyłaniem (`git remote set-url --push upstream DISABLED`).
 - **Żadnych pull requestów** do autora i żadnych propozycji ich wysłania.
+- **Aktualizacje Capri (także roju) tylko z naszego repo**: `origin` klonu, który `install.ps1` ustawia na fork. Bez
+  wyboru źródła aktualizacji w Mainframe. Fork znacznie odbiega od oryginału: dodatki autora trafiają do nas wyłącznie
+  przez scalanie `upstream` (poniżej), nigdy przez aktualizację z jego repozytorium.
 - **Po każdym pushu**: `git fetch upstream`, potem `git log main..upstream/main` i `git diff main...upstream/main --stat`.
   Jeśli autor dodał coś nowego, powiedz użytkownikowi, co się zmieniło (commity, obszary, wpływ na nasze zmiany:
   zwłaszcza nowe kwestie w `src/renderer/js/lines.js` bez `pl` i zmiany w `src/main/bridge.js` albo `hooks/`, które

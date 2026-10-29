@@ -72,8 +72,6 @@ Wspólne dla wszystkich etapów:
   może przejąć telefon i działa jeden kod w aplikacji uwierzytelniającej. Za: parowanie raz, telefon działa, nawet
   gdy komputer z botem jest wyłączony. Przeciw: token trafia na każdy komputer roju, więc przejęcie któregokolwiek
   daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
-- Aktualizacje: zmiana repozytorium (i gałęzi), z którego Capri się aktualizuje, z poziomu Mainframe
-  (dziś: `origin` klonu, ustawiany przez `install.ps1 -Repo`).
 - Aktualizacje: Capri z instalatora oryginalnego projektu (`Capri-Setup-x.y.z.exe`, nie klon gita) tylko informuje
   o nowej wersji i odsyła do strony Releases.
 - Animacje: Capri trzyma się szczytu okna, niby wisząc przy ścianie (rękami za górną krawędź, ciało zwisa wzdłuż
