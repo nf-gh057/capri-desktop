@@ -1772,6 +1772,10 @@ async function debugHandler(route, body) {
       });
       win.loadURL('data:text/html,<body style="background:%231b1726"></body>');
       win.showInactive();
+      // on top like her, it'd come up over her once clicked or moved (her legs gone behind it): not
+      // like any real window, which never gets above her
+      win.on('focus', raiseOverlay);
+      raiseOverlay();
       testWins.set(id, win);
     }
     return { ok: true };

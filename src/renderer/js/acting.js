@@ -107,6 +107,62 @@ export const ACTS = {
     ],
   },
 
+  // hanging off a window's corner, side view (sprite.js POSES hang1-4): she swings a little from her
+  // hands (capri.js pivots her on the corner; + tilt swings her out from the wall), tries to pull
+  // herself up and drops back, tries again and slips, catching herself one-handed
+  hang: {
+    loop: true,
+    draw: 'hang1',
+    keys: [
+      [14, { tilt: 1, hair: -1 }],
+      [10, { tilt: 0.3, hair: 0.5 }],
+      [3, { draw: 'hang2', mane: 0.06 }],
+      [8, { draw: 'hang2', mane: 0.1, hair: -1 }],
+      [2, { draw: 'hang2', sy: 0.98 }],
+      [3, { sy: 1.04, tilt: 1.5, hair: 1.5 }],
+      [12, { tilt: 0.8, hair: 0.5 }],
+      [16, { tilt: 0.2 }],
+      [3, { draw: 'hang2', mane: 0.05 }],
+      [6, { draw: 'hang2', mane: 0.1, hair: -1 }],
+      [2, { draw: 'hang3', tilt: 3, mane: 0.2, hair: 2.5 }],
+      [6, { draw: 'hang3', tilt: 2, mane: 0.1, hair: 1 }],
+      [3, { tilt: 1.5, sy: 1.03 }],
+      [14, { tilt: 0.5 }],
+    ],
+  },
+  // over the edge: the drop pulls her long, she swings out from the corner and back, and settles
+  catch: {
+    priority: 1,
+    draw: 'hang1',
+    keys: [
+      [1, { sy: 1.07, sx: 0.96, mane: 0.15, hair: 2 }],
+      [2, { tilt: 4, hair: -2 }],
+      [2, { tilt: -1, hair: 1.5 }],
+      [3, { tilt: 2 }],
+      [3, { tilt: 0.5 }],
+    ],
+  },
+  // up onto the corner: a pull, over it on her forearms, and up (capri.js sits her on it)
+  climb: {
+    priority: 1,
+    keys: [
+      [3, { draw: 'hang2', mane: 0.08 }],
+      [3, { draw: 'hang2', sy: 0.97 }],
+      [2, { draw: 'hang4', mane: 0.12, hair: -1.5 }],
+      [8, { draw: 'hang4', mane: 0.05 }],
+      [2, { draw: 'hang4', sy: 0.96 }],
+    ],
+  },
+  // shaken off: a hand lets go, she swings out on the other, and drops (capri.js)
+  slip: {
+    priority: 2,
+    draw: 'hang3',
+    keys: [
+      [2, { mane: 0.25, hair: 3, tilt: 4 }],
+      [3, { mane: 0.2, hair: -2, tilt: 6 }],
+    ],
+  },
+
   // bored, stretched out along her ledge, head propped on her hand: her mane stirs, then settles a while
   lie: {
     loop: true,

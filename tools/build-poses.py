@@ -16,11 +16,16 @@ cut-out's (the shader grades them all the same way afterwards), and it's scaled 
     feet (seen from the side, her face is at the front of her head), so the cycle doesn't slide
     about under her and turning round flips her about her feet. For each it also prints her
     `step`: how far she has to move on as that drawing comes on so that the foot she's standing
-    on stays where it was on the ledge (it's drawn that much further back).
+    on stays where it was on the ledge (it's drawn that much further back);
+  - hanging off a ledge by her hands, seen from the side, facing it: the ledge's corner (where its
+    top meets the wall she hangs against) is given in picture pixels after the file name
+    (hang1=h1.png@255,84), and goes to GRIP on every one of them; the first is scaled so that,
+    hanging straight down, her toes are as far below her eyes as a standing one's feet, the
+    others (`from`) at its scale.
 It's written at one texel per sprite pixel, like the cut-out: any finer and the line boil makes
 its edges crawl at her usual size.
 
-    python tools/build-poses.py hip=hip.png lie=lie.png lean=lean.png fidget=fidget.png cross=cross.png float=float.png         walk1=w1.png ... walk8=w8.png
+    python tools/build-poses.py hip=hip.png lie=lie.png lean=lean.png fidget=fidget.png cross=cross.png float=float.png         walk1=w1.png ... walk8=w8.png hang1=h1.png@255,84 ... hang4=h4.png@250,228
 
 prints each drawing's rect and face in sprite pixels: keep POSES in src/renderer/js/sprite.js in
 sync with it. Needs Pillow and numpy.
@@ -36,6 +41,7 @@ CUTOUT = ASSETS / 'capri-cutout.png'
 FEET = (128, 418)    # the cut-out's feet (SPRITE.feet)
 FACE = (120, 132)    # about where the cut-out's face is
 HIP = 232            # where she sits on a ledge (SPRITE.hip)
+GRIP = (190, 72)     # the corner of the ledge she hangs off, on the hanging drawings (POSES hang1.grip)
 D0, D1 = 70.0, 150.0  # distance from the key colour: below D0 it's background, above D1 it's her
 
 # how each drawing sits in sprite space (see above); `mid` is where the middle of a ledge drawing goes
@@ -47,6 +53,9 @@ POSES = {
     # walking to the right, a step on each leg: contact, down, passing, up, and again on the other
     'walk3': {'kind': 'walk'},  # passing: upright on a straight leg, so it's the one the cycle is scaled by
     **{f'walk{i}': {'kind': 'walk', 'from': 'walk3'} for i in (1, 2, 4, 5, 6, 7, 8)},
+    # hanging off a ledge's corner: hanging, pulling up, slipping (one hand), climbing over
+    'hang1': {'kind': 'hang'},
+    **{f'hang{i}': {'kind': 'hang', 'from': 'hang1'} for i in (2, 3, 4)},
     'lie': {'kind': 'ledge', 'like': 'hip', 'mid': 120},
     'lean': {'kind': 'ledge', 'from': 'lie', 'mid': 120},  # lying down: between sitting and 'lie'
 }
@@ -109,39 +118,52 @@ def eyes(im):
 
 
 def soles(im):
-    """Where her feet touch the ground on a walk drawing: (from, to) x spans along its bottom rows."""
+    """Where her feet touch the ground on a walk drawing: (from, to) x spans along its bottom rows,
+    one per foot (a pointed foot and its claw are one, however far apart their tips are). A foot
+    she's rising off on its toes may be drawn a little above the ground; one she's lifting is well
+    clear of it."""
     a = np.asarray(im)[..., 3] > 100
-    xs = np.nonzero(a[-5:].any(axis=0))[0]
-    return [(g[0], g[-1]) for g in np.split(xs, np.nonzero(np.diff(xs) > 8)[0] + 1) if len(g)]
+    xs = np.nonzero(a[-15:].any(axis=0))[0]
+    return [(g[0], g[-1]) for g in np.split(xs, np.nonzero(np.diff(xs) > 30)[0] + 1) if len(g)]
 
 
 def steps(feet):
     """How far she moves on into each walk drawing from the one before (cyclic): the foot she
     stands on is on the ground in both, that much further back in the later one. Of the ways the
-    feet on the ground could pair up, it's the shortest move forward."""
+    feet on the ground could pair up, it's the shortest move that isn't back; none at all when
+    the foot she's on stays put as the other one comes down."""
     names = sorted(feet, key=lambda n: int(n[4:]))
     out = {}
     for prev, name in zip(names[-1:] + names[:-1], names):
         moves = [(a0 + a1) / 2 - (b0 + b1) / 2 for a0, a1 in feet[prev] for b0, b1 in feet[name]]
-        ahead = [m for m in moves if m > 2]
-        out[name] = min(ahead) if ahead else 0.0
+        ahead = [m for m in moves if m > -6]
+        out[name] = max(0.0, min(ahead)) if ahead else 0.0
     return out
 
 
 def main():
     args = dict(a.split('=', 1) for a in sys.argv[1:])
+    grips = {}  # hanging drawings: the ledge's corner on the picture
+    for name, arg in list(args.items()):
+        if '@' in arg:
+            args[name], at = arg.rsplit('@', 1)
+            grips[name] = tuple(float(v) for v in at.split(','))
     feet = {}  # walk drawings: where they touch the ground, in sprite px
     ref = classes(Image.open(CUTOUT).convert('RGBA'))
     apart = {}  # her eyes apart, in sprite px
     scale = {}  # sprite px per picture px
     # standing ones first (the others take their head size), in-betweens last
-    for name in sorted(args, key=lambda n: (POSES[n]['kind'] not in ('stand', 'walk'), 'from' in POSES[n])):
+    for name in sorted(args, key=lambda n: (POSES[n]['kind'] not in ('stand', 'walk', 'hang'), 'from' in POSES[n])):
         im, spec = key(args[name]), POSES[name]
         (lx, ly), (rx, ry) = eyes(im)
         ex, ey, span = (lx + rx) / 2, (ly + ry) / 2, np.hypot(rx - lx, ry - ly)
         if spec['kind'] in ('stand', 'walk'):
             k = scale[spec['from']] if 'from' in spec else (FEET[1] - FACE[1]) / (im.height - ey)
             x0, y0 = (FEET[0] + 10 if spec['kind'] == 'walk' else FACE[0]) - ex * k, FEET[1] - im.height * k
+        elif spec['kind'] == 'hang':
+            k = scale[spec['from']] if 'from' in spec else (FEET[1] - FACE[1]) / (im.height - ey)
+            gx, gy = grips[name]
+            x0, y0 = GRIP[0] - gx * k, GRIP[1] - gy * k
         elif spec['kind'] == 'air':
             k = apart[spec['like']] / span
             x0, y0 = FACE[0] - ex * k, FACE[1] - ey * k
@@ -158,6 +180,8 @@ def main():
         if spec['kind'] == 'walk':
             feet[name] = [(x0 + a, x0 + b) for a, b in soles(im)]
         print(f"{name}: rect [{x0:.1f}, {y0:.1f}, {w:.1f}, {h:.1f}], face [{x0 + ex * k:.0f}, {y0 + ey * k:.0f}], eyes {span * k:.1f} apart")
+        if spec['kind'] == 'hang':
+            print(f"{name}: grip [{GRIP[0]}, {GRIP[1]}]")
     if feet:
         for name, step in steps(feet).items():
             print(f"{name}: step {step:.0f}  (feet on the ground at {[(round(a), round(b)) for a, b in feet[name]]})")
