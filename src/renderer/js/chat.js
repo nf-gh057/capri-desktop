@@ -79,6 +79,12 @@ const VAGUE_SONG = /^(?:(?:de\s+la|du|des|la|le|les|une?|some|a|the|un|algo\s+de
 const SEARCH_VERB = /(?:cherche|recherche|trouve|retrouve|où (?:est|sont)|search(?: for)?|find|look (?:for|up)|where(?:'s| is| are)|busca|encuentra|d[óo]nde est[áa]n?|procura|acha|onde est[áa]o?|найди|поищи|где|znajd[źz]|wyszukaj|poszukaj|szukaj|gdzie (?:jest|s[ąa]))/i;
 const FILE_WORD = /fichier|dossier|document|photo|image|vid[ée]o|\bpdf\b|\bfiles?\b|folder|archivo|carpeta|arquivo|pasta|файл|папк|\.\w{2,4}\b|sur mon (?:pc|ordi)|dans mes fichiers|on my (?:pc|computer)|en mi (?:pc|ordenador)|no meu (?:pc|computador)|на (?:компьютере|пк)|plik|katalog|dokument|zdj[eę]ci|obraz|wideo|na (?:moim )?(?:pc|komputerze|kompie)|w moich plikach/i;
 const WEB_WORD = /google|internet|\ble web\b|the web|\bonline\b|en ligne|в интернете|в гугле|w sieci|w necie/i;
+// "where's Notepad?", "show me the Spotify window", "où est le bloc-notes ?", "gdzie jest notatnik", "pokaż okno
+// discorda": a window to find. Said with "window", it's surely one; without, only if one by that name is there.
+const WINDOW_ASK = /^(?:capri,?\s+)?(?:where(?:'s| is| are)|o[uù] (?:est|sont)|d[óo]nde est[áa]n?|onde est[áa]o?|где|gdzie (?:jest|s[ąa]|mam)|show(?: me)?|find|montre(?:[- ]moi)?|trouve(?:[- ]moi)?|mu[ée]strame|encuentra|mostra(?:-me)?|me mostra|encontra|ache|покажи|найди|poka[żz](?: mi)?|znajd[źz](?: mi)?)\s+(.{2,60}?)[\s?!.]*$/iu;
+const WINDOW_WORD = /\b(?:window|fen[êe]tre|ventana|janela)\b|окн[оае]|(?:^|\s)okn(?:o|a|ie)(?=\s|$)/iu;
+// what's around its name: "the", "my", "window"…
+const WINDOW_FILLER = /(?:^|\s)(?:the|my|its|le|la|les|l|ma|mon|el|mi|o|a|meu|minha|мой|моё|моя|mój|moj|moja|moje|window|fen[êe]tre|ventana|janela|окно|окна|okno|okna|oknie|de|du|da|do|of)(?=\s|$)/giu;
 // "fais une capture d'écran", "take a screenshot"
 const SHOT_ASK = /capture d['’][ée]cran|screenshot|screen ?shot|captura de (?:pantalla|tela)|скриншот|снимок экрана|zrzut(?:u)? ekranu|\bscreena?\b/i;
 // the words that aren't what to look for
@@ -570,6 +576,11 @@ export class Chat {
       const then = THEN_FOLDER.test(text) ? 'folder' : THEN_OPEN.test(text) ? 'open' : null;
       if (query || exts.length) return { kind: 'files', query, exts, then };
     }
+    const where = WINDOW_ASK.exec(text.trim());
+    if (where) {
+      const name = where[1].replace(/['’]/g, ' ').replace(WINDOW_FILLER, ' ').replace(/\s+/g, ' ').trim();
+      if (name.length >= 2) return { kind: 'window', name, sure: WINDOW_WORD.test(text) };
+    }
     const media = MEDIA_ASK.find(([, re]) => re.test(text))?.[0];
     if (media && (count <= 5 || MUSIC_WORD.test(text))) return { kind: 'media', action: media };
     const song = SPOTIFY_ASK.exec(text)?.[1];
@@ -594,6 +605,7 @@ export class Chat {
   // Doing it now. Resolves with her line about it ({ line, face }), or null if there was nothing to do.
   async doNow(asked) {
     const { t } = this;
+    if (asked.kind === 'window') return this.findWindow(asked);
     const custom = this.brain.custom;
     if (asked.kind === 'remind') {
       if (!asked.at) {
@@ -677,6 +689,49 @@ export class Chat {
     return this.openNow(item);
   }
 
+  // A window you asked her to find: she points at it (brought up first if it's minimized or covered).
+  // Only close to what you said (a typo, another name): she asks if that's the one. None: she offers to
+  // start it. Without the word "window", a typo counts only in a single word ("notatnk"), and an app
+  // to start only by that name (else: her chat answers).
+  async findWindow({ name, sure }) {
+    const { t } = this;
+    const found = await this.host.findWindow(name).catch(() => null);
+    if (found?.id && !found.similar) return this.showWindow(found);
+    // close to it (a typo, another name): asked about, when it's surely a window, or one long word
+    const word = /^[\p{L}\p{N}-]{5,}$/u.test(name);
+    if (found?.id) return sure || word ? { line: fmt(pick(t.windowSimilar), { asked: name, app: found.name }), face: 'look', window: found } : null;
+    const item = found?.launch;
+    if (item && (sure || simple(item.name).includes(simple(name)))) {
+      return { line: fmt(pick(t.windowNone), { app: this.nameOf(item) }), face: 'aside', launchOffer: item };
+    }
+    return sure ? { line: fmt(pick(t.windowNowhere), { asked: name }), face: 'aside' } : null;
+  }
+
+  async showWindow(found) {
+    const { capri, t } = this;
+    const visible = () => {
+      const win = capri.windows.wins.find((w) => w.id === found.id);
+      return win && capri.canPoint(win) ? win : null;
+    };
+    let win = visible();
+    if (!win) {
+      // minimized, behind others, or on another screen: brought up, and pointed at once it shows
+      await this.host.showWindow(found.id);
+      for (let i = 0; i < 15 && !win; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        win = visible();
+      }
+      if (!win) return { line: fmt(pick(t.windowUp), { app: found.name }), face: 'smug' };
+    }
+    capri.pointAt(win, { label: found.name });
+    const pointing = () => capri.pointing;
+    const at = pointing();
+    setTimeout(() => {
+      if (pointing() && (!at || pointing() === at)) capri.stopPointing(); // still at it, a while later
+    }, 8000);
+    return { line: fmt(pick(t.windowHere), { app: found.name }), face: 'smug' };
+  }
+
   // An app, a game, a file or a folder: opened, or behind a button when it would run something.
   async openNow(item) {
     if (item.risky) return { offer: item };
@@ -716,6 +771,22 @@ export class Chat {
       return undefined;
     }
     if (done?.offer) return this.launch(done.offer, answer); // it would run something: your click first
+    if (done?.launchOffer) {
+      // no such window open: start it? (on your click)
+      this.addLine(answer, done.line, done.face);
+      return this.launch(done.launchOffer, answer);
+    }
+    if (done?.window) {
+      // only close to what you said: is it that one?
+      this.addLine(answer, done.line, done.face);
+      this.panel.setActions([{ id: 'yes', label: t.windowYes, primary: true }, { id: 'no', label: t.windowNo }], async (id) => {
+        this.panel.setActions([]);
+        if (id !== 'yes') return;
+        const shown = await this.showWindow(done.window);
+        this.addLine(answer, shown.line, shown.face);
+      });
+      return undefined;
+    }
     if (done?.files) {
       // what she found (or the screenshot): a button to open the first, and to see where it is
       this.addLine(answer, done.line, done.face);

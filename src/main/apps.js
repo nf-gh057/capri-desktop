@@ -74,4 +74,115 @@ async function close(name, { force = false } = {}) {
   return { running: Number(out) > 0 };
 }
 
-module.exports = { list, find, close, powershell };
+// ---------- finding a window by its name (her chat: "where's Notepad?") ----------
+
+// The windows open right now, with what names them: [{ id (its handle), process, label, title }].
+// Asked for only when you ask her to find one; the titles stay here and in her overlay, never kept.
+async function windows() {
+  if (process.platform !== 'win32') return [];
+  const out = await powershell(
+    'Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle } | '
+    + 'ForEach-Object { [pscustomobject]@{ pid = $_.Id; id = [int64]$_.MainWindowHandle; process = $_.ProcessName; label = $_.Description; title = $_.MainWindowTitle } } | '
+    + 'ConvertTo-Json -Compress',
+  );
+  return [].concat(out ? JSON.parse(out) : [])
+    .filter((w) => w.pid !== process.pid && !['capri', 'electron'].includes(String(w.process).toLowerCase()))
+    .map(({ id, process: name, label, title }) => ({ id, process: name, label: label || '', title: title || '' }));
+}
+
+// The same app in her languages (and its program's name): "notatnik" finds Notepad, "bloc-notes" too
+const ALIASES = [
+  ['notepad', 'notatnik', 'bloc-notes', 'bloc notes', 'bloc de notas', 'bloco de notas', 'блокнот'],
+  ['calculator', 'calc', 'calculatorapp', 'kalkulator', 'calculatrice', 'calculadora', 'калькулятор'],
+  ['explorer', 'file explorer', 'eksplorator', 'eksplorator plikow', 'explorateur', 'explorateur de fichiers',
+    'explorador de archivos', 'explorador de arquivos', 'explorador', 'проводник'],
+  ['paint', 'mspaint'],
+  ['taskmgr', 'task manager', 'menedzer zadan', 'gestionnaire des taches', 'administrador de tareas',
+    'gerenciador de tarefas', 'диспетчер задач'],
+  ['systemsettings', 'settings', 'ustawienia', 'parametres', 'configuracion', 'configuracoes', 'параметры', 'настройки'],
+  ['windowsterminal', 'terminal', 'терминал'],
+  ['cmd', 'command prompt', 'wiersz polecen', 'invite de commandes', 'simbolo del sistema', 'prompt de comando', 'командная строка'],
+  ['msedge', 'edge'],
+  ['photos', 'zdjecia', 'fotos', 'фотографии', 'фото'],
+  ['winword', 'word'], ['excel'], ['powerpnt', 'powerpoint'], ['outlook', 'olk'],
+  ['code', 'vs code', 'vscode', 'visual studio code'], ['obs64', 'obs'], ['ms-teams', 'teams'],
+].map((names) => names.map((name) => fold(name)));
+// a kind of app, in her languages, and the apps that are one: "przeglądarka" finds Chrome or Firefox
+// (but "chrome" never finds Firefox)
+const KINDS = [
+  [['browser', 'przegladarka', 'navigateur', 'navegador', 'браузер'], ['chrome', 'msedge', 'firefox', 'opera', 'brave']],
+].map(([words, apps]) => [words.map((word) => fold(word)), apps]);
+
+// lowercase, no accents ("ł" too), only letters, digits and single spaces
+function fold(text) {
+  return String(text || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+// what you said, and the same app in her other languages; said in Polish, without its ending too
+// ("okno notatnika", "pokaż discorda", "gdzie moja przeglądarki" from "przeglądarka")
+function variants(wanted) {
+  const said = fold(wanted);
+  const stem = said.length >= 6 ? said.replace(/(owi|em|ie|a|u|y|i)$/, '') : said;
+  const keys = [...new Set([said, stem])];
+  const named = [...keys, `${stem}a`];
+  const group = named.flatMap((key) => ALIASES.find((names) => names.includes(key)) || []);
+  const kind = named.flatMap((key) => KINDS.find(([words]) => words.includes(key))?.[1] || []);
+  return [...new Set([...keys, ...group, ...kind])].filter((v) => v.length >= 2);
+}
+
+// how many letters apart two words are (one swapped pair counts once): "spotfy" is 1 from "spotify"
+function distance(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+// The window `wanted` names, among `list` (windows()): { win, similar } with `similar` when it's only
+// close to what you said (a typo, another name), for her to ask first; null when nothing is.
+function findWindow(wanted, list) {
+  const keys = variants(wanted);
+  if (!keys.length) return null;
+  let best = null;
+  for (const win of list) {
+    // a Store app's window belongs to its frame's process: its title is its name
+    const frame = /^applicationframehost$/i.test(win.process);
+    const names = (frame ? [win.title] : [win.process, win.label]).map(fold).filter(Boolean);
+    const title = fold(win.title);
+    // close to what you said: an app's name (in any of her languages), never a word of what it shows (a
+    // document called "Notatki" isn't Notepad)
+    const known = names.flatMap((n) => ALIASES.find((group) => group.includes(n)) || []);
+    const words = [...new Set([...names, ...known, ...names.flatMap((n) => n.split(' '))])].filter((w) => w.length >= 3);
+    let score = 0;
+    for (const key of keys) {
+      if (names.includes(key)) score = Math.max(score, 4);
+      else if (key.length >= 3 && (` ${title} `.includes(` ${key} `) || names.some((n) => n.startsWith(key)))) score = Math.max(score, 3);
+      // a letter or two off (more for a long name), or the start of it
+      else if (key.length >= 4 && words.some((w) => distance(key, w) <= (key.length >= 7 ? 2 : 1) || (w.length >= 5 && key.startsWith(w)))) score = Math.max(score, 1);
+    }
+    if (score > (best?.score || 0)) best = { win, score };
+  }
+  return best && { win: best.win, similar: best.score < 3 };
+}
+
+// Brought up in front of you (restored if it was minimized). Resolves true when it's there.
+async function showWindow(id) {
+  if (process.platform !== 'win32' || !Number.isSafeInteger(Number(id))) return false;
+  const out = await powershell(
+    'Add-Type -Namespace Capri -Name Win -MemberDefinition \''
+    + '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(System.IntPtr h, int c);'
+    + '[DllImport("user32.dll")] public static extern bool IsIconic(System.IntPtr h);'
+    + '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h);\'; '
+    + `$h = [System.IntPtr]::new([int64]${Number(id)}); `
+    + 'if ([Capri.Win]::IsIconic($h)) { [void][Capri.Win]::ShowWindowAsync($h, 9) }; [Capri.Win]::SetForegroundWindow($h)',
+  ).catch(() => '');
+  return /true/i.test(out);
+}
+
+module.exports = { list, find, close, powershell, windows, findWindow, showWindow, variants, fold };

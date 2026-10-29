@@ -72,7 +72,7 @@ pracy nad Capri: `docs/ROZWOJ.md`.
 
 ## Testy i sprawdzanie
 
-- Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`; przed commitem wszystkie.
+- Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`; przed commitem wszystkie.
 - Na żywo: Capri w trybie `--dev` ma trasy `/debug/*` na `127.0.0.1:47823` (nagłówek `x-capri-token` z
   `~/.capri/bridge-token`): `eval` (nakładka), `mainframe` (`{ act, value }`, `{ js }` w stronie, `{ capture, scroll }`),
   `capture`, `command`, `swarm` (`{ locked, idle }`, `{ island: true|false }`), `reload`.

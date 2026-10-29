@@ -164,6 +164,12 @@ and her chat on Telegram locks when you're back at any of them.
 - **The window you work in**: she doesn't float or idle in front of it, and gets out of the way after a moment. Sitting
   on its edge or taking it over is still fine.
 - **Where's Claude?** She finds its window maximized too, and still knows it after a restart of hers.
+- **Any window, from her chat**: "where's Notepad?", "show me the Spotify window", "gdzie jest notatnik". She points
+  at it, after bringing it up if it's minimized or covered. Names count in any of her languages ("notatnik",
+  "bloc-notes" and "блокнот" all find Notepad, "browser" finds any browser), and in Polish with their endings
+  ("okno discorda"). When only something close is open (a typo, another name), she asks in her way whether that's the
+  one you meant. When nothing is open, she offers to start it (on your click). Window titles are only read when you
+  ask, on your PC, and never kept.
 - **Her mission report** goes to your phone when you're away and her bot is paired.
 - **Her menu** has a **Compact** mode (what she does, her screen, settings, quit).
 - **Her bridge** only takes events that carry its token, a new one each time she starts, kept in
@@ -267,7 +273,7 @@ src/renderer/js/
   mainframe.js           Mainframe's page: its tabs, HOLO
 ```
 
-Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`.
+Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`.
 
 `npm run dev` turns on her debug routes:
 

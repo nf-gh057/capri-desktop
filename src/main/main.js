@@ -1625,6 +1625,23 @@ function registerIpc() {
     const item = await launch.find(String(text || '')).catch(() => null);
     return item && { ...item, risky: launch.risky(item) }; // a program or a script: behind a button
   });
+  // a window by its name ("where's Notepad?", her chat): { id, name, similar } of the one open (similar: only
+  // close to what you said), else { launch } with the app to start, if there's one by that name, else null
+  ipcMain.handle('windows:find', async (_e, wanted) => {
+    const found = apps.findWindow(String(wanted || ''), await apps.windows().catch(() => []));
+    if (found) {
+      const { win } = found;
+      // a Store app's window belongs to its frame's process: its title names it
+      const name = /^applicationframehost$/i.test(win.process) ? win.title : win.label || win.process;
+      return { id: win.id, name, similar: found.similar };
+    }
+    for (const name of apps.variants(wanted)) {
+      const item = await launch.find(name).catch(() => null);
+      if (item && item.kind !== 'site') return { launch: { ...item, risky: launch.risky(item) } };
+    }
+    return null;
+  });
+  ipcMain.handle('windows:show', (_e, id) => apps.showWindow(id));
   ipcMain.handle('apps:youtube', (_e, query) => launch.youtube(query).catch(() => null));
   ipcMain.handle('apps:roblox', (_e, query) => launch.roblox(query).catch(() => null));
   // your files (files.js): a search, opening what it found, a screenshot, a search on the web

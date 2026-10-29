@@ -167,6 +167,12 @@ nie ma cię przy żadnym z nich, a rozmowa przez Telegram blokuje się, gdy wró
 - **Okno, w którym pracujesz**: nie unosi się i nie przesiaduje przed nim, a po chwili schodzi z drogi. Siedzieć na jego
   krawędzi albo je opętać może dalej.
 - **Gdzie jest Claude?** Znajduje jego okno także zmaksymalizowane i pamięta je po swoim restarcie.
+- **Dowolne okno, z czatu**: „gdzie jest notatnik?”, „pokaż okno Spotify”, „where's Notepad?”. Pokazuje je palcem,
+  a jeśli jest zminimalizowane albo przykryte, najpierw wyciąga je na wierzch. Nazwy działają w każdym z jej języków
+  („notatnik”, „bloc-notes” i „блокнот” znajdują Notatnik, „przeglądarka” dowolną przeglądarkę), a po polsku także
+  odmienione („okno discorda”). Gdy otwarte jest tylko coś podobnego (literówka, inna nazwa), pyta po swojemu, czy
+  o to ci chodziło. Gdy nic nie jest otwarte, proponuje, że to uruchomi (po twoim kliknięciu). Tytuły okien czyta
+  tylko wtedy, gdy pytasz, na twoim PC, i nigdzie ich nie zapisuje.
 - **Raport z misji** przychodzi na telefon, gdy cię nie ma, a jej bot jest sparowany.
 - **Jej menu** ma tryb **Skrócone** (to, co robi, ekran, ustawienia, zakończ).
 - **Jej most** przyjmuje tylko zdarzenia z jej tokenem, nowym przy każdym starcie, trzymanym w `~/.capri/bridge-token`.
@@ -270,7 +276,7 @@ src/renderer/js/
   mainframe.js           strona Mainframe: zakładki, HOLO
 ```
 
-Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`.
+Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`.
 
 `npm run dev` włącza jej trasy debugowania:
 
