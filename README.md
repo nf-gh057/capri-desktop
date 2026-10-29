@@ -355,14 +355,14 @@ Then:
    | Tab | What's in it |
    |---|---|
    | **HOLO** | Like her game's messages: her chat (the same conversation as in her panel, to write to her from here too), with everything else she told you on this PC (Claude, Codex, reminders, your PC), but not her little lines from her animations (the star, the satellite, being thrown around); and **TELEGRAM**, your phone |
-   | **NEURAL CORE** | Who answers her chat (a model on your PC, online, or Claude Code / Codex), what her chat shows |
-   | **NETWATCH** | The assistant she watches in your terminal and its hooks; Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**: her own powers with it (apps, sites, music) |
+   | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows; the assistant she watches in your terminal and its hooks; Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**: her own powers with it (apps, sites, music) |
    | **ENGRAMS** | Your bond, her persona, her reminders, what she remembers (and on which PC) |
    | **RELIC** | Her body (her size, where she rests, her screen, her key, how she acts) and her swarm: one Capri on all your PCs (Tailscale) |
    | **CYBERDECK** | Language, animations, display, menu, starting with Windows, her updates, help, quit |
 
-   At the top, like a game's level and street cred: her level, her sync with you and your days together; at the
-   right, who answers her chat and her version. The window remembers where you left it, its size, and the tab; what she said for HOLO is kept in `holo.json` (the last 300), on this PC only.
+   At the top, like a game's level and street cred: her level, her sync with you and your days together; the tabs in
+   the middle; at the right, like a game's health and money, the model answering her chat and the AI she watches
+   (IDLE when she only keeps you company). Her version is in the bottom left corner, by MAINFRAME. The window remembers where you left it, its size, and the tab; what she said for HOLO is kept in `holo.json` (the last 300), on this PC only.
 
 The original's installer (`Capri-Setup-x.y.z.exe`, on [mochiiwuff's releases](https://github.com/mochiiwuff/capri-desktop/releases/latest))
 installs mochiiwuff's Capri, without this fork's additions.

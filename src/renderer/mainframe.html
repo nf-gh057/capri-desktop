@@ -9,13 +9,13 @@
   <script type="module" src="js/mainframe.js"></script>
 </head>
 <body>
-  <!-- the title bar, like her game's menus: her stats on the left, what runs her on the right, the tabs under -->
+  <!-- the title bar, like her game's menus: her stats on the left, the tabs in the middle, who answers
+       her chat and the AI she watches on the right -->
   <header class="top">
     <div class="stats" id="stats"></div>
-    <h1 class="top__title">MAINFRAME</h1>
+    <nav class="tabs" id="tabs"></nav>
     <div class="build" id="build"></div>
   </header>
-  <nav class="tabs" id="tabs"></nav>
   <div class="frame">
     <main class="pane">
       <div class="pane__head" id="head"></div>
@@ -23,6 +23,7 @@
     </main>
   </div>
   <footer class="bottom">
+    <p class="sign"><span class="sign__name">MAINFRAME</span><span class="sign__version" id="version"></span></p>
     <button class="hint" id="help" type="button"><span class="hint__key">?</span><span id="helpLabel"></span></button>
   </footer>
   <div class="tip" id="tip" hidden></div>

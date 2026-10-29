@@ -6,7 +6,7 @@
 const host = window.mainframe;
 const sections = document.getElementById('sections');
 const TABS = [
-  ['holo', 'HOLO'], ['core', 'NEURAL CORE'], ['netwatch', 'NETWATCH'], ['engrams', 'ENGRAMS'], ['relic', 'RELIC'], ['cyberdeck', 'CYBERDECK'],
+  ['holo', 'HOLO'], ['netwatch', 'NETWATCH'], ['engrams', 'ENGRAMS'], ['relic', 'RELIC'], ['cyberdeck', 'CYBERDECK'],
 ];
 let state = null;
 let tab = remembered() || 'holo';
@@ -82,6 +82,9 @@ const row = (label, ...children) => el('div', { class: 'row' }, label ? el('span
 
 // one card of a tab: its name in red, like the boxes of her game's menus
 const section = (name, ...children) => el('section', { class: 'card' }, el('h2', { class: 'card__name' }, name), ...children);
+
+// the AI she watches in your terminal, or IDLE when she only keeps you company
+const watched = (s, t) => (s.watch.id === 'none' ? t.statIdle : s.watch.assistants.find((a) => a.id === s.watch.id)?.label || s.watch.id);
 
 // who answers her chat: "Codex · gpt-5.5", for her brain and the top of the window
 function brainName(b) {
@@ -384,8 +387,7 @@ function holo(s, t) {
 
 const PAGES = {
   holo,
-  core: brain,
-  netwatch: (s, t) => [watch(s, t), gateway(s, t)],
+  netwatch: (s, t) => [brain(s, t), watch(s, t), gateway(s, t)],
   engrams,
   relic: (s, t) => [cyberware(s, t), swarm(s, t)].flat(),
   cyberdeck: (s, t) => [system(s, t), updates(s, t)],
@@ -393,7 +395,7 @@ const PAGES = {
 
 // her level, her sync and your days together, like a game's level and street cred
 function stats(s, t) {
-  const stat = (value, label) => el('div', { class: 'stat' }, el('span', { class: 'stat__value' }, value), el('span', { class: 'stat__label' }, label));
+  const stat = (value, label) => el('div', { class: 'stat', title: label }, el('span', { class: 'stat__value' }, value), el('span', { class: 'stat__label' }, label));
   return [
     el('div', { class: 'stat', title: s.stats.stage }, el('span', { class: 'stat__ring' }, String(s.stats.level)), el('span', { class: 'stat__label' }, t.statLevel)),
     stat(`${s.stats.percent}%`, t.statSync),
@@ -434,7 +436,10 @@ function draw(next) {
   document.body.classList.toggle('is-help', help);
   document.getElementById('stats').replaceChildren(...stats(state, t));
   document.getElementById('build').replaceChildren(
-    el('span', { class: 'build__brain' }, brainName(state.brain)), el('span', { class: 'build__version' }, `v${state.version}`));
+    // the model alone ("gemma3:4b"), the provider too on a hover
+    el('span', { class: 'build__brain', title: brainName(state.brain) }, state.brain.model || brainName(state.brain)),
+    el('span', { class: 'build__watch' }, `/ ${watched(state, t)}`));
+  document.getElementById('version').textContent = `v${state.version}`;
   document.getElementById('tabs').replaceChildren(...tabs(state));
   document.getElementById('head').replaceChildren(
     el('h2', { class: 'pane__name' }, TABS.find(([id]) => id === tab)[1]),

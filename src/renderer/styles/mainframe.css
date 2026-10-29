@@ -143,6 +143,7 @@ body {
   -webkit-app-region: drag;
 }
 .stats {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 22px;
@@ -171,31 +172,26 @@ body {
   font: 600 11px/1.1 var(--font-display);
   letter-spacing: 0.1em;
 }
-.top__title {
-  flex: 1;
-  margin: 0;
-  text-align: center;
-  color: var(--red);
-  font: 700 15px/1 var(--font-display);
-  letter-spacing: 0.3em;
-}
+/* who answers her chat / the AI she watches (or IDLE), like a game's health and money */
 .build {
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   min-width: 0;
-}
-.build__brain {
-  color: var(--red);
   font: 600 13px/1.2 var(--font-display);
   letter-spacing: 0.04em;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.build__version {
-  color: var(--text-2);
-  white-space: nowrap;
+.build__brain {
+  min-width: 0;
+  color: var(--red);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.build__watch {
+  flex: none;
+  color: var(--cyan);
 }
 
 .frame {
@@ -207,19 +203,19 @@ body {
 }
 
 /* the tabs along the top, like her game's menus: a small square and the name, the open one lit */
+/* in the title bar, between her stats and who answers her chat */
 .tabs {
+  flex: 1 0 auto; /* one line: who answers her chat gives way first */
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 4px 6px;
-  padding: 8px 22px;
-  border-bottom: 1px solid var(--line);
+  gap: 4px;
+  -webkit-app-region: no-drag;
 }
 .tab {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 14px;
+  padding: 7px 12px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--red-dim);
@@ -536,9 +532,25 @@ body {
 /* the bottom line, like her game's key hints: "?" at the right */
 .bottom {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 22px 12px;
   border-top: 1px solid var(--line);
+}
+/* her window's name and her version, in the corner */
+.sign {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+.sign__name {
+  color: var(--red);
+  font: 700 13px/1 var(--font-display);
+  letter-spacing: 0.3em;
+}
+.sign__version {
+  color: var(--text-2);
 }
 .hint {
   display: flex;
@@ -735,11 +747,16 @@ body {
 }
 
 /* narrow: less of what's around */
-@media (max-width: 820px) {
-  .stat__label,
-  .top__title {
+/* not that wide: her stats without their names (on a hover) */
+@media (max-width: 1320px) {
+  .stat__label {
     display: none;
   }
+  .stats {
+    gap: 14px;
+  }
+}
+@media (max-width: 820px) {
   .holo__list {
     width: 150px;
   }

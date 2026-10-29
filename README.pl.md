@@ -356,14 +356,14 @@ Potem:
    | Zakładka | Co w niej jest |
    |---|---|
    | **HOLO** | Jak wiadomości w grze: jej czat (ta sama rozmowa co w jej panelu, możesz do niej pisać także stąd) i wszystko inne, co ci powiedziała na tym komputerze (Claude, Codex, przypomnienia, twój komputer), poza drobnymi tekstami z animacji (gwiazda, satelita, rzucanie nią); do tego **TELEGRAM**, twój telefon |
-   | **NEURAL CORE** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex), co pokazuje czat |
-   | **NETWATCH** | Asystent, którego pilnuje w terminalu, i jego hooki; Claude Code albo Codex w czacie: folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka) |
+   | **NETWATCH** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex) i co pokazuje czat; asystent, którego pilnuje w terminalu, i jego hooki; Claude Code albo Codex w czacie: folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka) |
    | **ENGRAMS** | Wasza więź, jej persona, przypomnienia, co pamięta (i z którego komputera) |
    | **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje) i jej rój: jedna Capri na wszystkich twoich komputerach (Tailscale) |
    | **CYBERDECK** | Język, animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście |
 
-   U góry, jak poziom i street cred w grze: jej poziom, synchronizacja z tobą i dni razem; po prawej, kto odpowiada
-   w jej czacie i jej wersja. Okno pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę; to, co powiedziała, HOLO trzyma w `holo.json` (ostatnie 300), tylko na tym komputerze.
+   U góry, jak poziom i street cred w grze: jej poziom, synchronizacja z tobą i dni razem; pośrodku zakładki; po
+   prawej, jak zdrowie i pieniądze w grze, model odpowiadający w jej czacie i AI, którego pilnuje (SPOCZYNEK, gdy
+   tylko dotrzymuje ci towarzystwa). Jej wersja jest w lewym dolnym rogu, przy napisie MAINFRAME. Okno pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę; to, co powiedziała, HOLO trzyma w `holo.json` (ostatnie 300), tylko na tym komputerze.
 
 Instalator oryginału (`Capri-Setup-x.y.z.exe`, w [wydaniach mochiiwuff](https://github.com/mochiiwuff/capri-desktop/releases/latest))
 instaluje Capri od mochiiwuff, bez dodatków tego forka. Nie jest podpisany, więc SmartScreen może powiedzieć „System
