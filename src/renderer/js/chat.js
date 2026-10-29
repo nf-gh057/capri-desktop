@@ -696,6 +696,7 @@ export class Chat {
   async findWindow({ name, sure }) {
     const { t } = this;
     const found = await this.host.findWindow(name).catch(() => null);
+    if (found?.stack) return this.showStack(found.stack);
     if (found?.id && !found.similar) return this.showWindow(found);
     // close to it (a typo, another name): asked about, when it's surely a window, or one long word
     const word = /^[\p{L}\p{N}-]{5,}$/u.test(name);
@@ -723,13 +724,27 @@ export class Chat {
       }
       if (!win) return { line: fmt(pick(t.windowUp), { app: found.name }), face: 'smug' };
     }
-    capri.pointAt(win, { label: found.name });
-    const pointing = () => capri.pointing;
-    const at = pointing();
-    setTimeout(() => {
-      if (pointing() && (!at || pointing() === at)) capri.stopPointing(); // still at it, a while later
-    }, 8000);
+    this.point(win, found.name);
     return { line: fmt(pick(t.windowHere), { app: found.name }), face: 'smug' };
+  }
+
+  // Several windows of that app (or one she only sees there): its button on the taskbar, where you pick
+  // the one you want. Not on her screen: she only says so.
+  showStack({ name, count, rect }) {
+    const { t } = this;
+    if (rect) this.point(rect, count >= 2 ? `${name} ×${count}` : name);
+    return { line: fmt(pick(count >= 2 ? t.windowMany : t.windowHere), { app: name, count }), face: 'smug' };
+  }
+
+  // she points at it a while, then lets it go (unless she's pointing at something else by then)
+  point(rect, label) {
+    const { capri } = this;
+    capri.pointAt(rect, { label }).then(() => {
+      const at = capri.pointing;
+      setTimeout(() => {
+        if (at && capri.pointing === at) capri.stopPointing();
+      }, 8000);
+    });
   }
 
   // An app, a game, a file or a folder: opened, or behind a button when it would run something.

@@ -1626,9 +1626,21 @@ function registerIpc() {
     return item && { ...item, risky: launch.risky(item) }; // a program or a script: behind a button
   });
   // a window by its name ("where's Notepad?", her chat): { id, name, similar } of the one open (similar: only
-  // close to what you said), else { launch } with the app to start, if there's one by that name, else null
+  // close to what you said); { stack: { name, count, rect } } when that app has several windows (or one she
+  // only sees on the taskbar): its button there, where she points (rect: null when it isn't on her screen);
+  // else { launch } with the app to start, if there's one by that name; else null
   ipcMain.handle('windows:find', async (_e, wanted) => {
-    const found = apps.findWindow(String(wanted || ''), await apps.windows().catch(() => []));
+    wanted = String(wanted || '');
+    const [wins, buttons] = await Promise.all([apps.windows().catch(() => []), apps.taskbar().catch(() => [])]);
+    const found = apps.findWindow(wanted, wins);
+    const button = (!found || !found.similar) && apps.findButton(wanted, buttons, found?.win);
+    if (button && (button.count >= 2 || (!found && button.count === 1))) {
+      const o = overlay.getBounds();
+      const r = screen.screenToDipRect(null, { x: button.x, y: button.y, width: button.w, height: button.h });
+      const rect = { x: r.x - o.x, y: r.y - o.y, w: r.width, h: r.height };
+      const seen = rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= o.width && rect.y + rect.h <= o.height + 60;
+      return { stack: { name: button.name, count: button.count, rect: seen ? rect : null } };
+    }
     if (found) {
       const { win } = found;
       // a Store app's window belongs to its frame's process: its title names it

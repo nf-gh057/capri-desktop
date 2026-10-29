@@ -168,8 +168,9 @@ and her chat on Telegram locks when you're back at any of them.
   at it, after bringing it up if it's minimized or covered. Names count in any of her languages ("notatnik",
   "bloc-notes" and "блокнот" all find Notepad, "browser" finds any browser), and in Polish with their endings
   ("okno discorda"). When only something close is open (a typo, another name), she asks in her way whether that's the
-  one you meant. When nothing is open, she offers to start it (on your click). Window titles are only read when you
-  ask, on your PC, and never kept.
+  one you meant. When nothing is open, she offers to start it (on your click). When the app has several windows open,
+  she points at its stack on the taskbar ("Firefox ×3") and lets you take your pick. Window titles and the taskbar
+  are only read when you ask, on your PC, and never kept.
 - **Her mission report** goes to your phone when you're away and her bot is paired.
 - **Her menu** has a **Compact** mode (what she does, her screen, settings, quit).
 - **Her bridge** only takes events that carry its token, a new one each time she starts, kept in

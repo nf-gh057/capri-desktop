@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { findWindow, variants } = require('../src/main/apps');
+const { findWindow, variants, button, findButton } = require('../src/main/apps');
 
 // the windows as apps.windows() lists them
 const WINDOWS = [
@@ -53,4 +53,19 @@ test('nothing by that name', () => {
 test('what to start when no window is open: the same names', () => {
   assert.ok(variants('notatnik').includes('notepad'));
   assert.ok(variants('Bloc-notes').includes('notatnik'));
+});
+
+test('the taskbar: an app’s button and how many windows it has, in any language', () => {
+  const at = { x: 0, y: 0, w: 40, h: 40 };
+  const buttons = [
+    { name: 'Firefox — uruchomione okna: 3 — przypięto', ...at },
+    { name: 'Eksplorator plików — uruchomione okna: 5 — przypięto', ...at },
+    { name: 'Word - 1 running window', ...at },
+    { name: 'Microsoft Store — przypięto', ...at },
+  ].map(button);
+  assert.deepEqual(buttons.map((b) => [b.name, b.count]), [['Firefox', 3], ['Eksplorator plików', 5], ['Word', 1], ['Microsoft Store', 0]]);
+  assert.equal(findButton('firefox', buttons).count, 3);
+  assert.equal(findButton('explorer', buttons).count, 5); // its name in another language
+  assert.equal(findButton('przeglądarka', buttons)?.name, 'Firefox');
+  assert.equal(findButton('excel', buttons), null);
 });

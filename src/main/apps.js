@@ -185,4 +185,49 @@ async function showWindow(id) {
   return /true/i.test(out);
 }
 
-module.exports = { list, find, close, powershell, windows, findWindow, showWindow, variants, fold };
+// The apps' buttons on the taskbar (its main one, through UI Automation): [{ name, count, x, y, w, h }],
+// `name` as the button says it ("Firefox"), `count` its windows (0: only pinned), in physical pixels.
+async function taskbar() {
+  if (process.platform !== 'win32') return [];
+  const out = await powershell(
+    'Add-Type -Namespace Capri -Name Dpi -MemberDefinition \'[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();\'; '
+    + '[void][Capri.Dpi]::SetProcessDPIAware(); '
+    + 'Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes; '
+    + '$A = [System.Windows.Automation.AutomationElement]; '
+    + '$bar = $A::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, '
+    + '(New-Object System.Windows.Automation.PropertyCondition($A::ClassNameProperty, \'Shell_TrayWnd\'))); '
+    + 'if (-not $bar) { return }; '
+    + '$bar.FindAll([System.Windows.Automation.TreeScope]::Descendants, '
+    + '(New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button))) | '
+    + 'Where-Object { $_.Current.AutomationId -like \'Appid:*\' } | ForEach-Object { $r = $_.Current.BoundingRectangle; '
+    + '[pscustomobject]@{ name = $_.Current.Name; x = [int]$r.X; y = [int]$r.Y; w = [int]$r.Width; h = [int]$r.Height } } | '
+    + 'ConvertTo-Json -Compress',
+  );
+  return [].concat(out ? JSON.parse(out) : []).map(button);
+}
+
+// "Firefox — uruchomione okna: 3 — przypięto", "Firefox - 3 running windows - pinned": its app and its windows
+function button({ name, x, y, w, h }) {
+  const [app, ...rest] = String(name || '').split(/\s+[—–-]\s+/);
+  const count = Number(rest.join(' ').match(/\d+/)?.[0] || 0);
+  return { name: app.trim(), count, x, y, w, h };
+}
+
+// The button of the app `wanted` names (or of the window found for it): its name, in her languages too
+function findButton(wanted, buttons, win = null) {
+  const keys = new Set([...variants(wanted), ...(win ? [fold(win.label), fold(win.process)] : [])].filter((k) => k.length >= 2));
+  let best = null;
+  for (const b of buttons) {
+    const name = fold(b.name);
+    const known = ALIASES.find((group) => group.includes(name)) || [];
+    let score = 0;
+    for (const key of keys) {
+      if (name === key || known.includes(key)) score = Math.max(score, 3);
+      else if (key.length >= 4 && (name.split(' ').includes(key) || key.split(' ').includes(name))) score = Math.max(score, 2);
+    }
+    if (score > (best?.score || 0)) best = { b, score };
+  }
+  return best?.b || null;
+}
+
+module.exports = { list, find, close, powershell, windows, findWindow, showWindow, variants, fold, taskbar, button, findButton };

@@ -171,7 +171,8 @@ nie ma cię przy żadnym z nich, a rozmowa przez Telegram blokuje się, gdy wró
   a jeśli jest zminimalizowane albo przykryte, najpierw wyciąga je na wierzch. Nazwy działają w każdym z jej języków
   („notatnik”, „bloc-notes” i „блокнот” znajdują Notatnik, „przeglądarka” dowolną przeglądarkę), a po polsku także
   odmienione („okno discorda”). Gdy otwarte jest tylko coś podobnego (literówka, inna nazwa), pyta po swojemu, czy
-  o to ci chodziło. Gdy nic nie jest otwarte, proponuje, że to uruchomi (po twoim kliknięciu). Tytuły okien czyta
+  o to ci chodziło. Gdy nic nie jest otwarte, proponuje, że to uruchomi (po twoim kliknięciu). Gdy aplikacja ma kilka
+  otwartych okien, pokazuje ich stos na pasku zadań („Firefox ×3”) i każe ci wybrać. Tytuły okien i pasek zadań czyta
   tylko wtedy, gdy pytasz, na twoim PC, i nigdzie ich nie zapisuje.
 - **Raport z misji** przychodzi na telefon, gdy cię nie ma, a jej bot jest sparowany.
 - **Jej menu** ma tryb **Skrócone** (to, co robi, ekran, ustawienia, zakończ).
