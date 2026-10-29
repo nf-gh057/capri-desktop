@@ -553,6 +553,11 @@ hasn't seen yet; the newer change wins, and what was removed stays removed. A PC
 (with Ollama, if her brain is online), then catches up as soon as it's back, with what the others did meanwhile and they
 with what it did, and she says so. A reminder goes off on the PC you're at, once.
 
+What she is and what she remembers also reach Claude Code or Codex when they answer her chat, on every PC. So when
+another PC changes her persona or her memories, she tells you on the PC you're at (or the next time you're back at one),
+with what changed and **Undo**, which puts it back as it was on all of them. Mainframe › Capri lists what she remembers
+and which PC it was said on, to forget one by one.
+
 Your phone too: pair the Telegram bot on one PC, and the others send their messages through it (Mainframe › Phone on
 them says which PC holds it). "Away" then means away from all of them: no message while you're at any of your PCs, and
 her chat on Telegram locks when you're back at any. Two PCs paired with the same bot: one reads it (the bot can only be

@@ -246,6 +246,45 @@ async function boot() {
   };
   chatShows(config);
   setup.onReady = () => chat.start();
+  // What another PC of her swarm changed in her head (main.js mindTell): she says so, with "Undo". Not
+  // shown yet (put away, her chat open…), or pushed off within moments by something more important: it
+  // comes again with main.js's next try. Seen and closed: kept, like "Keep".
+  let mindTold = null; // the change she's saying
+  const tellMind = (news) => {
+    if (mindTold === news.id || capri.stowed) return;
+    const t = brain.t.swarm;
+    const what = [
+      news.persona !== null && `${t.mindPersona}: ${news.persona || '…'}`,
+      ...news.added.map((m) => `+ ${m}`),
+      ...news.removed.map((m) => `− ${m}`),
+    ].filter(Boolean);
+    let answered = false;
+    let at = 0;
+    const shown = panel.say({
+      kind: 'info',
+      face: 'look',
+      guide: true,
+      line: fmt(pick(t.mind), { pc: news.pcs.join(', ') || '…' }),
+      quote: what.join('\n'),
+      actions: [{ id: 'keep', label: t.mindKeep, primary: true }, { id: 'undo', label: t.mindUndo }],
+      onAction: async (id) => {
+        answered = true;
+        panel.hide();
+        if (id === 'undo' && (await host.mindUndo(news.id))) panel.say({ kind: 'info', face: 'smug', line: pick(t.mindUndone), hold: 3500 });
+        else host.mindSeen(news.id);
+      },
+      onLeave: () => {
+        if (answered) return;
+        if (performance.now() - at < 3000) mindTold = null;
+        else host.mindSeen(news.id);
+      },
+      hold: null,
+    });
+    if (shown) {
+      mindTold = news.id;
+      at = performance.now();
+    }
+  };
   // What she calls you, how she is, your lines, what she remembers (custom.js)
   const custom = new Custom({ guide, host, brain, capri, voice });
   const stowKey = new StowKey({ guide, panel, host, brain });
@@ -713,6 +752,9 @@ async function boot() {
         break;
       case 'swarmJoined': // another of your devices joined her swarm
         if (!capri.stowed) panel.say({ kind: 'info', face: 'laugh', line: fmt(pick(brain.t.swarm.joined), { pc: cmd.pc || '…' }), hold: 4500 });
+        break;
+      case 'mindNews': // another PC changed her persona or what she remembers
+        tellMind(cmd);
         break;
       case 'hiveRejoined': // back on the network after being on her own: she's caught up with the others
         if (!capri.stowed) panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.rejoined), { pc: cmd.pc || '…' }), hold: 5000 });

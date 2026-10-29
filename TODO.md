@@ -41,7 +41,8 @@ Wspólne dla wszystkich etapów:
   z którym się sparował.
 - Nasłuch tylko na adresie Tailscale (i 127.0.0.1), nigdy na LAN-ie ani w internecie.
 - Inne komputery przysyłają tylko stan, obecność, zdarzenia i pamięć: nigdy poleceń do wykonania. Przejęty laptop
-  nie uruchomi niczego na pozostałych.
+  nie uruchomi niczego na pozostałych bezpośrednio; wspólna persona i wspomnienia trafiają jednak do agentów na każdym
+  komputerze, więc ich zmianę z innego komputera Capri pokazuje tam, gdzie jesteś, z „Cofnij” (zrobione w 0.4.4-22).
 
 ### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama)
 - Telefon z aplikacją Tailscale otwiera stronę czatu Capri (PWA) na jej adresie w sieci Tailscale (HTTPS z certyfikatem

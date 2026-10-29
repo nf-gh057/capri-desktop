@@ -110,6 +110,10 @@ function capri(s, t) {
     row(t.reminders, c.reminders.length ? null : el('span', { class: 'note grow' }, t.noReminders)),
     c.reminders.map((r) => row(null, el('span', { class: 'grow reminder' }, r.label),
       button('✕', 'cancelReminder', r.id, { title: t.cancelReminder }))),
+    // what she remembers, and on which of your PCs it was said (her swarm): one by one, to forget
+    row(t.memories, c.memories.length ? null : el('span', { class: 'note grow' }, t.noMemories)),
+    c.memories.map((m) => row(null, el('span', { class: 'grow reminder' }, m.text, m.from && el('span', { class: 'note' }, ` · ${m.from}`)),
+      button('✕', 'forgetMemory', m.id, { title: t.forgetMemory }))),
     row(t.stowKey, select([...c.stowKeys, { id: null, label: t.stowKeyOff }], c.stowKey, 'stowKey', { label: t.stowKey })),
     el('div', { class: 'split' }, button(t.stowKeyCustom, 'stowKeyCustom'), button(t.custom, 'custom')));
 }

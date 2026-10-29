@@ -708,6 +708,7 @@ function mainframeState() {
       lookAuto: Boolean(cfg.watchScreen),
       sync: syncLabel(cfg, t),
       reminders: reminderList(cfg),
+      memories: memoryList(cfg, t),
     },
     watch: {
       id: cfg.claude ? activeAssistant().id : 'none',
@@ -793,6 +794,7 @@ async function mainframeAct(name, value) {
     case 'lookNow': sendCommand('look'); break;
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
     case 'cancelReminder': cancelReminder(value); break;
+    case 'forgetMemory': forgetMemory(value); break;
     case 'rest': if (one(['corner', 'taskbar'])) updateConfig({ rest: value }); break;
     case 'stowKey': if (value === null || STOW_KEYS.includes(value) || value === config.load().stowKey) setStowKey(value); break;
     case 'stowKeyCustom': sendCommand('stowKey'); break;
@@ -1469,6 +1471,11 @@ function registerIpc() {
     return { local: llm.isLocal(cfg.provider, cfg, model), provider, model };
   });
   ipcMain.handle('chat:memory', () => readMemory().history || []);
+  // what another PC changed in her head (mindTell): "Undo", or told and kept
+  ipcMain.handle('mind:undo', (_e, id) => mindUndo(String(id)));
+  ipcMain.on('mind:seen', (_e, id) => {
+    if (config.load().mindNews?.id === String(id)) config.save({ mindNews: null });
+  });
   ipcMain.on('chat:remember', (_e, history) => {
     if (!Array.isArray(history)) return;
     saveMemory({ history });
@@ -1813,6 +1820,7 @@ function hiveBack() {
   const from = hiveAway;
   hiveAway = null;
   if (config.load().visible) sendCommand('swarmBack', { from });
+  setTimeout(mindTell, 4000); // after her hello
 }
 
 // An event of Claude Code or Codex on this PC. You're at another of your PCs: it goes there (only the
@@ -1972,6 +1980,7 @@ function mindApply(keys, peer) {
     saveMemory({ history });
     overlay?.webContents.send('chat:history', history);
   }
+  mindNoteNews(cfg, patch);
   if (Object.keys(patch).length) {
     mindApplying = true;
     try {
@@ -1982,6 +1991,7 @@ function mindApply(keys, peer) {
     if (patch.bond) sendCommand('bondSync', { bond: patch.bond });
   }
   mindSave();
+  mindTell();
   // back from being an island a while (still marked alone, or just back): she says she's caught up
   // (once), where you are
   const alone = !hiveAlone ? 0 : hiveAlone.since ? Date.now() - hiveAlone.since
@@ -1991,6 +2001,103 @@ function mindApply(keys, peer) {
     if (hiveAway === null) sendCommand('hiveRejoined', { pc: peer.name, n: keys.length });
   }
 }
+
+// A PC of her swarm by its id: its name (this one's own, or as the others last said it), null if unknown
+function pcName(id) {
+  const cfg = config.load();
+  if (!id) return null;
+  if (id === cfg.swarm?.id) return hiveName(cfg);
+  return hive?.state().peers.find((p) => p.id === id)?.name || cfg.swarm?.peers?.find((p) => p.id === id)?.name || null;
+}
+
+// What another PC of her swarm changed in her persona or in what she remembers, kept (config.mindNews)
+// until she's told you, where you are, with a way back: { id, pcs, persona: { before, after } | null,
+// added, removed }. Changes on top of ones not told yet go together (the persona as it was before all of them).
+function mindNoteNews(cfg, patch) {
+  const news = mindNewsNow(cfg) || { persona: null, added: [], removed: [], pcs: [] };
+  const pcs = new Set(news.pcs);
+  let changed = false;
+  if ('persona' in patch && patch.persona !== (cfg.persona || '')) {
+    const before = news.persona ? news.persona.before : cfg.persona || '';
+    news.persona = before === patch.persona ? null : { before, after: patch.persona };
+    pcs.add(pcName(mind.entry('persona')?.by));
+    changed = true;
+  }
+  if ('memories' in patch) {
+    const before = new Set(cfg.memories || []);
+    const after = new Set(patch.memories);
+    const moved = (text, from, to) => {
+      if (news[from].includes(text)) news[from] = news[from].filter((t) => t !== text); // back as it was: nothing to tell
+      else if (!news[to].includes(text)) news[to].push(text);
+      pcs.add(pcName(mind.entry(memoKey(text))?.by));
+      changed = true;
+    };
+    for (const text of after) if (!before.has(text)) moved(text, 'removed', 'added');
+    for (const text of before) if (!after.has(text)) moved(text, 'added', 'removed');
+  }
+  if (!changed) return;
+  pcs.delete(null);
+  const empty = !news.persona && !news.added.length && !news.removed.length;
+  config.save({ mindNews: empty ? null : { ...news, pcs: [...pcs], id: randomUUID().slice(0, 8) } });
+}
+
+// The news not told yet, as it still stands: what you changed here since (yourself) taken out of it,
+// null if nothing's left
+function mindNewsNow(cfg = config.load()) {
+  const news = cfg.mindNews;
+  if (!news) return null;
+  const had = new Set(cfg.memories || []);
+  const now = {
+    ...news,
+    persona: news.persona && news.persona.after === (cfg.persona || '') ? news.persona : null,
+    added: (news.added || []).filter((t) => had.has(t)),
+    removed: (news.removed || []).filter((t) => !had.has(t)),
+    pcs: news.pcs || [],
+  };
+  return now.persona || now.added.length || now.removed.length ? now : null;
+}
+
+// She tells you what another PC changed in her head: only on the PC you're at (the others keep it
+// for when you're back at one of them)
+function mindTell() {
+  const news = mindNewsNow();
+  if (!news || hiveAway !== null || !overlay) return;
+  sendCommand('mindNews', {
+    id: news.id,
+    pcs: news.pcs,
+    persona: news.persona ? news.persona.after.slice(0, 300) : null,
+    added: news.added.map((t) => t.slice(0, 200)),
+    removed: news.removed.map((t) => t.slice(0, 200)),
+  });
+}
+
+// "Undo": her persona and memories back as they were before those changes, on all your PCs
+function mindUndo(id) {
+  const cfg = config.load();
+  const news = mindNewsNow(cfg);
+  if (!news || news.id !== id) return false;
+  const patch = { mindNews: null };
+  if (news.persona) patch.persona = news.persona.before;
+  if (news.added.length || news.removed.length) {
+    const now = (cfg.memories || []).filter((t) => !news.added.includes(t));
+    patch.memories = [...now, ...news.removed.filter((t) => !now.includes(t))];
+  }
+  updateConfig(patch); // written into her mind as this PC's: it goes to the others
+  return true;
+}
+
+// What she remembers, for Mainframe: each with where it came from (her swarm on), to remove one by one
+function memoryList(cfg, t) {
+  const me = cfg.swarm?.id;
+  return (cfg.memories || []).map((text) => {
+    const key = memoKey(text);
+    const by = mind?.entry(key)?.by;
+    const from = !by ? null : by === me ? t.memoryHere : t.memoryFrom(pcName(by) || '?');
+    return { id: key.slice(5), text: text.length > 90 ? `${text.slice(0, 89)}…` : text, from };
+  });
+}
+
+const forgetMemory = (id) => updateConfig({ memories: (config.load().memories || []).filter((t) => memoKey(t).slice(5) !== id) });
 
 function hiveInviteNew() {
   if (!hive) return;
@@ -2271,7 +2378,9 @@ function main() {
       await hiveLook();
       hiveUpgrade();
       syncPhoneChat(); // the PC that holds your phone may have changed
+      mindTell(); // not said yet (her chat was open, or she was away)
     }, 60000);
+    setTimeout(mindTell, 15000); // what came before a restart, not said yet
     watchUpdates();
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask

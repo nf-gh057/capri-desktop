@@ -110,3 +110,16 @@ test('what does not look like an entry is left out', () => {
   ]) assert.equal(valid(bad), false);
   assert.deepEqual(m.merge([good, { ...good, by: 'nope' }, 'junk']), ['name']);
 });
+
+test('who wrote an entry, or removed it, is known on every PC (her notice of what another PC changed)', () => {
+  const a = createMind({ me: A });
+  const b = createMind({ me: B });
+  a.write('memo:1', 'a cat called Mruczek');
+  swap(a, b);
+  assert.equal(b.entry('memo:1').by, A);
+  b.write('memo:1', null, { del: true });
+  swap(a, b);
+  assert.equal(a.get('memo:1'), undefined);
+  assert.equal(a.entry('memo:1').by, B);
+  assert.equal(a.entry('memo:2'), undefined);
+});

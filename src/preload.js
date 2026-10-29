@@ -76,4 +76,6 @@ contextBridge.exposeInMainWorld('host', {
   // your messages from her chat on Telegram, and her answers back
   onPhoneChat: on('phone:chat'),
   phoneAnswer: (answer) => ipcRenderer.send('phone:answer', answer),
+  mindUndo: (id) => ipcRenderer.invoke('mind:undo', id),
+  mindSeen: (id) => ipcRenderer.send('mind:seen', id),
 });

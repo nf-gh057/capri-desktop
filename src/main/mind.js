@@ -91,6 +91,7 @@ function createMind({ me, state = null }) {
     prune,
     get: (key) => (s.items[key] && !s.items[key].del ? s.items[key].v : undefined),
     has: (key) => Boolean(s.items[key]),
+    entry: (key) => (s.items[key] ? { ...s.items[key] } : undefined), // removed ones too: who removed it
     vv: () => ({ ...s.vv }),
     state: () => ({ items: s.items, vv: s.vv, seq: s.seq }),
   };
