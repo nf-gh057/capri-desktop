@@ -1398,7 +1398,7 @@ function registerIpc() {
     if (!models) return { ok: false, error: chatError || 'offline', code: chatErrorCode, provider };
     if (!models.length) return { ok: false, error: 'nomodel', provider };
     const model = pickModel();
-    llm.warm(provider, model); // loading while you type your first message
+    llm.warm(provider, model, llmConfig(cfg)); // loading while you type your first message
     const local = llm.isLocal(provider, cfg, model);
     return { ok: true, provider, model, agent: llm.isAgent(provider), powers: !llm.isAgent(provider) || Boolean(cfg.agentPowers), local, warmup: provider === 'ollama' && local };
   });

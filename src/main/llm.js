@@ -93,9 +93,12 @@ async function models(id, cfg) {
   return id === 'gemini' ? geminiModels(names) : names;
 }
 
-function warm(id, model) {
+// Loading while you type your first message: Ollama's model, Codex, or Claude Code (with her persona
+// as it last heard it: what changed since goes with your message)
+function warm(id, model, cfg = {}) {
   if (PROVIDERS[id].kind === 'ollama') ollama.warm(model);
-  if (PROVIDERS[id].kind === 'codex') codexServer().catch(() => {}); // started while you type
+  if (PROVIDERS[id].kind === 'codex') codexServer().catch(() => {});
+  if (PROVIDERS[id].kind === 'claude' && claudePersona) claudeServer(cfg, claudePersona);
 }
 
 // OpenAI-style streaming (server-sent events): onDelta(piece) as it comes, resolves with all of it.
@@ -132,13 +135,20 @@ async function openaiChat(p, { model, messages }, onDelta, signal) {
 }
 
 // --- Claude Code ---------------------------------------------------------------------------------
-// The prompt goes in on stdin, never on the command line: the shell (needed for an npm claude.cmd)
-// only ever sees fixed arguments.
+// One `claude -p` for all her answers, kept running between them (stream-json both ways: your messages
+// go in on stdin, her words come out as they're written): no new Claude Code to start for every
+// message (a couple of seconds each, with its hooks), and her answer is hers once its turn ends, not
+// seconds later, once Claude Code has summed it up and saved it. Started again (picking up the same
+// conversation) when how it may work changes, closed after a while unused. The shell (needed for an
+// npm claude.cmd) only ever sees fixed arguments: what you say goes over stdin.
 
 const quote = (s) => (process.platform === 'win32' ? `"${s}"` : s); // cmd joins the arguments
+const AGENT_IDLE_MS = 15 * 60 * 1000; // Claude Code and Codex, closed once unused this long
 // its session id, picked here so her hooks can tell its events from your other sessions' (main.js)
 let claudeSession = null;
-let claudeStarted = false; // each message after the first continues the same conversation
+let claudeStarted = false; // the session exists: started again, it's picked up (--resume)
+let claudePersona = null; // her persona as that conversation last heard it
+let claude = null; // the running Claude Code: { child, key, persona, handlers, sent, results, idle }
 
 function claudeVersion() {
   return new Promise((resolve, reject) => {
@@ -147,63 +157,126 @@ function claudeVersion() {
   });
 }
 
-function claudeChat(cfg, text, persona, onDelta, signal) {
+function stopClaude({ gently = false } = {}) {
+  if (!claude) return;
+  const { child, idle } = claude;
+  claude = null;
+  clearTimeout(idle);
+  if (gently) child.stdin.end(); // it finishes saving the conversation, then goes
+  else if (process.platform === 'win32') execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], () => {});
+  else child.kill();
+}
+
+// Claude Code running as this chat needs it (permissions, folder, read-only from your phone): the one
+// already running, or a new one, started with her persona as it is now.
+function claudeServer(cfg, persona) {
+  const mode = CLAUDE_MODES.includes(cfg.claudeMode) ? cfg.claudeMode : 'default';
+  const cwd = cfg.claudeCwd || os.homedir();
+  const key = JSON.stringify([mode, cwd, Boolean(cfg.readOnly)]);
+  if (claude?.key === key) {
+    const running = claude;
+    agentIdleLater(running, () => claude === running && stopClaude({ gently: true }));
+    return running;
+  }
+  stopClaude();
   // her persona, from a file: too long and too full of quotes and newlines for cmd's command line
   const personaFile = path.join(os.tmpdir(), 'capri-persona.txt');
   fs.writeFileSync(personaFile, persona);
-  const args = ['-p', '--output-format', 'stream-json', '--verbose',
-    '--permission-mode', CLAUDE_MODES.includes(cfg.claudeMode) ? cfg.claudeMode : 'default',
-    '--append-system-prompt-file', quote(personaFile)];
+  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
+    '--permission-mode', mode, '--append-system-prompt-file', quote(personaFile)];
   // from your phone (main.js): it reads, and that's all, whatever your Claude Code settings allow
   if (cfg.readOnly) args.push('--tools', READ_ONLY_TOOLS, '--strict-mcp-config');
   if (!claudeSession) claudeSession = randomUUID();
   args.push(claudeStarted ? '--resume' : '--session-id', claudeSession);
-  return new Promise((resolve, reject) => {
-    const child = spawn('claude', args, {
-      cwd: cfg.claudeCwd || os.homedir(),
-      shell: process.platform === 'win32',
-      windowsHide: true,
-    });
-    const kill = () => (process.platform === 'win32'
-      ? execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], () => {})
-      : child.kill());
-    signal.addEventListener('abort', kill, { once: true });
-    let buffer = '';
-    let all = '';
-    let result = null;
-    let errors = '';
-    child.stdout.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => {
-      buffer += chunk;
-      let nl;
-      while ((nl = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, nl).trim();
-        buffer = buffer.slice(nl + 1);
-        let msg;
-        try { msg = JSON.parse(line); } catch { continue; }
-        claudeStarted = true;
-        if (msg.type === 'assistant') {
-          for (const block of msg.message?.content || []) {
-            if (block.type !== 'text' || !block.text) continue;
-            const piece = (all ? '\n' : '') + block.text;
-            all += piece;
-            onDelta(piece);
-          }
-        } else if (msg.type === 'result') {
-          result = msg;
-        }
-      }
-    });
-    child.stderr.on('data', (chunk) => { errors += chunk; });
-    child.stdin.end(text);
-    child.on('error', reject);
-    child.on('close', () => {
-      if (signal.aborted) return reject(new Error('stopped'));
-      if (result?.is_error) return reject(new Error(result.result || 'Claude Code failed'));
-      if (!result) return reject(new Error(errors.trim().slice(0, 300) || 'Claude Code gave no answer'));
-      resolve(result.result || all);
-    });
+  const child = spawn('claude', args, { cwd, shell: process.platform === 'win32', windowsHide: true });
+  const server = { child, key, persona, handlers: new Set(), sent: 0, results: 0, idle: null };
+  claude = server;
+  claudePersona = persona;
+  agentIdleLater(server, () => claude === server && stopClaude({ gently: true }));
+  let buffer = '';
+  let errors = '';
+  child.stdin.on('error', () => {}); // gone: its exit says why
+  child.stderr.on('data', (chunk) => { errors = (errors + chunk).slice(-2000); });
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk;
+    let nl;
+    while ((nl = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      let msg;
+      try { msg = JSON.parse(line); } catch { continue; }
+      if (msg.type === 'system' && msg.subtype === 'init') claudeStarted = true;
+      server.handlers.forEach((handle) => handle(msg));
+      if (msg.type === 'result') server.results += 1; // that message's turn is over, the next one's can start
+    }
   });
+  const gone = (err) => {
+    if (claude === server) claude = null;
+    clearTimeout(server.idle);
+    const why = err || new Error(errors.trim().split('\n').at(-1)?.slice(0, 300) || 'Claude Code stopped');
+    server.handlers.forEach((handle) => handle({ type: 'capri/exit', error: why }));
+  };
+  child.on('error', () => gone(new Error('Claude Code not found (is `claude` on your PATH?)')));
+  child.on('close', () => gone(null));
+  return server;
+}
+
+function claudeChat(cfg, text, persona, onDelta, signal) {
+  const server = claudeServer(cfg, persona);
+  const news = personaNews(persona, server.persona);
+  server.persona = persona;
+  claudePersona = persona;
+  const index = server.sent++; // its place: the turns before it end first
+  return new Promise((resolve, reject) => {
+    let all = '';
+    let parted = false; // a new message of its, after some of its words: on a new line
+    let done = false;
+    const finish = (err, value) => {
+      if (done) return;
+      done = true;
+      server.handlers.delete(handle);
+      signal.removeEventListener('abort', stop);
+      if (err) reject(err);
+      else resolve(value);
+    };
+    const handle = (msg) => {
+      if (msg.type === 'capri/exit') return finish(signal.aborted ? new Error('stopped') : msg.error);
+      if (server.results < index) return; // the message before is still being wrapped up
+      if (msg.type === 'stream_event') {
+        const e = msg.event || {};
+        if (e.type === 'message_start') {
+          parted = Boolean(all);
+        } else if (e.type === 'content_block_delta' && e.delta?.type === 'text_delta' && e.delta.text) {
+          const piece = (parted ? '\n' : '') + e.delta.text;
+          parted = false;
+          all += piece;
+          onDelta(piece);
+        } else if (e.type === 'message_delta' && e.delta?.stop_reason === 'end_turn' && all) {
+          finish(null, all); // her answer, whole: what Claude Code does after it (a summary, saving) isn't waited for
+        }
+      } else if (msg.type === 'result') {
+        if (msg.is_error) finish(new Error(msg.result || 'Claude Code failed'));
+        else if (!all && !msg.result) finish(new Error('Claude Code gave no answer'));
+        else finish(null, all || msg.result);
+      }
+    };
+    // stopped: Claude Code goes with it (the next message starts it again, same conversation)
+    const stop = () => {
+      if (claude === server) stopClaude();
+      finish(new Error('stopped'));
+    };
+    if (signal.aborted) return finish(new Error('stopped'));
+    server.handlers.add(handle);
+    signal.addEventListener('abort', stop, { once: true });
+    server.child.stdin.write(`${JSON.stringify({ type: 'user', message: { role: 'user', content: news + text } })}\n`);
+  });
+}
+
+// closed once unused for a while, never in the middle of an answer
+function agentIdleLater(server, close) {
+  clearTimeout(server.idle);
+  server.idle = setTimeout(() => (server.handlers.size ? agentIdleLater(server, close) : close()), AGENT_IDLE_MS);
 }
 
 // --- Codex ---------------------------------------------------------------------------------------
@@ -212,7 +285,6 @@ function claudeChat(cfg, text, persona, onDelta, signal) {
 // stream into the bubble as they come. Its command line is fixed: everything else goes over stdio.
 
 const CODEX_EFFORTS = ['low', 'medium', 'high'];
-const CODEX_IDLE_MS = 15 * 60 * 1000;
 
 let codexThread = null; // its conversation, set by Codex's first answer
 let codexPersona = null; // her persona as that conversation last heard it
@@ -239,11 +311,7 @@ function stopCodex() {
   else child.kill();
 }
 
-// closed once unused for a while, never in the middle of an answer
-function idleLater(server) {
-  clearTimeout(server.idle);
-  server.idle = setTimeout(() => (server.handlers.size ? idleLater(server) : codex === server && stopCodex()), CODEX_IDLE_MS);
-}
+const idleLater = (server) => agentIdleLater(server, () => codex === server && stopCodex());
 
 // The server, running and greeted: started on first use (through cmd on Windows, where an npm
 // install only has codex.cmd).
@@ -325,11 +393,11 @@ async function codexModels() {
 }
 
 // What changed in her persona since the conversation last heard it (what's open, what your assistant
-// is doing…): only those lines, said with your message. Codex keeps the persona a conversation
-// started with, whatever comes after.
-function personaNews(persona) {
-  if (codexPersona === persona) return '';
-  const known = new Set((codexPersona || '').split('\n'));
+// is doing…): only those lines, said with your message. Codex and Claude Code keep the persona a
+// conversation (or a run of Claude Code) started with, whatever comes after.
+function personaNews(persona, heard) {
+  if (heard === persona) return '';
+  const known = new Set((heard || '').split('\n'));
   const news = persona.split('\n').filter((line) => line.trim() && !known.has(line));
   return news.length ? `[Updated instructions: these lines replace your older ones on the same things]\n${news.join('\n')}\n\n[The user's message]\n` : '';
 }
@@ -350,7 +418,7 @@ async function codexChat(cfg, model, text, persona, onDelta, signal) {
       .then(() => { server.loaded = codexThread; })
       .catch(() => { codexThread = null; }); // gone from Codex's history: a new one
   }
-  let news = personaNews(persona);
+  let news = personaNews(persona, codexPersona);
   if (!codexThread) {
     const started = await server.request('thread/start', { ...settings, developerInstructions: persona });
     codexThread = threadId(started.thread?.id);
@@ -408,20 +476,28 @@ async function codexChat(cfg, model, text, persona, onDelta, signal) {
 }
 
 function resetAgents() {
+  stopClaude();
   claudeSession = null;
   claudeStarted = false;
+  claudePersona = null;
   codexThread = null;
   codexPersona = null;
 }
 
+function stopAgents() {
+  stopClaude({ gently: true });
+  stopCodex();
+}
+
 // The terminal agents' conversations, to save and pick up again after a restart.
 const agentMemory = () => ({
-  claude: { session: claudeSession, started: claudeStarted },
+  claude: { session: claudeSession, started: claudeStarted, persona: claudePersona },
   codex: codexThread && { thread: codexThread, persona: codexPersona },
 });
 function restoreAgents(saved = {}) {
   claudeSession = saved.claude?.session || null;
   claudeStarted = Boolean(claudeSession && saved.claude.started);
+  claudePersona = (claudeStarted && typeof saved.claude?.persona === 'string') ? saved.claude.persona : null;
   // saved by an older Capri: the thread alone, its persona unknown (all of it goes with the next message)
   codexThread = threadId(typeof saved.codex === 'string' ? saved.codex : saved.codex?.thread);
   codexPersona = (codexThread && typeof saved.codex?.persona === 'string') ? saved.codex.persona : null;
@@ -450,5 +526,5 @@ function isLocal(id, cfg, model) {
 
 module.exports = {
   isLocal, isAgent, PROVIDERS, CLAUDE_MODES, CODEX_SANDBOX, CODEX_EFFORTS, models, warm, chat, resetAgents, isChatSession, agentMemory,
-  restoreAgents, stopAgents: stopCodex,
+  restoreAgents, stopAgents,
 };

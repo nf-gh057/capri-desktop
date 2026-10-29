@@ -184,7 +184,10 @@ The first time, she sets it up with you, with buttons, no terminal:
 Her menu › **AI model** lets you switch later: **Set it up with her…**, or straight to a service and a model, LM Studio
 (`:1234`), llama.cpp or vLLM (`:8080`), any OpenAI-compatible server (**API key or address…**), or **Claude Code**
 itself: your messages go to `claude -p` in the folder you pick, continuing one conversation, and her hooks show what it
-does. In that last one, permission mode `default` only lets it read (nobody is there to say yes); `acceptEdits` lets it
+does. One Claude Code runs while you chat (closed after 15 minutes unused), so there's no new one to start for every
+message, her words show up as they're written, and her answer is there as soon as it's done (about a second or two for a
+short one), not once Claude Code has finished summing up the turn.
+In that last one, permission mode `default` only lets it read (nobody is there to say yes); `acceptEdits` lets it
 edit files without asking. **Forget our conversations** clears what she remembers of your chats.
 
 Or **Codex** (signed in with your ChatGPT plan): one `codex app-server` runs while you chat (started when her chat

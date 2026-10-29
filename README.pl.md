@@ -189,7 +189,10 @@ Za pierwszym razem ustawia to z tobą, przyciskami, bez terminala:
 Jej menu › **Model AI** pozwala zmienić to później: **Wybierz razem z nią…**, albo od razu usługa i model, LM Studio
 (`:1234`), llama.cpp albo vLLM (`:8080`), dowolny serwer zgodny z OpenAI (**Klucz API lub adres…**), albo sam
 **Claude Code**: twoje wiadomości idą do `claude -p` w wybranym folderze, w jednej ciągłej rozmowie, a jej hooki pokazują,
-co robi. W tym ostatnim tryb uprawnień `default` pozwala tylko czytać (nikogo nie ma, żeby powiedzieć „tak”);
+co robi. Kiedy rozmawiacie, działa jeden Claude Code (zamyka się po 15 minutach bez użycia), więc nie startuje nowy przy
+każdej wiadomości, jej słowa pojawiają się na bieżąco, a odpowiedź jest gotowa, gdy tylko Claude Code ją skończy (krótka:
+sekunda, dwie), a nie dopiero po tym, jak podsumuje turę.
+W tym ostatnim tryb uprawnień `default` pozwala tylko czytać (nikogo nie ma, żeby powiedzieć „tak”);
 `acceptEdits` pozwala edytować pliki bez pytania. **Zapomnij nasze rozmowy** czyści to, co pamięta z waszych rozmów.
 
 Albo **Codex** (zalogowany planem ChatGPT): kiedy rozmawiacie, działa jeden `codex app-server` (startuje, gdy otwiera się
