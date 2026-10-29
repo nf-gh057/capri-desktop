@@ -60,7 +60,8 @@ Wspólne dla wszystkich etapów:
   także później, nie tylko zaraz po poleceniu (np. gdy agent kończy etap, długo coś robi albo coś się nie udaje),
   wraca do wcześniejszych wątków i zagaduje sama, bez czekania na twoją wiadomość.
 - [x] Przerobienie okna Mainframe (zrobione w 0.4.4-23 i 0.4.4-24: zakładki u góry w stylu menu z gry, okno ze zmianą rozmiaru, HOLO).
-- Ograniczenie menu pod prawym przyciskiem myszy.
+- [x] Ograniczenie menu pod prawym przyciskiem myszy (zrobione w 0.4.4-29: na górze najważniejsze, reszta w podmenu
+  jak zakładki Mainframe).
 - Głos klonowany z postaci z anime albo z własnego nagrania.
 - Zróżnicowane komentarze Capri do podejmowanych akcji (mniej powtórzeń tych samych tekstów).
 - Równoległe monitorowanie różnych AI naraz.

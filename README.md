@@ -172,7 +172,10 @@ and her chat on Telegram locks when you're back at any of them.
   she points at its stack on the taskbar ("Firefox ×3") and lets you take your pick. Window titles and the taskbar
   are only read when you ask, on your PC, and never kept.
 - **Her mission report** goes to your phone when you're away and her bot is paired.
-- **Her menu** has a **Compact** mode (what she does, her screen, settings, quit).
+- **Her menu** (right-click her, or her tray icon) is laid out like Mainframe. On top is what you reach for: talk to
+  her, put her away, Mainframe. Then come her parts, named like Mainframe's tabs (HOLO, NETWATCH, ENGRAMS, RELIC,
+  CYBERDECK), and **Quit** at the bottom. Its **Compact** mode keeps what she does, her screen and quitting, without
+  the parts.
 - **Her bridge** only takes events that carry its token, a new one each time she starts, kept in
   `~/.capri/bridge-token`. They must be addressed to `127.0.0.1` or `localhost`, so web pages can't puppet her.
 - **When something does nothing**: what went wrong is in `capri.log`, next to her settings (`%APPDATA%\capri-desktop`;

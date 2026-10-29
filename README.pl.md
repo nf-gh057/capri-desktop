@@ -175,7 +175,10 @@ nie ma cię przy żadnym z nich, a rozmowa przez Telegram blokuje się, gdy wró
   otwartych okien, pokazuje ich stos na pasku zadań („Firefox ×3”) i każe ci wybrać. Tytuły okien i pasek zadań czyta
   tylko wtedy, gdy pytasz, na twoim PC, i nigdzie ich nie zapisuje.
 - **Raport z misji** przychodzi na telefon, gdy cię nie ma, a jej bot jest sparowany.
-- **Jej menu** ma tryb **Skrócone** (to, co robi, ekran, ustawienia, zakończ).
+- **Jej menu** (prawy klik na niej albo na jej ikonie w zasobniku) jest ułożone jak Mainframe. Na górze to, po co
+  sięgasz: pogadaj z nią, schowaj ją, Mainframe. Niżej jej części, nazwane jak zakładki Mainframe (HOLO, NETWATCH,
+  ENGRAMS, RELIC, CYBERDECK), a na dole **Zakończ**. Tryb **Skrócone** zostawia to, co robi, ekran i wyjście, bez
+  części.
 - **Jej most** przyjmuje tylko zdarzenia z jej tokenem, nowym przy każdym starcie, trzymanym w `~/.capri/bridge-token`.
   Muszą być zaadresowane do `127.0.0.1` albo `localhost`, więc strony internetowe nie mogą nią sterować.
 - **Gdy coś nic nie robi**: co poszło nie tak, jest w `capri.log`, obok jej ustawień (`%APPDATA%\capri-desktop`;

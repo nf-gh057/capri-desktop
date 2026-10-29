@@ -529,183 +529,184 @@ function rebuildTray() {
       { label: t.follow, type: 'checkbox', checked: cfg.follow !== false, click: (item) => updateConfig({ follow: item.checked }) },
     ],
   };
-  // what she does: first in both menus
-  const actions = [
+  const check = (label, checked, click) => ({ label, type: 'checkbox', checked, click: (item) => click(item.checked) });
+  const radios = (items, picked, click) => items.map(([value, label]) => ({ label, type: 'radio', checked: picked === value, click: () => click(value) }));
+  // a part of her menu, as Mainframe's tab: its name from her world, and its plain one
+  const part = (id, name, submenu) => ({ label: `${name} — ${t.tabs[id][0]}`, submenu });
+
+  const remindersItem = {
+    label: t.reminders,
+    submenu: reminders.length
+      ? reminders.map((r) => ({ label: r.label, submenu: [{ label: t.cancelReminder, click: () => cancelReminder(r.id) }] }))
+      : [{ label: t.noReminders, enabled: false }],
+  };
+  // she asks first (what she'll send where), then turns it on herself
+  const lookAuto = check(t.lookAuto, Boolean(cfg.watchScreen), (on) => {
+    sendCommand('watchScreen', { on });
+    rebuildTray(); // as it is until she's asked
+  });
+
+  // on top, what you reach for: where you two stand, talking to her, putting her away, Mainframe
+  const top = [
     { label: t.online(PORT), enabled: false },
     { label: syncLabel(cfg, t), enabled: false },
     { type: 'separator' },
-    { label: t.teleport, click: () => sendCommand('teleport') },
-    { label: t.satellite, click: () => sendCommand('satellite') },
-    { label: t.demo, click: playDemo },
-    { label: t.help, click: () => sendCommand('welcome') },
-    ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
     { label: t.talk, click: () => sendCommand('chat') },
-    { label: t.lookNow, click: () => sendCommand('look') },
-    {
-      label: t.reminders,
-      submenu: reminders.length
-        ? reminders.map((r) => ({ label: r.label, submenu: [{ label: t.cancelReminder, click: () => cancelReminder(r.id) }] }))
-        : [{ label: t.noReminders, enabled: false }],
-    },
-    { label: t.custom, click: () => sendCommand('customize') },
     { label: cfg.visible ? t.hide : t.show, ...(stowKey && { accelerator: stowKey }), click: () => toggleVisible() },
+    { label: t.settings, click: () => mainframe.open() },
     { type: 'separator' },
   ];
-  // the short one: that, her screen, her settings window for all the rest, and quitting
+  const quit = [{ type: 'separator' }, { label: t.quit, click: () => app.quit() }];
+
+  // the short one: that, what she does, her screen, and quitting (Mainframe for all the rest)
   const menu = Menu.buildFromTemplate(cfg.menu === 'compact' ? [
-    ...actions,
+    ...top,
+    { label: t.teleport, click: () => sendCommand('teleport') },
+    { label: t.satellite, click: () => sendCommand('satellite') },
+    ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
+    { label: t.lookNow, click: () => sendCommand('look') },
+    remindersItem,
+    { label: t.custom, click: () => sendCommand('customize') },
     screenItem,
-    { label: t.settings, click: () => mainframe.open() },
     { type: 'separator' },
-    { label: t.quit, click: () => app.quit() },
+    { label: t.demo, click: playDemo },
+    { label: t.help, click: () => sendCommand('welcome') },
+    ...quit,
   ] : [
-    ...actions,
-    { label: t.settings, click: () => mainframe.open() },
-    {
-      label: t.size,
-      submenu: SIZES.map(([size, scale]) => [t[size], scale]).map(([label, scale]) => ({
-        label, type: 'radio', checked: Math.abs(cfg.scale - scale) < 0.01, click: () => updateConfig({ scale }),
-      })),
-    },
-    {
-      label: t.sound,
-      submenu: [
-        { label: t.mute, type: 'checkbox', checked: cfg.muted, click: (item) => updateConfig({ muted: item.checked }) },
-        { type: 'separator' },
-        {
-          label: t.soundsDir,
-          click: () => {
-            fs.mkdirSync(userSoundsDir(), { recursive: true });
-            shell.openPath(userSoundsDir());
-          },
-        },
-      ],
-    },
-    screenItem,
-    // the key that puts her away and brings her back: one of these, one you press in her panel, or none
-    {
-      label: t.stowKey,
-      submenu: [
-        ...[...new Set([...STOW_KEYS, ...(cfg.stowKey ? [cfg.stowKey] : [])])].map((key) => ({
-          label: keyLabel(key), type: 'radio', checked: cfg.stowKey === key, click: () => setStowKey(key),
-        })),
-        { label: t.stowKeyOff, type: 'radio', checked: !cfg.stowKey, click: () => setStowKey(null) },
-        { type: 'separator' },
-        { label: t.stowKeyCustom, click: () => sendCommand('stowKey') },
-      ],
-    },
-    {
-      label: t.chatModel,
-      submenu: [
-        { label: t.aiSetup, click: () => sendCommand('setupChat') },
-        { type: 'separator' },
-        ...Object.entries(llm.PROVIDERS).map(([provider, p]) => ({
-          label: p.label, type: 'radio', checked: cfg.provider === provider, click: () => pickProvider(provider),
-        })),
-        { type: 'separator' },
-        ...(chatModels?.length
-          ? chatModels.map((name) => ({
-            label: cloud.free.includes(name) ? `${name} · ${t.cloudFree}` : name,
-            type: 'radio', checked: name === pickModel(cfg), click: () => updateConfig({ chatModel: name }),
-          }))
-          : [{ label: (chatError || t.noOllama).slice(0, 80), enabled: false }]),
-        // Ollama's free cloud models when you're signed in to it, fetched on the click (it takes a second)
-        ...(cfg.provider === 'ollama' && chatModels ? [
-          ...cloud.free.filter((name) => !chatModels.includes(name)).map((name) => ({
-            label: `${name} · ${t.cloudFree}`, type: 'radio', checked: false, click: () => fetchModel(name).catch(() => rebuildTray()),
-          })),
-          ...(cloud.account?.signin ? [{ label: t.cloudSignin, click: signInToOllama }] : []),
-        ] : []),
-        { type: 'separator' },
-        ...(llm.isAgent(cfg.provider) ? [
-          { label: `${agentName(cfg)}: ${cfg.claudeCwd || app.getPath('home')}`, click: pickClaudeFolder },
-          {
-            label: `${agentName(cfg)} permissions`,
-            submenu: llm.CLAUDE_MODES.map((mode) => ({
-              label: cfg.provider === 'codex' ? llm.CODEX_SANDBOX[mode] : mode,
-              type: 'radio', checked: cfg.claudeMode === mode, click: () => updateConfig({ claudeMode: mode }),
-            })),
-          },
-          ...(cfg.provider === 'codex' ? [{
-            label: t.effort,
-            submenu: llm.CODEX_EFFORTS.map((effort) => ({
-              label: effort, type: 'radio', checked: cfg.codexEffort === effort, click: () => updateConfig({ codexEffort: effort }),
-            })),
-          }] : []),
-          { label: t.agentPowers, type: 'checkbox', checked: Boolean(cfg.agentPowers), click: (item) => updateConfig({ agentPowers: item.checked }) },
-        ] : []),
-        { label: t.forget, click: forgetChats },
-        // the key (or the address) of the one picked, pasted in her panel
-        { label: t.apiKey, click: () => sendCommand('setupKey') },
-      ],
-    },
-    { label: t.wander, type: 'checkbox', checked: cfg.wander, click: (item) => updateConfig({ wander: item.checked }) },
-    { label: t.possess, type: 'checkbox', checked: cfg.possess, click: (item) => updateConfig({ possess: item.checked }) },
-    { label: t.jealous, type: 'checkbox', checked: cfg.jealous !== false, click: (item) => updateConfig({ jealous: item.checked }) },
-    { label: t.pcReact, type: 'checkbox', checked: cfg.pcReact !== false, click: (item) => updateConfig({ pcReact: item.checked }) },
-    {
-      // she asks first (what she'll send where), then turns it on herself
-      label: t.lookAuto, type: 'checkbox', checked: Boolean(cfg.watchScreen),
-      click: (item) => {
-        sendCommand('watchScreen', { on: item.checked });
-        rebuildTray(); // as it is until she's asked
-      },
-    },
-    {
-      label: t.rest,
-      submenu: [['corner', t.restCorner], ['taskbar', t.restTaskbar]].map(([rest, label]) => ({
-        label, type: 'radio', checked: cfg.rest === rest, click: () => updateConfig({ rest }),
-      })),
-    },
-    {
-      label: t.watch,
-      submenu: [
-        ...Object.entries(ASSISTANTS).map(([id, { name }]) => ({
-          label: name, type: 'radio', checked: cfg.claude && watched.id === id, click: () => pickWatch(id),
-        })),
-        { label: t.watchNone, type: 'radio', checked: !cfg.claude, click: () => pickWatch('none') },
-      ],
-    },
-    {
-      label: t.motion,
-      submenu: [['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]].map(([motion, label]) => ({
-        label, type: 'radio', checked: cfg.motion === motion, click: () => updateConfig({ motion, motionAsked: true }),
-      })),
-    },
-    {
-      label: t.display,
-      submenu: [['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]].map(([render, label]) => ({
-        label, type: 'radio', checked: cfg.render === render, click: () => pickRender(render),
-      })),
-    },
-    {
-      label: t.lang,
-      submenu: [[t.auto, 'auto'], ...LANGS.map((lang) => [TRAY[lang].name, lang])].map(([label, lang]) => ({
-        label, type: 'radio', checked: cfg.lang === lang, click: () => updateConfig({ lang }),
-      })),
-    },
-    {
-      label: t.startup,
-      type: 'checkbox',
-      checked: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
-      click: (item) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: item.checked }),
-    },
-    {
-      label: t.menuMode,
-      submenu: [['full', t.menuFull], ['compact', t.menuCompact]].map(([mode, label]) => ({
-        label, type: 'radio', checked: (cfg.menu || 'full') === mode, click: () => updateConfig({ menu: mode }),
-      })),
-    },
-    // her hooks, while she watches Claude Code
-    ...(cfg.claude ? [
+    ...top,
+    // what she said and says: her report, her reminders, your screen
+    part('holo', 'HOLO', [
+      ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
+      remindersItem,
       { type: 'separator' },
-      hookState.installed
-        ? { label: t.hooksOn, enabled: false }
-        : { label: t.hooksOff, click: () => runHooks('install') },
-      ...(hookState.installed ? [{ label: t.hooksRemove, click: () => runHooks('uninstall') }] : []),
-    ] : []),
-    { type: 'separator' },
-    { label: t.quit, click: () => app.quit() },
+      { label: t.lookNow, click: () => sendCommand('look') },
+      lookAuto,
+    ]),
+    // who answers her chat, the AI she watches, and her hooks in it
+    part('netwatch', 'NETWATCH', [
+      {
+        label: t.chatModel,
+        submenu: [
+          { label: t.aiSetup, click: () => sendCommand('setupChat') },
+          { type: 'separator' },
+          ...Object.entries(llm.PROVIDERS).map(([provider, p]) => ({
+            label: p.label, type: 'radio', checked: cfg.provider === provider, click: () => pickProvider(provider),
+          })),
+          { type: 'separator' },
+          ...(chatModels?.length
+            ? chatModels.map((name) => ({
+              label: cloud.free.includes(name) ? `${name} · ${t.cloudFree}` : name,
+              type: 'radio', checked: name === pickModel(cfg), click: () => updateConfig({ chatModel: name }),
+            }))
+            : [{ label: (chatError || t.noOllama).slice(0, 80), enabled: false }]),
+          // Ollama's free cloud models when you're signed in to it, fetched on the click (it takes a second)
+          ...(cfg.provider === 'ollama' && chatModels ? [
+            ...cloud.free.filter((name) => !chatModels.includes(name)).map((name) => ({
+              label: `${name} · ${t.cloudFree}`, type: 'radio', checked: false, click: () => fetchModel(name).catch(() => rebuildTray()),
+            })),
+            ...(cloud.account?.signin ? [{ label: t.cloudSignin, click: signInToOllama }] : []),
+          ] : []),
+          { type: 'separator' },
+          // the key (or the address) of the one picked, pasted in her panel
+          { label: t.apiKey, click: () => sendCommand('setupKey') },
+        ],
+      },
+      // Claude Code or Codex in her chat: its folder, what it may do, and her powers with it (Blackwall Gateway)
+      ...(llm.isAgent(cfg.provider) ? [
+        { label: `${agentName(cfg)}: ${cfg.claudeCwd || app.getPath('home')}`, click: pickClaudeFolder },
+        {
+          label: `${agentName(cfg)}: ${t.permissions}`,
+          submenu: llm.CLAUDE_MODES.map((mode) => ({
+            label: cfg.provider === 'codex' ? llm.CODEX_SANDBOX[mode] : mode,
+            type: 'radio', checked: cfg.claudeMode === mode, click: () => updateConfig({ claudeMode: mode }),
+          })),
+        },
+        ...(cfg.provider === 'codex' ? [{
+          label: t.effort,
+          submenu: radios(llm.CODEX_EFFORTS.map((effort) => [effort, effort]), cfg.codexEffort, (codexEffort) => updateConfig({ codexEffort })),
+        }] : []),
+        check(`Blackwall Gateway: ${t.agentPowers}`, Boolean(cfg.agentPowers), (agentPowers) => updateConfig({ agentPowers })),
+      ] : []),
+      { type: 'separator' },
+      {
+        label: t.watch,
+        submenu: [
+          ...Object.entries(ASSISTANTS).map(([id, { name }]) => ({
+            label: name, type: 'radio', checked: cfg.claude && watched.id === id, click: () => pickWatch(id),
+          })),
+          { label: t.watchNone, type: 'radio', checked: !cfg.claude, click: () => pickWatch('none') },
+        ],
+      },
+      // her hooks, while she watches Claude Code
+      ...(cfg.claude ? [
+        hookState.installed
+          ? { label: t.hooksOn, enabled: false }
+          : { label: t.hooksOff, click: () => runHooks('install') },
+        ...(hookState.installed ? [{ label: t.hooksRemove, click: () => runHooks('uninstall') }] : []),
+      ] : []),
+    ]),
+    // who she is and what she remembers
+    part('engrams', 'ENGRAMS', [
+      { label: t.custom, click: () => sendCommand('customize') },
+      remindersItem,
+      { type: 'separator' },
+      { label: t.forget, click: forgetChats },
+    ]),
+    // her body on your screen, and how she acts
+    part('relic', 'RELIC', [
+      { label: t.teleport, click: () => sendCommand('teleport') },
+      { label: t.satellite, click: () => sendCommand('satellite') },
+      { type: 'separator' },
+      { label: t.size, submenu: radios(SIZES.map(([size, scale]) => [scale, t[size]]), SIZES.find(([, scale]) => Math.abs(cfg.scale - scale) < 0.01)?.[1], (scale) => updateConfig({ scale })) },
+      screenItem,
+      { label: t.rest, submenu: radios([['corner', t.restCorner], ['taskbar', t.restTaskbar]], cfg.rest, (rest) => updateConfig({ rest })) },
+      // the key that puts her away and brings her back: one of these, one you press in her panel, or none
+      {
+        label: t.stowKey,
+        submenu: [
+          ...[...new Set([...STOW_KEYS, ...(cfg.stowKey ? [cfg.stowKey] : [])])].map((key) => ({
+            label: keyLabel(key), type: 'radio', checked: cfg.stowKey === key, click: () => setStowKey(key),
+          })),
+          { label: t.stowKeyOff, type: 'radio', checked: !cfg.stowKey, click: () => setStowKey(null) },
+          { type: 'separator' },
+          { label: t.stowKeyCustom, click: () => sendCommand('stowKey') },
+        ],
+      },
+      {
+        label: t.sound,
+        submenu: [
+          check(t.mute, cfg.muted, (muted) => updateConfig({ muted })),
+          { type: 'separator' },
+          {
+            label: t.soundsDir,
+            click: () => {
+              fs.mkdirSync(userSoundsDir(), { recursive: true });
+              shell.openPath(userSoundsDir());
+            },
+          },
+        ],
+      },
+      { type: 'separator' },
+      check(t.wander, cfg.wander, (wander) => updateConfig({ wander })),
+      check(t.possess, cfg.possess, (possess) => updateConfig({ possess })),
+      check(t.jealous, cfg.jealous !== false, (jealous) => updateConfig({ jealous })),
+      check(t.pcReact, cfg.pcReact !== false, (pcReact) => updateConfig({ pcReact })),
+    ]),
+    // her system: language, how she's drawn, her menu, starting with Windows, and showing what she does
+    part('cyberdeck', 'CYBERDECK', [
+      {
+        label: t.lang,
+        submenu: radios([['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])], cfg.lang, (lang) => updateConfig({ lang })),
+      },
+      { label: t.motion, submenu: radios([['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]], cfg.motion, (motion) => updateConfig({ motion, motionAsked: true })) },
+      { label: t.display, submenu: radios([['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]], cfg.render, pickRender) },
+      { label: t.menuMode, submenu: radios([['full', t.menuFull], ['compact', t.menuCompact]], cfg.menu || 'full', (menu) => updateConfig({ menu })) },
+      check(t.startup, app.getLoginItemSettings(loginItemOptions()).openAtLogin, (openAtLogin) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin })),
+      { type: 'separator' },
+      { label: t.demo, click: playDemo },
+      { label: t.help, click: () => sendCommand('welcome') },
+    ]),
+    ...quit,
   ]);
   tray.setContextMenu(menu);
   trayMenu = menu;
