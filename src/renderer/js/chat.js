@@ -29,6 +29,10 @@ const IN_LANGUAGE = {
 };
 const STAY_MS = 10 * 60 * 1000; // no wandering off mid-conversation
 const LOADING_AFTER_MS = 5000;
+// her chat closes itself once you've stopped talking (nothing typed, no answer coming), so what
+// Claude does comes through again: a minute, or a few seconds when something of it is waiting
+const IDLE_MS = 60 * 1000;
+const IDLE_MISSED_MS = 8 * 1000;
 const CLOSE_TAG = /\[\[\s*close\s*:?\s*([^\]]*)\]\]/i; // [[close: AM Music]] at the end of her answer
 // "close", "shut down", "ferme", "quitte", "cierra", "fecha", "закрой", "zamknij"... in any of her languages
 const CLOSE_ASK = /\b(close|shut|quit|kill|exit)|ferm|quitt|coupe|arr[êe]t|cierr|cerra|fech|закр|выключ|zamkn|wyłącz|wylacz|zakończ|zakoncz|ubij|zabij/i;
@@ -189,6 +193,9 @@ export class Chat {
     this.onMessage = null; // () => void: you said something to her
     this.waitingWhen = null; // a reminder you asked for without saying when: { text, until }
     host.onChatDelta(({ id, text }) => this.onDelta(id, text));
+    this.lastActive = 0;
+    panel.chatInput.addEventListener('input', () => { this.lastActive = performance.now(); });
+    setInterval(() => this.closeIfIdle(), 2000);
     // your chats as they are on all your PCs now (her swarm): taken in, unless she's answering
     host.onChatHistory?.((history) => {
       if (!this.turn && Array.isArray(history)) this.history = history;
@@ -279,9 +286,17 @@ export class Chat {
       return;
     }
     this.open = true;
+    this.lastActive = performance.now();
     setTimeout(() => this.panel.chatInput.focus(), 150); // once the overlay has the keyboard
     capri.perform('hop');
     capri.nextMove = capri.nextGaze = performance.now() + STAY_MS;
+  }
+
+  // You stopped talking a while ago: her chat goes, unless you're halfway through typing something
+  closeIfIdle() {
+    if (!this.open || this.turn || this.panel.chatInput.value.trim() || !this.panel.current?.chat) return;
+    const idle = performance.now() - this.lastActive;
+    if (idle > (this.panel.missed ? IDLE_MISSED_MS : IDLE_MS)) this.panel.hide();
   }
 
   close() {
@@ -370,6 +385,7 @@ export class Chat {
     this.panel.stream(answer, { done: true });
     this.panel.setFace(mood(said));
     this.panel.setChatBusy(false);
+    this.lastActive = performance.now();
     if (this.powersOn || asked) this.after(res.text, answer, asked, early, text);
     this.listApps(); // fresh for the next message
   }

@@ -55,6 +55,9 @@ Wspólne dla wszystkich etapów:
 ## Do zrobienia
 
 - Okno czatu na pulpicie, zsynchronizowane z czatem Capri (ta sama rozmowa w obu miejscach).
+- Rozwinięcie czatu w stronę prawdziwej rozmowy: Capri sama wtrąca komentarze do twoich poleceń i do pracy Claude/Codexa
+  także później, nie tylko zaraz po poleceniu (np. gdy agent kończy etap, długo coś robi albo coś się nie udaje),
+  wraca do wcześniejszych wątków i zagaduje sama, bez czekania na twoją wiadomość.
 - Przerobienie okna Mainframe.
 - Ograniczenie menu pod prawym przyciskiem myszy.
 - Głos klonowany z postaci z anime albo z własnego nagrania.
