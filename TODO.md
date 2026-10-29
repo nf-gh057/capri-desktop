@@ -55,17 +55,7 @@ Wspólne dla wszystkich etapów:
 
 ## Do zrobienia
 
-- [x] Okno czatu na pulpicie, zsynchronizowane z czatem Capri (ta sama rozmowa w obu miejscach) (zrobione w 0.4.4-24: Mainframe › HOLO).
-- [x] Rozwinięcie czatu w stronę prawdziwej rozmowy: Capri sama wtrąca komentarze do twoich poleceń i do pracy Claude/Codexa
-  także później, nie tylko zaraz po poleceniu (np. gdy agent kończy etap, długo coś robi albo coś się nie udaje),
-  wraca do wcześniejszych wątków i zagaduje sama, bez czekania na twoją wiadomość (zrobione w 0.4.4-32: `talk.js`,
-  gadatliwość w Mainframe › RELIC; wtrącenia pisze model na PC, nigdy agent).
-- [x] Przerobienie okna Mainframe (zrobione w 0.4.4-23 i 0.4.4-24: zakładki u góry w stylu menu z gry, okno ze zmianą rozmiaru, HOLO).
-- [x] Ograniczenie menu pod prawym przyciskiem myszy (zrobione w 0.4.4-29: na górze najważniejsze, reszta w podmenu
-  jak zakładki Mainframe).
 - Głos klonowany z postaci z anime albo z własnego nagrania.
-- [x] Zróżnicowane komentarze Capri do podejmowanych akcji (mniej powtórzeń tych samych tekstów) (zrobione w 0.4.4-32:
-  jej własne słowa z modelu, a gotowe teksty bez powtarzania ostatnich kilku).
 - Równoległe monitorowanie różnych AI naraz.
 - Komunikacja z Hermesem.
 - Animacja (gałąź `anim/poses`): przy kilku oknach jednej aplikacji Capri pokazuje ich stos na pasku zadań gestem
