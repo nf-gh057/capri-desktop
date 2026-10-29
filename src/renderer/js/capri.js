@@ -46,11 +46,12 @@ const INK = [0.08, 0.06, 0.11];
 const RED = [1, 0.13, 0.32];
 
 export class Capri {
-  constructor({ root, canvas, image, poses = {}, fx, voice }) {
+  constructor({ root, canvas, image, poses = {}, fx, under = null, voice }) {
     this.root = root;
     this.canvas = canvas;
     this.sprite = new SpriteRenderer(canvas, image, poses);
     this.fx = fx;
+    this.under = under; // the effects drawn under her (the screen torn where she teleports)
     this.voice = voice;
 
     this.scale = 0.6;
@@ -1419,8 +1420,9 @@ export class Capri {
 
   // ---------- moving around ----------
 
-  // Collapse into a line of light and go. Leaves her invisible; the caller puts her somewhere.
-  async vanish({ beam = true } = {}) {
+  // Collapse into a line of light and go, the screen torn open where she was (`tear`: { rect,
+  // picture }, see tearAround). Leaves her invisible; the caller puts her somewhere.
+  async vanish({ beam = true, tear = null } = {}) {
     const p = this.p;
     const s = this.scale;
     const from = { ...this.pos };
@@ -1436,6 +1438,8 @@ export class Capri {
     await tween(p, { glitch: 0.35, split: 3 }, 90, ease.linear);
     this.fx.burst(head.x, head.y + 70 * s, { count: 22, spread: 150 * s });
     this.fx.slices(head.x - 70 * s, head.y - 40 * s, 170 * s, 320 * s);
+    if (tear) this.under?.tear(tear.rect, tear.picture, { split: from.x - 10 * s * this.facing });
+    this.joltPerch(this.perch);
     await tween(p, { collapse: 1, glitch: 1, dissolve: 0.5, split: 9 }, 170, ease.in);
     p.alpha = 0;
     const ground = from.y - (this.p.sit ? (SPRITE.feet.y - SPRITE.hip) * s : 0);
@@ -1447,8 +1451,9 @@ export class Capri {
     return head;
   }
 
-  // Come back at `to`: a column of light down to her, the body unfolding, two impact frames.
-  async arrive(to, { face = null, stance = 'stand', perch = null, peekSide = null, dir = 0, fromHead = null, beam = true } = {}) {
+  // Come back at `to`: a column of light down to her, the screen torn open there (`tear`, as in
+  // vanish), the body unfolding, two impact frames.
+  async arrive(to, { face = null, stance = 'stand', perch = null, peekSide = null, dir = 0, fromHead = null, beam = true, tear = null } = {}) {
     const p = this.p;
     const s = this.scale;
     const facing = face ?? (to.x > this.view.w / 2 ? 1 : -1);
@@ -1472,6 +1477,8 @@ export class Capri {
     if (beam) this.fx.beam(to.x, ground, { down: true, width: 40 * s + 8 });
     // her pieces spiral back in, mane shards and green eye-stars
     this.fx.vortex(toHead.x, toHead.y + 30 * s, { radius: 170 * s + 40 });
+    if (tear) this.under?.tear(tear.rect, tear.picture, { split: to.x });
+    this.joltPerch(perch);
     this.voice.play('teleport-in');
     await sleep(50);
 
@@ -1504,10 +1511,33 @@ export class Capri {
     this.busy = true;
     this.wake();
     this.onTeleport?.('start');
-    const fromHead = await this.vanish();
+    // the screen where she is and where she's going, as it is now, to tear open as she goes and comes
+    const [out, back] = this.tearAround([this.pos, to]);
+    const fromHead = await this.vanish({ tear: out });
     await sleep(70);
-    await this.arrive(to, { ...opts, fromHead });
+    await this.arrive(to, { ...opts, fromHead, tear: back });
     await this.settle();
+  }
+
+  // For each of her spots (her feet), the bit of the screen around her there, and a picture of it
+  // on its way (main.js fx:screen), for vanish and arrive to tear open; nulls without one.
+  tearAround(spots) {
+    if (reducedMotion.matches || !this.onScreenBits || !this.under) return spots.map(() => null);
+    const s = this.scale;
+    const { w, h } = this.view;
+    const rects = spots.map((at) => {
+      const x = clamp(at.x - 170 * s - 20, 0, w), y = clamp(at.y - 450 * s - 20, 0, h);
+      return { x, y, w: clamp(at.x + 170 * s + 20, 0, w) - x, h: clamp(at.y + 40 * s + 10, 0, h) - y };
+    });
+    const bits = this.onScreenBits(rects);
+    return rects.map((rect, i) => (rect.w > 8 && rect.h > 8 ? { rect, picture: bits.then((b) => b[i]) } : null));
+  }
+
+  // The window she leaves or lands on knocked about as she does (fx.js jolt); not the taskbar.
+  joltPerch(perch) {
+    if (reducedMotion.matches || !perch || perch.id === 'taskbar') return;
+    const rect = () => this.windows.wins.find((o) => o.id === perch.id) || null;
+    this.fx.jolt(rect, { covers: () => this.coversOf(perch.id), power: 0.6 });
   }
 
   // Teleport to another screen: gone from this one in a column of light, her window goes over
@@ -1517,9 +1547,10 @@ export class Capri {
     this.busy = true;
     this.wake();
     this.onTeleport?.('start');
-    await this.vanish();
+    await this.vanish({ tear: this.tearAround([this.pos])[0] });
     await sleep(reducedMotion.matches ? 0 : 380); // the slit she leaves closes before her window goes
     this.fx.clear();
+    this.under?.clear();
     const moved = await this.onHop().catch(() => null);
     await sleep(70);
     const seat = moved && this.wander && Math.random() < 0.35 ? this.pickSeat() : null;
@@ -2567,6 +2598,7 @@ export class Capri {
     f.crossing = true;
     this.root.hidden = true; // past the edge: nothing of her left here while her window moves
     this.fx.clear();
+    this.under?.clear();
     const there = this.onCross ? await this.onCross(side, { ...f.c }).catch(() => null) : null;
     if (this.flight !== f) return;
     this.root.hidden = this.hidden;
@@ -2635,6 +2667,7 @@ export class Capri {
     await this.vanish();
     this.root.hidden = true;
     this.fx.clear();
+    this.under?.clear();
     this.setStance('stand');
     const cursor = await go().catch(() => null);
     this.root.hidden = this.hidden;

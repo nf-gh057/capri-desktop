@@ -360,6 +360,37 @@ export class FxLayer {
     this.add({ type: 'slit', life, x, top, bottom, width });
   }
 
+  // The screen torn open where she leaves or lands (on the layer under her): `picture` (a promise
+  // of one, from main.js fx:screen) is what's on the screen in `rect`; for ten drawings it splits
+  // apart along her slit (at `split`), slides in bands with its colours pulled apart, throws
+  // blocks of itself about, and mends. Late (the picture takes a moment), it's dropped: torn
+  // after she's gone, it would only look like lag.
+  tear(rect, picture, { split = rect.x + rect.w / 2 } = {}) {
+    const item = this.add({ type: 'tear', life: 400, rect, split, seed: rand(0, 100) });
+    Promise.resolve(picture).then((img) => {
+      const late = performance.now() - item.born;
+      if (!img || late > 300) {
+        item.life = 0;
+        return;
+      }
+      // her colours apart: the red of it, and the rest (cyan), drawn back over each other add up again
+      const tint = (color) => {
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        const o = c.getContext('2d');
+        o.drawImage(img, 0, 0);
+        o.globalCompositeOperation = 'multiply';
+        o.fillStyle = color;
+        o.fillRect(0, 0, c.width, c.height);
+        return c;
+      };
+      item.pic = { img, red: tint('#ff0000'), cyan: tint('#00ffff') };
+      item.start = performance.now();
+      item.life = late + FRAME_MS * 10;
+    }, () => { item.life = 0; });
+  }
+
   // How she comes back in the show: her pieces spiralling in, mane shards and green eye-stars.
   vortex(x, y, { radius = 170, life = 360, count = 18 } = {}) {
     const ps = Array.from({ length: count }, (_, i) => ({
@@ -1238,6 +1269,63 @@ export class FxLayer {
         ctx.fillRect(it.x - w / 2, it.top, w, h);
         ctx.fillStyle = COLORS.red;
         ctx.fillRect(it.x - 1, it.top + h * 0.08, 2, h * 0.84);
+        break;
+      }
+      case 'tear': {
+        if (!it.pic) break; // its picture isn't here yet
+        const frame = Math.floor((now - it.start) / FRAME_MS);
+        const power = [1, 1, 0.9, 0.8, 0.65, 0.5, 0.35, 0.25, 0.12, 0.05][Math.min(9, frame)];
+        const seed = it.seed + Math.floor(frame / 2); // new jags every other drawing, on twos
+        const { img, red, cyan } = it.pic;
+        const r = it.rect;
+        const kx = img.width / r.w, ky = img.height / r.h;
+        // a piece of the picture (rect-relative px) drawn moved by dx, dy; `apart` pulls its colours apart
+        const piece = (x, y, w, h, dx, dy = 0, apart = 0) => {
+          if (w <= 0 || h <= 0) return;
+          const args = [x * kx, y * ky, w * kx, h * ky, r.x + x + dx, r.y + y + dy, w, h];
+          if (!apart) {
+            ctx.drawImage(img, ...args);
+            return;
+          }
+          ctx.drawImage(red, args[0], args[1], args[2], args[3], args[4] - apart, args[5], w, h);
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.drawImage(cyan, args[0], args[1], args[2], args[3], args[4] + apart, args[5], w, h);
+          ctx.globalCompositeOperation = 'source-over';
+        };
+        ctx.save();
+        // split along her slit: the two sides pushed apart, the void between them
+        const sx = clamp(it.split - r.x, 0, r.w);
+        const gap = 16 * power;
+        const fringe = frame < 2 ? 5 : 0; // the first drawings, all of it in split colours
+        piece(0, 0, sx, r.h, -gap, 0, fringe);
+        piece(sx, 0, r.w - sx, r.h, gap, 0, fringe);
+        ctx.fillStyle = COLORS.violet;
+        ctx.fillRect(r.x + sx - gap - 3, r.y, gap * 2 + 6, r.h);
+        ctx.fillStyle = COLORS.ink;
+        ctx.fillRect(r.x + sx - gap, r.y, gap * 2, r.h);
+        ctx.fillStyle = COLORS.red;
+        ctx.fillRect(r.x + sx - 1, r.y + r.h * 0.06, 2, r.h * 0.88);
+        // bands of it slid sideways, some with their colours apart
+        const bands = Math.round(4 + 7 * power);
+        for (let i = 0; i < bands; i++) {
+          const h = 3 + hash(i, seed) * 26;
+          const y = hash(i + 50, seed) * (r.h - h);
+          const dx = (hash(i + 90, seed) - 0.5) * 110 * power;
+          piece(0, y, r.w, h, dx, 0, hash(i + 130, seed) < 0.5 ? 4 + 6 * power : 0);
+        }
+        // blocks of it thrown somewhere else, and her colours in bars
+        if (power > 0.3) {
+          for (let i = 0; i < 4; i++) {
+            const w = 20 + hash(i + 200, seed) * 70, h = 8 + hash(i + 240, seed) * 40;
+            const x = hash(i + 280, seed) * (r.w - w), y = hash(i + 320, seed) * (r.h - h);
+            piece(x, y, w, h, (hash(i + 360, seed) - 0.5) * 140, (hash(i + 400, seed) - 0.5) * 40);
+          }
+          for (let i = 0; i < 3; i++) {
+            ctx.fillStyle = COLORS[['red', 'violet', 'paper', 'green'][Math.floor(hash(i + 440, seed) * 4)]];
+            ctx.fillRect(r.x + hash(i + 480, seed) * r.w * 0.8, r.y + hash(i + 520, seed) * r.h, 12 + hash(i + 560, seed) * r.w * 0.4, 2 + hash(i + 600, seed) * 4);
+          }
+        }
+        ctx.restore();
         break;
       }
       case 'vortex': {

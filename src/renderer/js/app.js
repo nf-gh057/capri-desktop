@@ -69,6 +69,8 @@ async function boot() {
     intro,
   });
   fx.resize(innerWidth, innerHeight);
+  const under = new FxLayer(document.getElementById('under')); // under her: the screen torn where she teleports
+  under.resize(innerWidth, innerHeight);
   // how far the top of the taskbar is from the bottom of her window: she covers it too while she
   // rests on it (the floor she stands on stays its top)
   let floorGap = config.floorGap ?? 0;
@@ -92,8 +94,13 @@ async function boot() {
     image,
     poses,
     fx,
+    under,
     voice,
   });
+  // bits of the screen as it is, for her teleports to tear (fx.js tear): a picture for each rect, or null
+  capri.onScreenBits = (rects) => host.screenBits(rects)
+    .then((bits) => Promise.all(rects.map((_, i) => (bits?.[i] ? createImageBitmap(new Blob([bits[i]], { type: 'image/jpeg' })) : null))))
+    .catch(() => rects.map(() => null));
   capri.wander = config.wander;
   capri.possessWindows = config.possess;
   capri.restOn = config.rest || 'corner';
@@ -540,6 +547,7 @@ async function boot() {
   const applySize = ({ width, height, gap = 0 }) => {
     floorGap = gap;
     fx.resize(width, height);
+    under.resize(width, height);
     chip.place(width, height - gap);
     capri.setView(width, height, height - gap);
     if (window.devicePixelRatio !== dpr) {
@@ -617,6 +625,7 @@ async function boot() {
   };
   window.addEventListener('resize', () => {
     fx.resize(innerWidth, innerHeight);
+    under.resize(innerWidth, innerHeight);
     chip.place(innerWidth, innerHeight - floorGap);
     capri.setView(innerWidth, innerHeight, innerHeight - floorGap);
   });

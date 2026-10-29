@@ -148,6 +148,11 @@ body {
   pointer-events: none;
 }
 
+/* what's drawn under her: the screen torn open where she teleports (fx.js tear) */
+.fx--under {
+  z-index: 0;
+}
+
 /* her small forms (chip.js): her biochip in the corner, her mask floating while she sleeps */
 .chip {
   position: fixed;

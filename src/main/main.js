@@ -14,6 +14,7 @@ const config = require('./config');
 const { TRAY, LANGS } = require('./labels');
 const { createBridge } = require('./bridge');
 const { startWindowWatch } = require('./windows');
+const { startScreenGrab } = require('./screengrab');
 const llm = require('./llm');
 const ollama = require('./ollama');
 const setup = require('./setup');
@@ -46,6 +47,7 @@ let tray = null;
 let trayMenu = null; // also what she opens when you right-click her
 let demoTimer = null;
 let windowWatch = null;
+let screenGrab = null; // bits of the screen for her teleports to tear (screengrab.js)
 let mainframe = null; // her settings window (mainframe.js)
 // her swarm (swarm.js): the link to her on your other PCs, and what Tailscale says here
 let hive = null;
@@ -1362,6 +1364,15 @@ function registerIpc() {
   });
   ipcMain.on('chat:stop', (_e, id) => chats.get(id)?.abort());
   // she looks at your screen (look.js): the picture first, then what her AI says about it
+  // her teleports tear the screen open where she leaves and where she lands (fx.js tear): pictures
+  // of just those bits of it (rects in her window's px; screengrab.js), for her window to draw for
+  // a moment, never kept or sent anywhere. JPEGs; null for a bit it couldn't get.
+  ipcMain.handle('fx:screen', async (_e, rects) => {
+    if (!overlay || !screenGrab) return rects.map(() => null);
+    const o = overlay.getBounds();
+    const physical = rects.map((r) => screen.dipToScreenRect(null, { x: o.x + r.x, y: o.y + r.y, width: r.w, height: r.h }));
+    return screenGrab.grab(physical).catch(() => rects.map(() => null));
+  });
   ipcMain.handle('look:snap', async () => {
     try {
       const id = randomUUID();
@@ -1922,6 +1933,7 @@ function main() {
     createOverlay();
     mainframe = createMainframe({ root: ROOT, display: targetDisplay, state: mainframeState, act: mainframeAct });
     createTray();
+    screenGrab = startScreenGrab();
     windowWatch = startWindowWatch({
       overlay,
       onUpdate: (data) => {
@@ -1979,6 +1991,7 @@ function main() {
     hive?.stop();
     globalShortcut.unregisterAll();
     windowWatch?.stop();
+    screenGrab?.stop();
   });
   app.on('window-all-closed', (e) => e.preventDefault());
 }
