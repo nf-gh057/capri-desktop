@@ -93,6 +93,20 @@ const phoneReplies = phone.limiter(20);
 
 const userSoundsDir = () => path.join(app.getPath('userData'), 'sounds');
 
+// What went wrong, in capri.log next to her settings: the last ~200 KB, the same error once a minute
+const logFile = () => path.join(app.getPath('userData'), 'capri.log');
+const logged = new Map(); // line -> when it was last written
+function logError(line) {
+  const now = Date.now();
+  if (now - (logged.get(line) || 0) < 60000) return;
+  logged.set(line, now);
+  if (logged.size > 200) logged.delete(logged.keys().next().value);
+  try {
+    if ((fs.statSync(logFile(), { throwIfNoEntry: false })?.size || 0) > 200 * 1024) fs.renameSync(logFile(), `${logFile()}.old`);
+    fs.appendFileSync(logFile(), `${new Date().toISOString()} ${line}\n`);
+  } catch {} // a log that can't be written stops nothing
+}
+
 // Her memory of your chats, across restarts: { history: [{ role, content }], claude: Claude Code's session }
 const memoryFile = () => path.join(app.getPath('userData'), 'memory.json');
 function readMemory() {
@@ -283,14 +297,17 @@ function createOverlay() {
   });
   overlay.webContents.on('render-process-gone', (_e, details) => {
     console.error('[capri] renderer gone:', details.reason);
+    logError(`[renderer gone] ${details.reason}`);
   });
-  if (DEV) {
-    overlay.webContents.on('console-message', (e) => {
-      const { level, message, lineNumber, sourceId } = e;
-      console.log(`[renderer:${level}] ${message} (${String(sourceId).split('/').pop()}:${lineNumber})`);
-    });
-    if (process.env.CAPRI_DEVTOOLS) overlay.webContents.openDevTools({ mode: 'detach' });
-  }
+  // what her overlay says: on the console in dev, and its errors in capri.log too (an installed
+  // Capri has no console: that's where to look when something of hers does nothing)
+  overlay.webContents.on('console-message', (e) => {
+    const { level, message, lineNumber, sourceId } = e;
+    const line = `[renderer:${level}] ${message} (${String(sourceId).split('/').pop()}:${lineNumber})`;
+    if (DEV) console.log(line);
+    if (level === 'error') logError(line);
+  });
+  if (DEV && process.env.CAPRI_DEVTOOLS) overlay.webContents.openDevTools({ mode: 'detach' });
 }
 
 function sendCommand(name, payload = {}) {
@@ -2205,6 +2222,7 @@ function main() {
   }
   app.on('second-instance', () => sendCommand('status'));
   if (process.platform === 'win32') app.setAppUserModelId('capri.desktop');
+  process.on('unhandledRejection', (err) => logError(`[main] ${err?.stack || err}`));
 
   app.whenReady().then(() => {
     if (!['codex', 'claude'].includes(config.load().assistant)) config.save({ assistant: activeAssistant().id });

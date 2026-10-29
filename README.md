@@ -470,6 +470,8 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
   without her.
 - **She only floats around and says idle things.** That's normal until Claude Code does something. If it never reacts,
   check her menu says "Claude Code hooks: installed", then close Claude Code completely and open it again.
+- **Something of hers does nothing.** What went wrong is in `capri.log`, next to her settings
+  (`%APPDATA%\capri-desktop` on Windows; the one before it in `capri.log.old`).
 
 ## What leaves your machine
 

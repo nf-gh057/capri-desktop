@@ -332,7 +332,7 @@ export class Chat {
     let res = await this.host.chatSend({ id, messages });
     // No network, and her brain lives online: a model on this PC answers instead, as her (no agent,
     // no tools of its own), and she says so under her answer.
-    let note = '';
+    let elsewhere = ''; // the line under her answer, when a model on this PC gave it
     if (!res.ok && res.code === 'offline' && res.local && this.turn === id) {
       clearTimeout(slow); // "Claude Code is at work" isn't so
       const agent = this.agent;
@@ -340,12 +340,12 @@ export class Chat {
       const local = this.messages(REMEMBER_LOCAL);
       this.agent = agent;
       res = await this.host.chatSend({ id, messages: local, local: res.local });
-      if (res.ok) note = fmt(this.t.offlineLocal, { model: short(res.local) });
+      if (res.ok) elsewhere = fmt(this.t.offlineLocal, { model: short(res.local) });
     }
     // her header and note follow: the model on this PC while it answers, hers again once it's back
-    if (res.ok && Boolean(note) !== this.elsewhere) {
-      this.elsewhere = Boolean(note);
-      this.panel.setChatInfo(note ? this.brainInfo(res.local, true) : this.brainInfo(this.mind.model, this.mind.local));
+    if (res.ok && Boolean(elsewhere) !== this.elsewhere) {
+      this.elsewhere = Boolean(elsewhere);
+      this.panel.setChatInfo(elsewhere ? this.brainInfo(res.local, true) : this.brainInfo(this.mind.model, this.mind.local));
     }
     clearTimeout(slow);
     if (this.turn !== id) {
@@ -366,7 +366,7 @@ export class Chat {
     const said = clean(res.text) || '…';
     this.warm = true;
     this.remember({ role: 'assistant', content: said });
-    const answer = note ? `${said}\n${note}` : said; // as shown: with the line about her brain offline
+    const answer = elsewhere ? `${said}\n${elsewhere}` : said; // as shown: with the line about her brain offline
     this.panel.stream(answer, { done: true });
     this.panel.setFace(mood(said));
     this.panel.setChatBusy(false);

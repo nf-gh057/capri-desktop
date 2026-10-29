@@ -471,6 +471,8 @@ nazwane tak (`.mp3`, `.wav`, `.ogg` albo `.m4a`):
 - **Mogę ją wyłączyć?** Ctrl+Alt+C ją chowa, **Zakończ** w jej menu ją zamyka. Claude Code działa bez niej dokładnie tak samo.
 - **Tylko się unosi i mówi coś od niechcenia.** To normalne, dopóki Claude Code czegoś nie zrobi. Jeśli w ogóle nie reaguje,
   sprawdź, czy jej menu mówi „Hooki Claude Code: zainstalowane”, potem zamknij Claude Code całkowicie i otwórz go znowu.
+- **Coś u niej nic nie robi.** Co poszło nie tak, jest w `capri.log`, obok jej ustawień (`%APPDATA%\capri-desktop`
+  w Windowsie; poprzedni w `capri.log.old`).
 
 ## Co opuszcza twój komputer
 
