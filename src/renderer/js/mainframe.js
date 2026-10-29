@@ -122,6 +122,17 @@ function gateway(s, t) {
     check('Blackwall Gateway', a.powers, 'agentPowers', t.agentPowers));
 }
 
+// what she calls you (and your name in HOLO): as it is now, changed in place; empty, she says "choom"
+function userName(c, t) {
+  const input = el('input', {
+    type: 'text', class: 'input grow', value: c.userName, placeholder: t.userNameHint, 'aria-label': t.userName,
+    autocomplete: 'off', spellcheck: false, maxLength: 24, 'data-keep': 'userName',
+  });
+  const go = () => act('userName', input.value);
+  input.addEventListener('keydown', (e) => e.key === 'Enter' && go());
+  return row(t.userName, input, el('button', { type: 'button', class: 'button', onclick: go }, t.userNameSave));
+}
+
 // who she is, what she remembers and the reminders she keeps
 function engrams(s, t) {
   const c = s.capri;
@@ -132,6 +143,7 @@ function engrams(s, t) {
       el('div', { class: 'meter' }, el('span', { style: `width: ${s.stats.percent}%` })),
       el('p', { class: 'note' }, s.stats.together)),
     section(t.secPersona,
+      userName(c, t),
       row(null, button(t.custom, 'custom', null, { class: 'grow' })),
       row(null, button(t.forget, 'forget', null, { class: 'grow' }))),
     section(t.reminders,
@@ -162,6 +174,11 @@ function cyberware(s, t) {
       row(t.stowKey, select([...c.stowKeys, { id: null, label: t.stowKeyOff }], c.stowKey, 'stowKey', { label: t.stowKey })),
       row(null, button(t.stowKeyCustom, 'stowKeyCustom', null, { class: 'grow' }))),
     section(t.secBehaviour,
+      // how often she speaks up on her own (talk.js): what it is, on a hover
+      el('div', { class: 'row', 'data-tip': t.talkTip },
+        el('span', { class: 'row__label' }, t.talkLevel),
+        choice('trio grow', [['quiet', t.talkQuiet], ['normal', t.talkNormal], ['chatty', t.talkChatty]], c.talk, 'talk')),
+      c.talkCloudAsk && c.talk !== 'quiet' && check(t.talkCloud, c.talkCloud, 'talkCloud'),
       check(t.wander, c.wander, 'wander'),
       check(t.possess, c.possess, 'possess'),
       check(t.jealous, c.jealous, 'jealous'),
@@ -335,18 +352,19 @@ function when(at) {
   return new Intl.DateTimeFormat(state.lang, today ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
 }
 
-// who it's from on top, as in a terminal: "> YOU" what you sent (→ to whom, if not her), "< CAPRI" what
-// came back
+// who it's from on top: "> CAPRI" what she said, "< YOU" (your name, as she calls you) what you sent,
+// "→ CODEX" if not to her
 function head(you, to, ...more) {
   return el('p', { class: 'msg__head' },
-    el('span', { class: 'msg__who' }, you ? `> ${state.t.holoYou}` : '< CAPRI'),
+    el('span', { class: 'msg__who' }, you ? `< ${state.capri.userName || state.t.holoYou}` : '> CAPRI'),
     to ? ` → ${to}` : '',
     more.filter(Boolean).map((part) => ` · ${part}`).join(''));
 }
 
 function message(m) {
   const at = m.at ? el('span', { class: 'msg__at' }, when(m.at)) : null;
-  if (m.role === 'user') return el('div', { class: 'msg msg--you' }, head(true), el('p', { class: 'msg__text' }, m.content), at);
+  // in her chat too: what you sent Claude Code or Codex (`to`), when she said something of her own about it
+  if (m.role === 'user') return el('div', { class: `msg msg--you ${m.to ? 'msg--line' : ''}` }, head(true, m.to, m.tag), el('p', { class: 'msg__text' }, m.content), at);
   if (m.role === 'assistant') return el('div', { class: 'msg msg--her' }, head(false), el('p', { class: 'msg__text' }, unTagged(m.content)), at);
   // your prompt to Claude Code or Codex first, then what she said about it (from before 0.4.4-31: her
   // line about your prompt, with it clipped under it)

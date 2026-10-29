@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('host', {
   copyImage: (rect) => ipcRenderer.invoke('panel:copy', rect),
   chatStatus: () => ipcRenderer.invoke('chat:status'),
   chatSend: (request) => ipcRenderer.invoke('chat:send', request),
+  talkLine: (request) => ipcRenderer.invoke('talk:line', request),
+  idleSeconds: () => ipcRenderer.invoke('pc:idle'),
   chatStop: (id) => ipcRenderer.send('chat:stop', id),
   chatMemory: () => ipcRenderer.invoke('chat:memory'),
   onChatHistory: on('chat:history'),

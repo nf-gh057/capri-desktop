@@ -667,15 +667,19 @@ html[data-motion='reduced'] .panel__bar {
 }
 
 /* your line up top like a prompt, her answer under it */
-.panel.is-chat .panel__body {
+.panel.is-chat .panel__body,
+.panel.is-asked .panel__body {
   display: flex;
   flex-direction: column;
 }
 
-.panel.is-chat .panel__meta { order: -2; }
+.panel.is-chat .panel__meta,
+.panel.is-asked .panel__meta { order: -2; }
 
-/* in a chat, what you said goes up top (not in her setup's panels with a line to type in) */
-.panel.is-chat:not(.is-guide) .panel__quote {
+/* what you said goes up top ("<", you, as in HOLO): in a chat (not in her setup's panels with a line to
+   type in), and your prompt to Claude Code or Codex */
+.panel.is-chat:not(.is-guide) .panel__quote,
+.panel.is-asked .panel__quote {
   order: -1;
   margin: 0 0 8px;
   padding-left: 0;
@@ -683,8 +687,9 @@ html[data-motion='reduced'] .panel__bar {
   -webkit-line-clamp: 2;
 }
 
-.panel.is-chat:not(.is-guide) .panel__quote::before {
-  content: '> ';
+.panel.is-chat:not(.is-guide) .panel__quote::before,
+.panel.is-asked .panel__quote::before {
+  content: '< ';
   color: var(--accent);
   font-weight: 600;
 }

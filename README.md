@@ -18,7 +18,7 @@ everything it describes is in this fork too.
 
 ### Mainframe
 
-Right-click her › **Settings…**. A window like her game's menus: you can resize it, maximize it and snap it, and it
+Right-click her › **Mainframe**. A window like her game's menus: you can resize it, maximize it and snap it, and it
 remembers where you left it, its size and the tab you were on.
 
 - **At the top**, like a game's level and street cred: her level, her sync with you and your days together. In the
@@ -29,10 +29,10 @@ remembers where you left it, its size and the tab you were on.
 
 | Tab | What's in it |
 |---|---|
-| **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Oldest on top, newest at the bottom; `>` marks what you sent (your prompts to Claude or Codex too, before what she said about them), `<` what came from her. Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM**: your phone. |
+| **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Oldest on top, newest at the bottom; `>` marks what came from her, `<` what you sent, under your name (ENGRAMS › Your name), your prompts to Claude or Codex too, before what she said about them. Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM**: your phone. |
 | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows. The assistant she watches in your terminal, and its hooks. With Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**, her own powers with it (apps, sites, music). |
-| **ENGRAMS** | Your bond, her persona, her reminders, and what she remembers, with the PC it was said on. |
-| **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts) and her swarm. |
+| **ENGRAMS** | Your bond, your name (what she calls you, and you in HOLO), her persona, her reminders, and what she remembers, with the PC it was said on. |
+| **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts, how chatty she is) and her swarm. |
 | **CYBERDECK** | Language, animations, display, menu, starting with Windows, her updates, help, quit. |
 
 What she said for HOLO is kept in `holo.json` (the last 300 lines), on this PC only.
@@ -56,6 +56,14 @@ What she said for HOLO is kept in `holo.json` (the last 300 lines), on this PC o
   her first answer doesn't wait for it.
 - The top of her chat names the model answering, and the line under it says an AI answers, on your PC or online.
   Mainframe can hide either one.
+- **She speaks up on her own**, in her own words: now and then about the task you just gave Claude or Codex, when a
+  long one (over 3 minutes) is done, when it keeps failing or thinks for a long time, when you're back after a while,
+  and now and then, nothing going on and you not typing, just to talk. It goes in her chat, so she knows what she
+  meant if you ask, and in HOLO. **Chattiness** (Mainframe › RELIC): quiet (her usual lines only), normal (at most 4
+  an hour) or chatty (10). Never over her chat, a game or her guide. A model on your PC writes it (her chat's, if it's
+  local, else Ollama's); never Claude Code or Codex (a second agent for every remark, spending your limits). With her
+  chat on a service online and no model on your PC, she asks first: what you send Claude or Codex would go there too.
+  Without a model she says her usual lines, less often the same ones twice.
 - **Double-click her** to open her chat, with the cursor already where you type (one click still shows what's going on).
 
 ### Her phone (Telegram)
@@ -230,7 +238,7 @@ hooks out of Claude Code and Codex, and removes her shortcuts and folder. Git, N
    right-click her › **Watch** › **Codex**.
 2. Close Claude Code completely and open it again (it reads its hooks when a session starts). As soon as Claude does
    something, she tells you **"I can see Claude!"**: that's how you know it worked.
-3. Everything else is in **Mainframe** (right-click her › **Settings…**).
+3. Everything else is in **Mainframe** (right-click her › **Mainframe**).
 
 ### Updates
 
@@ -276,6 +284,7 @@ src/main/
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
 src/renderer/js/
   mainframe.js           Mainframe's page: its tabs, HOLO
+  talk.js                what she says of her own, in her words: when, how often, and kept in her chat
 ```
 
 Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`.

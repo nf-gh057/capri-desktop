@@ -553,7 +553,7 @@ function rebuildTray() {
     { type: 'separator' },
     { label: t.talk, click: () => sendCommand('chat') },
     { label: cfg.visible ? t.hide : t.show, ...(stowKey && { accelerator: stowKey }), click: () => toggleVisible() },
-    { label: t.settings, click: () => mainframe.open() },
+    { label: 'Mainframe', click: () => mainframe.open() },
     { type: 'separator' },
   ];
   const quit = [{ type: 'separator' }, { label: t.quit, click: () => app.quit() }];
@@ -764,6 +764,11 @@ function mainframeState() {
       sync: syncLabel(cfg, t),
       reminders: reminderList(cfg),
       memories: memoryList(cfg, t),
+      userName: cfg.userName || '', // what she calls you, and your name in HOLO
+      talk: ['quiet', 'normal', 'chatty'].includes(cfg.talk) ? cfg.talk : 'normal',
+      talkCloud: Boolean(cfg.talkCloud),
+      // her chat's AI is online and not an agent: whether it may write her remarks is yours to say
+      talkCloudAsk: !llm.isAgent(cfg.provider) && !llm.isLocal(cfg.provider, cfg, pickModel(cfg) || cfg.chatModel),
     },
     watch: {
       id: cfg.claude ? activeAssistant().id : 'none',
@@ -795,7 +800,8 @@ function mainframeState() {
     update: updateState(cfg, t),
     // HOLO: her chat (as on all your PCs) and what she said on this one, and your message being answered
     holo: {
-      chat: (readMemory().history || []).slice(-150).map(({ role, content, at }) => ({ role, content: String(content), at: at || 0 })),
+      // (what you sent Claude Code or Codex, `to`, and what she said of her own about it, are in it too)
+      chat: (readMemory().history || []).slice(-150).map(({ role, content, at, to, tag, aside }) => ({ role, content: String(content), at: at || 0, to, tag, aside })),
       lines: holoLines().slice(-150),
       turn: deskTurn && { text: deskTurn.text, answer: deskTurn.answer },
     },
@@ -849,9 +855,12 @@ async function mainframeAct(name, value) {
     case 'teleport': sendCommand('teleport'); break;
     case 'talk': sendCommand('chat'); break;
     case 'custom': sendCommand('customize'); break;
+    // as custom.js saves it ("" is no name: she says "choom")
+    case 'userName': if (typeof value === 'string') updateConfig({ userName: value.trim().slice(0, 24) }); break;
     case 'help': sendCommand('welcome'); break;
     case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
-    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'pcReact': updateConfig({ [name]: Boolean(value) }); break;
+    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'pcReact': case 'talkCloud': updateConfig({ [name]: Boolean(value) }); break;
+    case 'talk': if (one(['quiet', 'normal', 'chatty'])) updateConfig({ talk: value }); break;
     case 'lookNow': sendCommand('look'); break;
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
     case 'cancelReminder': cancelReminder(value); break;
@@ -1313,6 +1322,20 @@ async function localModel() {
   return list?.find((m) => !ollama.isCloud(m)) || null;
 }
 
+// Who writes what she says of her own (talk.js): her chat's model if it's on this PC, else a model of
+// Ollama's on this PC, else her chat's model online only if you allowed it (what you send Claude or
+// Codex goes there). Never Claude Code or Codex: a second agent for every remark, spending your limits,
+// in your project. null: her usual lines.
+const TALK_MS = 15000;
+async function talkBrain(cfg = config.load()) {
+  const model = pickModel(cfg) || cfg.chatModel;
+  if (!llm.isAgent(cfg.provider) && llm.isLocal(cfg.provider, cfg, model) && !brainCut(cfg)) return { provider: cfg.provider, model };
+  const local = await localModel().catch(() => null);
+  if (local) return { provider: 'ollama', model: local };
+  if (!llm.isAgent(cfg.provider) && cfg.talkCloud && !brainCut(cfg) && model) return { provider: cfg.provider, model };
+  return null;
+}
+
 // The network gone with her brain online: the model on this PC loaded right away, so her first answer
 // doesn't wait for it (a few seconds' look; Electron says nothing when the network goes).
 let wasCut = false;
@@ -1500,6 +1523,20 @@ function registerIpc() {
     }
   });
   ipcMain.on('chat:stop', (_e, id) => chats.get(id)?.abort());
+  // how long since a key or the mouse anywhere (talk.js: not while you're typing), in seconds
+  ipcMain.handle('pc:idle', () => powerMonitor.getSystemIdleTime());
+  // something she says of her own (talk.js), written by an AI: { ok, text } or { ok: false }
+  ipcMain.handle('talk:line', async (_e, { messages } = {}) => {
+    if (!Array.isArray(messages) || !messages.length) return { ok: false };
+    const brain = await talkBrain();
+    if (!brain) return { ok: false, code: 'nomodel' };
+    try {
+      const text = await llm.chat(brain.provider, llmConfig(), { model: brain.model, messages }, () => {}, AbortSignal.timeout(TALK_MS));
+      return { ok: true, text };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
   // she looks at your screen (look.js): the picture first, then what her AI says about it
   ipcMain.handle('look:snap', async () => {
     try {
@@ -1991,6 +2028,13 @@ function mindSave() {
   mindSaveTimer = setTimeout(() => mind && mindWrite(), 1000);
 }
 
+// What a message of her chat may carry besides (talk.js): your prompt to Claude Code or Codex (`to`
+// which, `tag` its project), or a remark of her own (`aside`: what about)
+function chatExtra(m) {
+  const text = (key, max) => (typeof m?.[key] === 'string' && m[key] ? { [key]: m[key].slice(0, max) } : {});
+  return { ...text('to', 40), ...text('tag', 80), ...text('aside', 20) };
+}
+
 // Her chat's messages, each with an id and a time (older ones, from before: made up once, in their
 // order, from when they were saved)
 function stampedHistory() {
@@ -2043,7 +2087,7 @@ function mindCapture() {
   const kept = mind.list('chat:').map((e) => e.v?.at || 0).sort((a, b) => b - a);
   const floor = kept.length >= MIND_CHAT ? kept[MIND_CHAT - 1] : 0;
   for (const m of stampedHistory()) {
-    if (m.at > cleared && m.at >= floor) put(`chat:${m.id}`, { role: m.role, content: String(m.content).slice(0, 6000), at: m.at });
+    if (m.at > cleared && m.at >= floor) put(`chat:${m.id}`, { role: m.role, content: String(m.content).slice(0, 6000), at: m.at, ...chatExtra(m) });
   }
   // your name and how you want her: empty is a change only once one was set (on any PC)
   if (cfg.userName || mind.get('name') !== undefined) put('name', cfg.userName || '');
@@ -2086,7 +2130,7 @@ function mindApply(keys, peer) {
     const history = mind.list('chat:')
       .filter((e) => object(e.v) && ['user', 'assistant'].includes(e.v.role) && typeof e.v.content === 'string' && Number.isFinite(e.v.at) && e.v.at > cleared)
       .sort((a, b) => a.v.at - b.v.at || (a.key < b.key ? -1 : 1)).slice(-MIND_CHAT)
-      .map((e) => ({ id: e.key.slice(5), role: e.v.role, content: e.v.content, at: e.v.at }));
+      .map((e) => ({ id: e.key.slice(5), role: e.v.role, content: e.v.content, at: e.v.at, ...chatExtra(e.v) }));
     if (keys.includes('forgot')) llm.resetAgents(); // "forget" on another PC: the agents' conversations too
     saveMemory({ history });
     overlay?.webContents.send('chat:history', history);

@@ -60,6 +60,8 @@ const DEFAULTS = {
   watchScreen: false, // she looks at your screen now and then and says something about it (look.js)
   mainframeBounds: null, // her settings window as you left it: { x, y, width, height, maximized } (mainframe.js)
   lookAsked: false,  // she told you what looking means (where the picture goes) and you said yes
+  talk: 'normal',    // how often she says things of her own, in her words (talk.js): 'quiet', 'normal' or 'chatty'
+  talkCloud: false,  // and she may write them with an AI online (what you send Claude or Codex goes there too)
 };
 
 let cache = null;

@@ -18,7 +18,7 @@ wszystko, co opisuje, jest też w tym forku.
 
 ### Mainframe
 
-Prawy klik na niej › **Ustawienia…**. Okno jak menu z gry: zmienisz mu rozmiar, zmaksymalizujesz je i zadokujesz do
+Prawy klik na niej › **Mainframe**. Okno jak menu z gry: zmienisz mu rozmiar, zmaksymalizujesz je i zadokujesz do
 krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na której byłeś.
 
 - **U góry**, jak poziom i street cred w grze: jej poziom, synchronizacja z tobą i dni razem. Pośrodku są zakładki. Po
@@ -29,10 +29,10 @@ krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na 
 
 | Zakładka | Co w niej jest |
 |---|---|
-| **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Najstarsze na górze, najnowsze na dole; `>` oznacza to, co piszesz ty (także twoje polecenia dla Claude albo Codexa, przed jej komentarzem do nich), `<` to, co przyszło od niej. Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM**: twój telefon. |
+| **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Najstarsze na górze, najnowsze na dole; `>` oznacza to, co przyszło od niej, `<` to, co piszesz ty, pod twoim imieniem (ENGRAMS › Twoje imię), także twoje polecenia dla Claude albo Codexa, przed jej komentarzem do nich. Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM**: twój telefon. |
 | **NETWATCH** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex) i co pokazuje czat. Asystent, którego pilnuje w terminalu, i jego hooki. Gdy w czacie odpowiada Claude Code albo Codex: jego folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka). |
-| **ENGRAMS** | Wasza więź, jej persona, przypomnienia i to, co pamięta, z komputerem, na którym to powiedziałeś. |
-| **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje) i jej rój. |
+| **ENGRAMS** | Wasza więź, twoje imię (jak cię nazywa i jak jesteś podpisany w HOLO), jej persona, przypomnienia i to, co pamięta, z komputerem, na którym to powiedziałeś. |
+| **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa) i jej rój. |
 | **CYBERDECK** | Język, animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście. |
 
 To, co powiedziała, HOLO trzyma w `holo.json` (ostatnie 300 kwestii), tylko na tym komputerze.
@@ -56,6 +56,15 @@ To, co powiedziała, HOLO trzyma w `holo.json` (ostatnie 300 kwestii), tylko na 
   pierwsza odpowiedź na niego nie czeka.
 - Nagłówek jej czatu podaje model, który odpowiada, a linijka pod czatem mówi, że odpowiada AI, na twoim PC albo w sieci.
   Mainframe może ukryć jedno i drugie.
+- **Odzywa się sama**, własnymi słowami: czasem o zadaniu, które właśnie dałeś Claude albo Codexowi, gdy dłuższe
+  (ponad 3 minuty) się skończy, gdy coś raz po raz się nie udaje albo agent długo myśli, gdy wracasz po przerwie,
+  a czasem, gdy nic się nie dzieje i nie piszesz, po prostu zagaja. Trafia to do jej czatu (wie, co miała na myśli,
+  gdy zapytasz) i do HOLO. **Gadatliwość** (Mainframe › RELIC): cicha (tylko jej zwykłe teksty), normalna (najwyżej
+  4 razy na godzinę) albo gaduła (10). Nigdy w trakcie czatu z nią, gry ani przewodnika. Pisze to model na twoim PC
+  (jej czatu, jeśli jest lokalny, inaczej z Ollamy); nigdy Claude Code ani Codex (drugi agent przy każdym wtrąceniu,
+  zużywający twoje limity). Gdy jej czat działa przez usługę w sieci, a na PC nie ma modelu, najpierw pyta o zgodę:
+  trafiłoby tam też to, co wysyłasz do Claude albo Codexa. Bez modelu mówi swoimi zwykłymi tekstami, rzadziej
+  powtarzając te same.
 - **Dwuklik na nią** otwiera jej czat, z kursorem od razu w polu do pisania (jeden klik dalej pokazuje, co się dzieje).
 
 ### Jej telefon (Telegram)
@@ -233,7 +242,7 @@ wyjmuje jej hooki z Claude Code i Codexa oraz usuwa jej skróty i folder. Git, N
    **Obserwuj** › **Codex**.
 2. Zamknij Claude Code całkowicie i otwórz go znowu (hooki czyta na starcie sesji). Gdy tylko Claude coś zrobi, powie ci
    **„Widzę Claude'a!”**: po tym poznasz, że działa.
-3. Cała reszta jest w **Mainframe** (prawy klik na niej › **Ustawienia…**).
+3. Cała reszta jest w **Mainframe** (prawy klik na niej › **Mainframe**).
 
 ### Aktualizacje
 
@@ -279,6 +288,7 @@ src/main/
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
 src/renderer/js/
   mainframe.js           strona Mainframe: zakładki, HOLO
+  talk.js                to, co mówi sama, własnymi słowami: kiedy, jak często, zapisane w jej czacie
 ```
 
 Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`.

@@ -14,6 +14,7 @@ import { Bond, Jealousy } from './bond.js';
 import { Reminders, clock } from './reminders.js';
 import { Look } from './look.js';
 import { Pc } from './pc.js';
+import { Talk } from './talk.js';
 import { linesFor } from './lines.js';
 import { pick, fmt, reducedMotion, sleep } from './util.js';
 
@@ -85,12 +86,13 @@ async function boot() {
   // What she says in her panel also goes to Mainframe's HOLO, next to her chat: all of it but her chat
   // itself (HOLO has it whole) and her little lines from her animations (idle, or `spont`: the
   // satellite, being thrown around, her showcase). Your prompt to Claude (`asked`) goes there even
-  // when something more important kept her from saying anything about it.
+  // when something more important kept her from saying anything about it. What she said of her own
+  // (talk.js, `inChat`) is in her chat already.
   const sayHere = panel.say.bind(panel);
   panel.say = (msg) => {
     const shown = sayHere(msg);
     const said = shown && msg.line && !msg.chat && !msg.spont && msg.kind !== 'idle';
-    if (said || msg.asked) {
+    if ((said || msg.asked) && !msg.inChat) {
       host.holoLine({
         kind: msg.kind, badge: msg.badge || panel.labels.state?.[msg.kind] || '', line: said ? msg.line : '',
         tag: typeof msg.tag === 'string' ? msg.tag : '', quote: typeof msg.quote === 'string' ? msg.quote : '',
@@ -335,6 +337,12 @@ async function boot() {
   pc.enabled = config.pcReact !== false;
   let wantsOut = config.visible !== false; // not put away in your settings (Ctrl+Alt+C, her menu)
   pc.wantsOut = () => wantsOut;
+  // What she says of her own, in her words (talk.js): never over her chat, her guide, a game you're
+  // playing, or from her biochip
+  const talk = new Talk({ host, chat, brain });
+  talk.configure(config);
+  talk.hush = () => chat.open || Boolean(chat.turn) || guide.running || Boolean(pc.game) || capri.stowed;
+  brain.talk = talk;
 
   // Clicking her: what's going on, or she offers to talk. Sulking, she turns her back on you.
   // Double-clicking her: her chat, the cursor already in it (a click waits a moment for the second one).
@@ -435,16 +443,33 @@ async function boot() {
   setInterval(() => {
     if (performance.now() - lastMove < 10 * 60 * 1000 && !capri.stowed) bond.add('time', 1);
   }, 10 * 60 * 1000);
-  // back at your PC after a while: once she's attached to you, she's glad to see you
-  onBack = () => {
-    if (bond.stage < 2 || capri.stowed) return;
+  // back at your PC after a while: she may welcome you her way (talk.js), picking up where you two left
+  // off; else, once she's attached to you, she's glad to see you
+  onBack = async (away) => {
+    if (capri.stowed) return;
+    const own = talk.line('back', { away });
+    if (!own && bond.stage < 2) return;
     capri.wake();
+    const line = own && (await own);
+    if (!line && bond.stage < 2) return;
     setTimeout(() => {
       if (!quiet()) return;
       capri.perform('hop');
-      panel.say({ kind: 'idle', face: 'look', line: pick(brain.t.bond.back), hold: 3500 });
+      panel.say(line
+        ? { kind: 'info', face: 'look', line, hold: 6000, inChat: true }
+        : { kind: 'idle', face: 'look', line: pick(brain.t.bond.back), hold: 3500 });
     }, 700);
   };
+  // now and then, nothing going on and you at your PC but not busy typing: she starts a conversation
+  setInterval(async () => {
+    if (!quiet() || brain.busySessions.length || !talk.idleDue()) return;
+    const idle = await host.idleSeconds().catch(() => 0);
+    if (idle < 90 || idle * 1000 > AWAY_MS) return; // typing away, or not there
+    const line = await talk.line('idle', {});
+    if (!line || !quiet()) return;
+    capri.perform('hop');
+    panel.say({ kind: 'info', face: 'look', line, hold: 9000, inChat: true });
+  }, 60 * 1000);
 
   // A reminder due: she comes and finds you (on whichever screen you're on), and holds it up until
   // you say it's done or ask for ten more minutes. One that came due while she was off, she brings
@@ -691,6 +716,7 @@ async function boot() {
 
   host.onConfig((cfg) => {
     chatShows(cfg);
+    talk.configure(cfg);
     voice.configure(cfg);
     jealousy.enabled = cfg.jealous !== false;
     followOn = cfg.follow !== false;

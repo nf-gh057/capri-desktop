@@ -27,6 +27,7 @@ const IN_LANGUAGE = {
   ru: { we: '"мы" in Russian', last: 'Пиши всё по-русски, если только пользователь не пишет тебе на другом языке: тогда на его языке. По-английски остаются только словечки Найт-Сити, никогда не целые фразы.', now: 'Отвечай по-русски, если только это сообщение не написано на другом языке.' },
   pl: { we: '"my" in Polish', last: 'Pisz wszystko po polsku, chyba że użytkownik pisze do ciebie w innym języku: wtedy w jego. Tylko słówka ze slangu Night City zostają po angielsku, nigdy całe zdania. O sobie mówisz w rodzaju żeńskim (zrobiłam, widziałam).' , now: 'Odpowiadaj po polsku, chyba że ta wiadomość jest napisana w innym języku.' },
 };
+const LANGUAGE_NAMES = { fr: 'French', en: 'English', es: 'Spanish', pt: 'Brazilian Portuguese', ru: 'Russian', pl: 'Polish' };
 const STAY_MS = 10 * 60 * 1000; // no wandering off mid-conversation
 const LOADING_AFTER_MS = 5000;
 // her chat closes itself once you've stopped talking (nothing typed, no answer coming), so what
@@ -172,8 +173,9 @@ const MOOD_FACE = { angry: 'many', sulk: 'aside', dizzy: 'wide', thrown: 'wide',
 
 // A message of your chat, with what tells it apart on all your PCs (her swarm, main.js): an id, and when
 const note = (role, content, at = Date.now()) => ({ role, content, id: crypto.randomUUID().replaceAll('-', '').slice(0, 16), at });
-// what her AI gets of one: who said what, nothing else
-const said = ({ role, content }) => ({ role, content });
+// what her AI gets of one: who said what, nothing else (what you sent Claude Code or Codex, said so: she
+// talked about it on her own, talk.js)
+const said = ({ role, content, to }) => ({ role, content: to ? `(The user sent this to ${to}, their coding assistant, not to you:) ${content}` : content });
 
 export class Chat {
   constructor({ capri, panel, voice, host, brain }) {
@@ -995,6 +997,47 @@ export class Chat {
     this.panel.setActions(actions, onAction);
     this.remember({ role: 'assistant', content: line });
     return true;
+  }
+
+  // Something she said of her own (talk.js), kept in her chat like an answer of hers, so she knows what
+  // she meant if you ask: after what you sent Claude Code or Codex, when that's what it was about
+  // (`asked`: { text, to, tag })
+  keepAside(line, aside, asked = null) {
+    if (asked) this.history.push({ ...note('user', String(asked.text).slice(0, 300)), to: asked.to, tag: asked.tag || '' });
+    this.remember({ ...note('assistant', line), aside });
+  }
+
+  // The conversation lately, for what she says of her own: who said what, a line each
+  recent(count = 6) {
+    return this.history.slice(-count).map((m) => {
+      const who = m.role === 'user' ? (m.to ? `The user, to ${m.to}` : 'The user') : 'You';
+      return `${who}: ${String(m.content).replace(/\s+/g, ' ').slice(0, 200)}`;
+    }).join('\n');
+  }
+
+  // Who she is when she speaks up on her own (talk.js), written by a model of her own, never Claude Code
+  // or Codex: short, in character, about what just happened
+  asidePersona() {
+    const assistant = ASSISTANT_NAMES[this.brain.assistant] || 'Claude Code';
+    const lang = IN_LANGUAGE[this.brain.lang] || IN_LANGUAGE.en;
+    return [
+      `You are Capri, the personality construct from Project Capricorn (Cyberpunk: Edgerunners, season 2): dozens of minds fused into one digital ghost, living on the user's desktop as a small glitchy figure.`,
+      `You keep an eye on ${assistant}, the user's AI coding assistant, for them. ${assistant} does the work; you never claim you did it, and you never do it or explain how.`,
+      'How you talk: playful, a little mischievous and teasing, warm underneath, never cruel. Night City slang now and then (choom, preem, nova, gonk), not in every line.',
+      'Rules: one short sentence, two at most, plain text, no markdown, no lists, no emoji, no tags, no quotes around it. Talk to the user, in character. Never repeat what you said lately, nor start the same way.',
+      `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
+      ...this.personal(),
+      ...(this.bond ? [this.bond.persona()] : []),
+      ...[this.bond?.moodLine()].filter(Boolean),
+      lang.last,
+      this.asideLanguage(),
+    ].join('\n');
+  }
+
+  // Her language for what she says of her own: what happened is told to her AI in English, so "in the
+  // message's language" would be English
+  asideLanguage() {
+    return `Whatever language the notes you get are in, write your line in ${LANGUAGE_NAMES[this.brain.lang] || 'English'}.`;
   }
 
   // What the user made her (custom.js): their name, how they want her, what to remember.

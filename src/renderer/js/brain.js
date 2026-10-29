@@ -1,7 +1,8 @@
 // Turns Claude Code hook events into things Capri says and does.
 
 import { linesFor, ASSISTANT_NAMES } from './lines.js';
-import { pick, fmt, duration, basename, rand } from './util.js';
+import { pickFresh as pick, fmt, duration, basename, rand } from './util.js'; // her lines, less repeated
+import { LONG_TASK_MS, STUCK_FAILS } from './talk.js';
 
 // the window your last prompt was typed in, kept across her restarts (Windows' id for it lasts as
 // long as the window does): where she points when asked where Claude is
@@ -41,6 +42,7 @@ export class Brain {
     this.watching = true;   // she follows Claude Code (her menu; off, she just keeps you company)
     this.thinkTimer = 0;
     this.thinking = null;   // { s, since, said, fidget, gazed } while Claude is quiet mid-task
+    this.talk = null;       // what she says of her own, in her words (talk.js, from app.js)
   }
 
   get t() {
@@ -78,6 +80,18 @@ export class Brain {
     // another PC's agent, under its own name if it isn't the one she watches here
     const text = s?.agent && s.agent !== this.assistant ? String(line).replaceAll(this.name, agentName(s.agent)) : line;
     return this.panel.say({ kind, line: text, tag: s ? [s.title || s.project, s.pc].filter(Boolean).join(' · ') : '', ...extra });
+  }
+
+  // Her own line about it (talk.js: `own`, a promise of one), else her usual `line`: said either way.
+  // Hers is in her chat already, so HOLO shows it there (`inChat`), not twice.
+  speak(kind, line, s, extra, own) {
+    if (!own) return this.say(kind, line, s, extra);
+    return own.then((mine) => this.say(kind, mine || line, s, mine ? { ...extra, inChat: true } : extra));
+  }
+
+  // the agent of a session, as she calls it (another PC's may not be the one she watches here)
+  agentOf(s) {
+    return s?.agent && s.agent !== this.assistant ? agentName(s.agent) : this.name;
   }
 
   // today's log, for real events only: the demo's don't go on her report card
@@ -166,9 +180,13 @@ export class Brain {
     this.tally(evt)?.prompt(s.project);
     this.capri.goToWork(); // perched on the window in front if she can, else her corner
     const prompt = String(evt.prompt || '').replace(/\s+/g, ' ').trim();
-    // HOLO has your prompt whole, as yours, to whom you sent it: before what she says about it
-    const to = s.agent && s.agent !== this.assistant ? agentName(s.agent) : this.name;
-    this.say('work', pick(this.t.prompt), s, { quote: prompt ? clip(prompt, 110) : '', asked: prompt, to, hold: 4500 });
+    // your prompt above what she says about it (HOLO has it whole, as yours, and to whom you sent it);
+    // now and then she says something of her own about it (talk.js)
+    const to = this.agentOf(s);
+    const own = prompt && !evt.demo
+      ? this.talk?.line('prompt', { to, project: s.project, prompt }, { text: prompt, to, tag: s.title || s.project })
+      : null;
+    this.speak('work', pick(this.t.prompt), s, { quote: prompt ? clip(prompt, 110) : '', asked: prompt, to, hold: 4500 }, own);
     this.watchThinking();
   }
 
@@ -213,7 +231,8 @@ export class Brain {
     }
     if (th.said < 2 && quiet >= THINK_LONG) {
       th.said = 2;
-      this.say('info', pick(t.long), s, { face: 'smug', quote: t.longHow, hold: 8000 });
+      const own = this.talk?.line('stuck', { to: this.agentOf(s), project: s.project, quiet });
+      this.speak('info', pick(t.long), s, { face: 'smug', quote: t.longHow, hold: 8000 }, own);
     }
   }
 
@@ -221,6 +240,7 @@ export class Brain {
     const action = this.describe(evt);
     s.working = true;
     s.count += 1;
+    s.fails = 0; // it got something done: not stuck
     s.last = action;
     s.log.push(action);
     if (s.log.length > 8) s.log.shift();
@@ -255,11 +275,16 @@ export class Brain {
     this.tally(evt)?.error();
     this.capri.hurt();
     this.voice.play('error');
-    this.say('error', fmt(pick(this.t.error), { tool: evt.tool_name || this.t.someTool }), s, {
+    // failing again and again: it's going badly, and she may say so her way (talk.js)
+    s.fails = (s.fails || 0) + 1;
+    const own = s.fails === STUCK_FAILS && !evt.demo
+      ? this.talk?.line('stuck', { to: this.agentOf(s), project: s.project, fails: s.fails, error: firstLine, tool: evt.tool_name || '' })
+      : null;
+    this.speak('error', fmt(pick(this.t.error), { tool: evt.tool_name || this.t.someTool }), s, {
       face: pick(['laugh', 'wide']), // a failure: she laughs at the chaos, or it caught her off guard
       log: [action, { verb: '✕', target: clip(firstLine, 70), error: true }],
       hold: 5500,
-    });
+    }, own);
   }
 
   async onNotification(evt, s) {
@@ -320,10 +345,15 @@ export class Brain {
     // Not on Claude's window any more: you can't see the answer, so she brings it to you, whole,
     // and holds it up until you're back on Claude's window or click it away.
     const reply = this.away(s) ? readable(evt.last_assistant_message || '') : '';
+    // a long task done: she may say it her way (talk.js), written while she celebrates
+    const ms = s.taskStart ? Date.now() - s.taskStart : 0;
+    const own = (wasWorking || s.count) && ms > LONG_TASK_MS && !evt.demo
+      ? this.talk?.line('done', { to: this.agentOf(s), project: s.project, ms, last: quote })
+      : null;
     const done = (extra) => {
       if (reply) this.replyFor = s;
-      if (reply) this.say('done', pick(this.t.reply), s, { ...extra, reply, hold: null });
-      else this.say('done', pick(this.t.done), s, { ...extra, quote: clip(quote, 150) });
+      if (reply) this.speak('done', pick(this.t.reply), s, { ...extra, reply, hold: null }, own);
+      else this.speak('done', pick(this.t.done), s, { ...extra, quote: clip(quote, 150) }, own);
     };
     if (!wasWorking && !s.count) {
       // a Stop with nothing before it: just say it quietly
