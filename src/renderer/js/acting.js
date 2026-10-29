@@ -91,6 +91,22 @@ export const ACTS = {
     ],
   },
 
+  // walking along a ledge, to screen-right as drawn, on twos: a step on each leg, contact, down,
+  // passing, up (capri.js moves her on as each drawing comes on, by its step in sprite.js POSES)
+  walk: {
+    loop: true,
+    keys: [
+      [2, { draw: 'walk1', hair: -1 }],
+      [2, { draw: 'walk2', hair: -1.5 }],
+      [2, { draw: 'walk3', hair: 0 }],
+      [2, { draw: 'walk4', hair: 1 }],
+      [2, { draw: 'walk5', hair: 1 }],
+      [2, { draw: 'walk6', hair: 1.5 }],
+      [2, { draw: 'walk7', hair: 0 }],
+      [2, { draw: 'walk8', hair: -1 }],
+    ],
+  },
+
   // bored, stretched out along her ledge, head propped on her hand: her mane stirs, then settles a while
   lie: {
     loop: true,

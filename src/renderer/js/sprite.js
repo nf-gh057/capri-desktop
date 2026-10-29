@@ -366,13 +366,22 @@ export const SPRITE = {
 //   face  her face on it (speech and the like follow it)
 //   mane  the middle of her mane, and how far it reaches either way (nothing outside sways)
 //   sway  the height where her mane stops swaying (just above her body), and where it sways the most
+//   step  (walking) how far she gets along her ledge as the drawing comes on
 export const POSES = {
   hip: { rect: [34.3, 36.1, 175.3, 381.9], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
   cross: { rect: [35.2, 37.9, 174.7, 380.1], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
   fidget: { rect: [33.9, 36.6, 175.5, 381.4], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
   float: { rect: [19.3, 38.9, 208.8, 242.9], face: [120, 132], mane: [125, 100, 115, 80], sway: [155, 40] }, // her head where it always is
-  lie: { rect: [-57.3, 68.1, 354.6, 166.9], face: [203, 182], mane: [215, 140, 100, 75], sway: [200, 110] },
-  lean: { rect: [-59.5, 64.6, 359.0, 170.4], face: [205, 164], mane: [215, 135, 100, 75], sway: [195, 110] }, // lying down, halfway
+  // her walk cycle, to the right (acting.js walk); each step keeps the foot she stands on where it
+  // was on the ledge (tools/build-poses.py measures them)
+  walk1: { rect: [-2.4, 37.1, 242.2, 380.9], face: [138, 135], mane: [93, 103, 120, 77], sway: [175, 60], step: 18 },
+  walk2: { rect: [-15.6, 37.1, 224.7, 380.9], face: [138, 135], mane: [93, 103, 120, 77], sway: [175, 60], step: 13 },
+  walk3: { rect: [-18.0, 33.9, 221.5, 384.1], face: [138, 132], mane: [93, 103, 120, 77], sway: [175, 60], step: 71 },
+  walk4: { rect: [-19.7, 31.5, 246.2, 386.5], face: [138, 131], mane: [93, 103, 120, 77], sway: [175, 60], step: 85 },
+  walk5: { rect: [-21.1, 40.3, 255.0, 377.7], face: [138, 138], mane: [93, 103, 120, 77], sway: [175, 60], step: 11 },
+  walk6: { rect: [-22.3, 38.7, 223.1, 379.3], face: [138, 136], mane: [93, 103, 120, 77], sway: [175, 60], step: 14 },
+  walk7: { rect: [-11.5, 33.1, 218.3, 384.9], face: [138, 134], mane: [93, 103, 120, 77], sway: [175, 60], step: 55 },
+  walk8: { rect: [-15.4, 32.3, 254.2, 385.7], face: [138, 135], mane: [93, 103, 120, 77], sway: [175, 60], step: 76 },
 };
 
 export class SpriteRenderer {

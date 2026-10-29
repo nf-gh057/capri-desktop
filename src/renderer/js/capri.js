@@ -2,7 +2,8 @@
 // She acts with her head and her mane like in the show, and she's timed like cel animation:
 // pose-to-pose acts (acting.js) drawn on twos, on ones for the action beats.
 //
-// Stances: floating ("stand"), perched on a window ("sit"), peeking in from a screen edge
+// Stances: floating ("stand"), perched on a window ("sit") or walking along its top ("walk"),
+// peeking in from a screen edge
 // ("peek"), falling ("fall") when the window under her goes away or you drop her, held up by the
 // pointer ("held"), flying through the air when you throw her or she jumps to another screen
 // ("fly"), and knocked down on the floor after a crash ("down").
@@ -59,6 +60,7 @@ export class Capri {
     this.stance = 'stand';
     this.lounge = null;   // one of AFLOAT (standing) or 'lie' (sitting): the pose drawing she's lounging in
     this.perch = null;    // { id, dx }: the window she sits on, and where along it
+    this.walking = null;  // { to, dir, draw }: walking along her ledge, to that dx on it (stroll)
     this.peekSide = null; // left | right | top
     this.windows = { fg: 0, wins: [] };
     this.busy = false;
@@ -397,14 +399,14 @@ export class Capri {
 
   setWindows(data) {
     this.windows = data;
-    if (this.stance !== 'sit' || this.busy || this.dragging) return;
+    if ((this.stance !== 'sit' && this.stance !== 'walk') || this.busy || this.dragging) return;
     const win = this.perchWin(this.perch.id);
     const dx = win ? clamp(this.perch.dx, 50, win.w - 60) : 0;
     if (!win || !this.canSit(win) || this.covered(win, win.x + dx)) {
       this.fall(); // the ledge is gone (closed, minimized, maximized or covered)
       return;
     }
-    const to = this.seat(win, dx);
+    const to = this.stance === 'walk' ? this.standOn(win, dx) : this.seat(win, dx);
     if (to.x !== this.pos.x || to.y !== this.pos.y) {
       this.pos = to; // ride along with the window
       this.place();
@@ -414,6 +416,16 @@ export class Capri {
   // Where her feet go so that her hips rest on the window's top edge.
   seat(win, dx) {
     return { x: win.x + dx, y: win.y + 3 + (SPRITE.feet.y - SPRITE.hip) * this.scale };
+  }
+
+  // Where her feet go to stand on the window's top edge (walking along it).
+  standOn(win, dx) {
+    return { x: win.x + dx, y: win.y + 2 };
+  }
+
+  // Room enough above the ledge to stand up on it, all of her, not just from her seat up.
+  canStand(win) {
+    return this.canSit(win) && (win.id === 'taskbar' || win.y > (SPRITE.feet.y - POSES.walk2.rect[1]) * this.scale + 12);
   }
 
   canSit(win) {
@@ -561,6 +573,10 @@ export class Capri {
       this.swing(now);
       return;
     }
+    if (this.stance === 'walk') {
+      if (!this.busy && !this.dragging) this.updateWalk();
+      return;
+    }
     if (this.skid) this.updateSkid(now);
     if (this.busy || this.dragging) return;
 
@@ -676,6 +692,7 @@ export class Capri {
         return;
       }
     }
+    if (this.stance === 'sit' && Math.random() < 0.35 && this.stroll()) return;
     if (this.stance === 'sit' && this.perch?.id === 'taskbar') {
       // nothing to hop off or take over down there: a flourish, or off for a bit (she comes back),
       // not to float in front of the window you work in
@@ -698,6 +715,59 @@ export class Capri {
     else if (r < 0.6) this.peek();
     else if (r < 0.85) this.teleport(this.spot('random'));
     else this.flourish();
+  }
+
+  // Sitting on her ledge (a window's top, or the taskbar's), she gets up and walks along it a way,
+  // then sits down again. Returns whether she's off.
+  stroll() {
+    if (reducedMotion.matches || this.stance !== 'sit' || !this.poseMaps.walk1) return false;
+    const win = this.perchWin(this.perch.id);
+    if (!win || !this.canStand(win)) return false;
+    const { dx } = this.perch;
+    const room = { 1: win.w - 60 - dx, '-1': dx - 60 };
+    const dirs = [1, -1].filter((d) => room[d] > 200);
+    if (!dirs.length) return false;
+    const dir = pick(dirs);
+    const to = dx + dir * rand(200, Math.min(room[dir], 700));
+    if (this.covered(win, win.x + to)) return false;
+    this.facing = dir; // her walk is drawn going right
+    this.setStance('walk', { perch: { id: win.id, dx } });
+    this.walking = { to, dir, draw: null };
+    this.pos = this.standOn(win, dx);
+    this.twitch(); // up off her seat: one of her glitches, no in-between drawn
+    return true;
+  }
+
+  // Along her ledge a drawing at a time: each drawing of her walk comes with how far she gets on it
+  // (sprite.js POSES step), so the foot she stands on stays put on the ledge instead of sliding.
+  // She sits down where she meant to, or short of a window that's over the ledge ahead.
+  updateWalk() {
+    const w = this.walking;
+    const win = this.perchWin(this.perch.id);
+    if (!w || !win || this.p.draw === w.draw) return;
+    w.draw = this.p.draw;
+    const step = POSES[w.draw]?.step;
+    if (!step) return; // a glitch on top of her walk: she's not stepping
+    let dx = this.perch.dx + w.dir * step * this.scale;
+    const there = (dx - w.to) * w.dir >= 0;
+    if (there) dx = w.to;
+    if (this.covered(win, win.x + dx + w.dir * 40 * this.scale)) {
+      this.sitDown();
+      return;
+    }
+    this.perch.dx = dx;
+    this.pos = this.standOn(win, dx);
+    if (there) this.sitDown();
+  }
+
+  // Done walking: down on her ledge where she stands.
+  sitDown() {
+    const win = this.perchWin(this.perch.id);
+    if (!win) return;
+    const { dx } = this.perch;
+    this.setStance('sit', { perch: { id: win.id, dx } });
+    this.pos = this.seat(win, dx);
+    this.twitch();
   }
 
   // Bored: floating, she takes up a pose (and now and then another one), lying down on her ledge
@@ -757,8 +827,9 @@ export class Capri {
   }
 
   setStance(stance, { perch = null, peekSide = null, dir = 0 } = {}) {
-    const onTaskbar = stance === 'sit' && perch?.id === 'taskbar';
-    if (onTaskbar !== (this.perch?.id === 'taskbar' && this.stance === 'sit')) this.onTaskbar?.(onTaskbar);
+    const ledged = (st) => st === 'sit' || st === 'walk';
+    const onTaskbar = ledged(stance) && perch?.id === 'taskbar';
+    if (onTaskbar !== (this.perch?.id === 'taskbar' && ledged(this.stance))) this.onTaskbar?.(onTaskbar);
     this.stance = stance;
     this.lounge = null;
     this.perch = perch;
@@ -766,6 +837,7 @@ export class Capri {
     this.p.sit = stance === 'sit' ? 1 : 0;
     if (!SPUN.has(stance)) this.spin = 0;
     if (stance !== 'held') this.held = null;
+    if (stance !== 'walk') this.walking = null;
     if (stance !== 'down') this.lying = null;
     this.base = this.restBase(dir);
     this.pivot();
@@ -780,6 +852,7 @@ export class Capri {
 
   baseAct() {
     if (this.stance === 'sit') return this.lounge === 'lie' ? 'lie' : 'sit';
+    if (this.stance === 'walk') return 'walk';
     if (this.stance === 'peek') return 'peek';
     if (this.stance === 'fall') return 'fall';
     if (this.stance === 'held') return 'held';
@@ -800,6 +873,7 @@ export class Capri {
     this.mode = mode;
     if (mode === 'sleep') this.sleptAt = now;
     this.onMode?.(mode, prev);
+    if (mode !== 'idle' && this.stance === 'walk') this.sitDown(); // something's going on: she stops where she is
     if (mode !== 'idle' && mode !== 'sleep' && this.lounge) this.loungeAs(null); // something's going on: she drops the pose
     else if (this.stance === 'stand') this.base = this.restBase();
     const p = this.p;
