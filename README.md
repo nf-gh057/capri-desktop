@@ -29,7 +29,7 @@ remembers where you left it, its size and the tab you were on.
 
 | Tab | What's in it |
 |---|---|
-| **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM**: your phone. |
+| **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Oldest on top, newest at the bottom; `>` marks what you sent (your prompts to Claude or Codex too, before what she said about them), `<` what came from her. Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM**: your phone. |
 | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows. The assistant she watches in your terminal, and its hooks. With Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**, her own powers with it (apps, sites, music). |
 | **ENGRAMS** | Your bond, her persona, her reminders, and what she remembers, with the PC it was said on. |
 | **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts) and her swarm. |
@@ -56,6 +56,7 @@ What she said for HOLO is kept in `holo.json` (the last 300 lines), on this PC o
   her first answer doesn't wait for it.
 - The top of her chat names the model answering, and the line under it says an AI answers, on your PC or online.
   Mainframe can hide either one.
+- **Double-click her** to open her chat, with the cursor already where you type (one click still shows what's going on).
 
 ### Her phone (Telegram)
 

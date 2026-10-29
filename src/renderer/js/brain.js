@@ -166,7 +166,9 @@ export class Brain {
     this.tally(evt)?.prompt(s.project);
     this.capri.goToWork(); // perched on the window in front if she can, else her corner
     const prompt = String(evt.prompt || '').replace(/\s+/g, ' ').trim();
-    this.say('work', pick(this.t.prompt), s, { quote: prompt ? clip(prompt, 110) : '', hold: 4500 });
+    // HOLO has your prompt whole, as yours, to whom you sent it: before what she says about it
+    const to = s.agent && s.agent !== this.assistant ? agentName(s.agent) : this.name;
+    this.say('work', pick(this.t.prompt), s, { quote: prompt ? clip(prompt, 110) : '', asked: prompt, to, hold: 4500 });
     this.watchThinking();
   }
 

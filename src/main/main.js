@@ -1562,8 +1562,13 @@ function registerIpc() {
   // something she said in her panel (app.js), for HOLO
   ipcMain.on('holo:line', (_e, said) => {
     const text = (key, max) => (typeof said?.[key] === 'string' ? said[key].slice(0, max) : '');
-    if (!text('line', 2000)) return;
-    holoAdd({ kind: text('kind', 20), badge: text('badge', 30), line: text('line', 2000), tag: text('tag', 80), quote: text('quote', 600), at: Date.now() });
+    if (!text('line', 2000) && !text('asked', 4000)) return;
+    holoAdd({
+      kind: text('kind', 20), badge: text('badge', 30), line: text('line', 2000), tag: text('tag', 80), quote: text('quote', 600),
+      // your prompt to Claude Code or Codex, and to which: shown as yours, before what she said about it
+      ...(text('asked', 4000) && { asked: text('asked', 4000), to: text('to', 40) }),
+      at: Date.now(),
+    });
   });
   ipcMain.on('phone:answer', (_e, answer) => {
     const done = phoneTurns.get(answer?.id);

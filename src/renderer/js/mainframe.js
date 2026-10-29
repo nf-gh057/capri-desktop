@@ -34,7 +34,7 @@ function el(tag, props = {}, ...children) {
     else if (key in node) node[key] = value;
     else node.setAttribute(key, value);
   }
-  node.append(...children.flat().filter((c) => c !== null && c !== undefined && c !== false));
+  node.append(...children.flat(Infinity).filter((c) => c !== null && c !== undefined && c !== false));
   return node;
 }
 
@@ -335,14 +335,30 @@ function when(at) {
   return new Intl.DateTimeFormat(state.lang, today ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
 }
 
+// who it's from on top, as in a terminal: "> YOU" what you sent (→ to whom, if not her), "< CAPRI" what
+// came back
+function head(you, to, ...more) {
+  return el('p', { class: 'msg__head' },
+    el('span', { class: 'msg__who' }, you ? `> ${state.t.holoYou}` : '< CAPRI'),
+    to ? ` → ${to}` : '',
+    more.filter(Boolean).map((part) => ` · ${part}`).join(''));
+}
+
 function message(m) {
-  if (m.role === 'user') return el('div', { class: 'msg msg--you' }, el('p', { class: 'msg__text' }, m.content), el('span', { class: 'msg__at' }, when(m.at)));
-  if (m.role === 'assistant') return el('div', { class: 'msg msg--her' }, el('p', { class: 'msg__text' }, unTagged(m.content)), el('span', { class: 'msg__at' }, when(m.at)));
-  return el('div', { class: `msg msg--her msg--line is-${m.kind || 'info'}` },
-    (m.badge || m.tag) && el('p', { class: 'msg__head' }, [m.badge, m.tag].filter(Boolean).join(' · ')),
-    el('p', { class: 'msg__text' }, m.line),
-    m.quote && el('p', { class: 'msg__quote' }, m.quote),
-    el('span', { class: 'msg__at' }, when(m.at)));
+  const at = m.at ? el('span', { class: 'msg__at' }, when(m.at)) : null;
+  if (m.role === 'user') return el('div', { class: 'msg msg--you' }, head(true), el('p', { class: 'msg__text' }, m.content), at);
+  if (m.role === 'assistant') return el('div', { class: 'msg msg--her' }, head(false), el('p', { class: 'msg__text' }, unTagged(m.content)), at);
+  // your prompt to Claude Code or Codex first, then what she said about it (from before 0.4.4-31: her
+  // line about your prompt, with it clipped under it)
+  const asked = m.asked || (m.kind === 'work' && m.tag && m.quote) || '';
+  return [
+    asked && el('div', { class: 'msg msg--you msg--line' }, head(true, m.to, m.tag), el('p', { class: 'msg__text' }, asked), at),
+    m.line && el('div', { class: `msg msg--her msg--line is-${m.kind || 'info'}` },
+      head(false, null, m.badge, !asked && m.tag),
+      el('p', { class: 'msg__text' }, m.line),
+      m.quote && !asked && el('p', { class: 'msg__quote' }, m.quote),
+      asked ? '' : at),
+  ];
 }
 
 function holo(s, t) {
@@ -362,8 +378,8 @@ function holo(s, t) {
     !all.length && !pending && el('p', { class: 'note log__empty' }, t.holoEmpty),
     all.map(message),
     pending && [
-      el('div', { class: 'msg msg--you' }, el('p', { class: 'msg__text' }, h.turn.text)),
-      el('div', { class: 'msg msg--her is-streaming' }, el('p', { class: 'msg__text' }, unTagged(h.turn.answer) || '…')),
+      el('div', { class: 'msg msg--you' }, head(true), el('p', { class: 'msg__text' }, h.turn.text)),
+      el('div', { class: 'msg msg--her is-streaming' }, head(false), el('p', { class: 'msg__text' }, unTagged(h.turn.answer) || '…')),
     ]);
   log.addEventListener('scroll', () => { stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30; });
   const input = el('input', {

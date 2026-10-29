@@ -707,12 +707,33 @@ body {
   border-color: var(--red);
   color: var(--red);
 }
+/* your prompt to Claude Code or Codex: yours, but not to her */
+.msg--you.msg--line {
+  border-color: rgba(94, 246, 255, 0.45);
+}
 .msg__head {
   margin: 0 0 4px;
   color: var(--text-2);
   font: 600 10px/1.2 var(--font-display);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+/* "> YOU", "< CAPRI": who it's from, in the message's colour */
+.msg__who {
+  color: var(--who);
+  font-family: var(--font-mono);
+}
+.msg {
+  --who: var(--yellow);
+}
+.msg--you {
+  --who: var(--cyan);
+}
+.msg--line.is-error {
+  --who: var(--red);
+}
+.msg--you .msg__head {
+  text-align: right;
 }
 .msg__quote {
   margin: 6px 0 0;

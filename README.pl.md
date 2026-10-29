@@ -29,7 +29,7 @@ krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na 
 
 | Zakładka | Co w niej jest |
 |---|---|
-| **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM**: twój telefon. |
+| **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Najstarsze na górze, najnowsze na dole; `>` oznacza to, co piszesz ty (także twoje polecenia dla Claude albo Codexa, przed jej komentarzem do nich), `<` to, co przyszło od niej. Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM**: twój telefon. |
 | **NETWATCH** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex) i co pokazuje czat. Asystent, którego pilnuje w terminalu, i jego hooki. Gdy w czacie odpowiada Claude Code albo Codex: jego folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka). |
 | **ENGRAMS** | Wasza więź, jej persona, przypomnienia i to, co pamięta, z komputerem, na którym to powiedziałeś. |
 | **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje) i jej rój. |
@@ -56,6 +56,7 @@ To, co powiedziała, HOLO trzyma w `holo.json` (ostatnie 300 kwestii), tylko na 
   pierwsza odpowiedź na niego nie czeka.
 - Nagłówek jej czatu podaje model, który odpowiada, a linijka pod czatem mówi, że odpowiada AI, na twoim PC albo w sieci.
   Mainframe może ukryć jedno i drugie.
+- **Dwuklik na nią** otwiera jej czat, z kursorem od razu w polu do pisania (jeden klik dalej pokazuje, co się dzieje).
 
 ### Jej telefon (Telegram)
 

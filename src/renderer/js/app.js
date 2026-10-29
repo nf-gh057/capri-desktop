@@ -34,6 +34,7 @@ const WATCH_MS = 2000; // how often she checks the pointer still reaches her
 const FOLLOW_AFTER = 2; // checks in a row with the pointer on another screen before she follows it there
 const AWAY_MS = 15 * 60 * 1000; // the pointer still this long: you were away from your PC
 const SNOOZE_MS = 10 * 60 * 1000;
+const DOUBLE_CLICK_MS = 320; // a second click on her within this: her chat
 
 // what you made her, from the config (custom.js)
 const mine = (cfg) => ({ userName: cfg.userName || '', persona: cfg.persona || '', myLines: cfg.myLines || [], memories: cfg.memories || [] });
@@ -83,14 +84,17 @@ async function boot() {
   });
   // What she says in her panel also goes to Mainframe's HOLO, next to her chat: all of it but her chat
   // itself (HOLO has it whole) and her little lines from her animations (idle, or `spont`: the
-  // satellite, being thrown around, her showcase)
+  // satellite, being thrown around, her showcase). Your prompt to Claude (`asked`) goes there even
+  // when something more important kept her from saying anything about it.
   const sayHere = panel.say.bind(panel);
   panel.say = (msg) => {
     const shown = sayHere(msg);
-    if (shown && msg.line && !msg.chat && !msg.spont && msg.kind !== 'idle') {
+    const said = shown && msg.line && !msg.chat && !msg.spont && msg.kind !== 'idle';
+    if (said || msg.asked) {
       host.holoLine({
-        kind: msg.kind, badge: msg.badge || panel.labels.state?.[msg.kind] || '', line: msg.line,
+        kind: msg.kind, badge: msg.badge || panel.labels.state?.[msg.kind] || '', line: said ? msg.line : '',
         tag: typeof msg.tag === 'string' ? msg.tag : '', quote: typeof msg.quote === 'string' ? msg.quote : '',
+        asked: msg.asked || '', to: msg.to || '',
       });
     }
     return shown;
@@ -333,12 +337,23 @@ async function boot() {
   pc.wantsOut = () => wantsOut;
 
   // Clicking her: what's going on, or she offers to talk. Sulking, she turns her back on you.
+  // Double-clicking her: her chat, the cursor already in it (a click waits a moment for the second one).
+  let clickWait = 0;
   capri.onClick = () => {
-    if (panel.visible) panel.hide();
-    else if (!jealousy.onClick()) {
-      brain.status();
-      bond.add('click', 1);
+    if (clickWait) {
+      clearTimeout(clickWait);
+      clickWait = 0;
+      chat.start();
+      return;
     }
+    clickWait = setTimeout(() => {
+      clickWait = 0;
+      if (panel.visible) panel.hide();
+      else if (!jealousy.onClick()) {
+        brain.status();
+        bond.add('click', 1);
+      }
+    }, DOUBLE_CLICK_MS);
   };
 
   // Thrown around (capri.js throwHer): she says how it was. The first time she's shaken (or she
