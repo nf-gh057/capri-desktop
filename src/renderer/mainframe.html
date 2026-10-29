@@ -9,12 +9,22 @@
   <script type="module" src="js/mainframe.js"></script>
 </head>
 <body>
-  <header class="bar">
-    <h1 class="bar__title">MAINFRAME</h1>
-    <span class="bar__version" id="version"></span>
-    <button class="bar__button" id="minimize" type="button" aria-label="Minimize">—</button>
-    <button class="bar__button" id="close" type="button" aria-label="Close">✕</button>
+  <!-- the title bar, like her game's menus: her stats on the left, what runs her on the right -->
+  <header class="top">
+    <div class="stats" id="stats"></div>
+    <h1 class="top__title">MAINFRAME</h1>
+    <div class="build" id="build"></div>
   </header>
-  <main id="sections" class="sections"></main>
+  <div class="frame">
+    <nav class="tabs" id="tabs"></nav>
+    <main class="pane">
+      <div class="pane__head" id="head"></div>
+      <div class="cards" id="sections"></div>
+    </main>
+  </div>
+  <footer class="bottom">
+    <button class="hint" id="help" type="button"><span class="hint__key">?</span><span id="helpLabel"></span></button>
+  </footer>
+  <div class="tip" id="tip" hidden></div>
 </body>
 </html>

@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------
-   Her settings window, "Mainframe": dark, hard-edged, a red line down
-   each section. Same fonts as her overlay (capri.css).
+   Her settings window, "Mainframe": like her game's menus, dark with
+   red lines, cut corners and cyan for what's on. Same fonts as her
+   overlay (capri.css).
 ------------------------------------------------------------------- */
 
 @font-face {
@@ -82,17 +83,22 @@
 }
 
 :root {
-  --bg: #110d1a;
-  --bg-2: #1b1626;
-  --line: #3a3149;
-  --text: oklch(0.97 0.012 350);
-  --text-2: oklch(0.7 0.03 320);
-  --red: oklch(0.6 0.22 15);
-  --yellow: oklch(0.9 0.17 100);
-  --cyan: oklch(0.85 0.14 195);
+  --bg: #0b0a0f;
+  --bg-2: #15121b;
+  --line: #3a2629;
+  --text: oklch(0.95 0.012 20);
+  --text-2: oklch(0.68 0.03 20);
+  --red: #ff5f56;
+  --red-dim: #8c3a37;
+  --red-wash: rgba(255, 95, 86, 0.08);
+  --yellow: #f2e750;
+  --cyan: #5ef6ff;
+  --cyan-wash: rgba(94, 246, 255, 0.07);
 
   --font-display: 'Chakra Petch', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  /* a cut corner, as on her game's boxes */
+  --cut: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
   color-scheme: dark;
 }
 
@@ -106,7 +112,7 @@ html,
 body {
   margin: 0;
   height: 100%;
-  /* only its sections scroll: clip, not hidden, as a hidden overflow can still be scrolled by the page
+  /* only its cards scroll: clip, not hidden, as a hidden overflow can still be scrolled by the page
      itself (bringing a focused box into view) and the whole window then shows nothing */
   overflow: clip;
   background: var(--bg);
@@ -118,74 +124,235 @@ body {
 body {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  /* a faint scanline, and the red glow of her game's menus at the top */
+  background:
+    radial-gradient(120% 60% at 50% -20%, rgba(255, 95, 86, 0.10), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+    var(--bg);
 }
 
-/* the title bar: the window is dragged by it */
-.bar {
+/* the title bar: the window is dragged by it; Windows' own buttons sit over its right end */
+.top {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 14px 12px 12px 22px;
+  gap: 22px;
+  min-height: 58px;
+  padding: 8px 20px 8px 22px;
+  padding-right: 156px; /* Windows' minimize, maximize and close */
+  border-bottom: 1px solid var(--line);
   -webkit-app-region: drag;
 }
-.bar__title {
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat__ring {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--cyan);
+  border-radius: 50%;
+  color: var(--cyan);
+  font: 700 16px/1 var(--font-display);
+}
+.stat__value {
+  color: var(--cyan);
+  font: 700 18px/1 var(--font-display);
+}
+.stat__label {
+  color: var(--text-2);
+  font: 600 11px/1.1 var(--font-display);
+  letter-spacing: 0.1em;
+}
+.top__title {
+  flex: 1;
   margin: 0;
-  flex: 1;
-  font: 700 19px/1 var(--font-display);
-  letter-spacing: 0.08em;
-}
-.bar__version {
-  color: var(--text-2);
-  margin-right: 8px;
-}
-.bar__button {
-  -webkit-app-region: no-drag;
-  width: 28px;
-  height: 24px;
-  border: 0;
-  background: none;
-  color: var(--text-2);
-  font: 14px/1 var(--font-mono);
-  cursor: pointer;
-}
-.bar__button:hover {
-  color: var(--text);
-}
-#close:hover {
+  text-align: center;
   color: var(--red);
+  font: 700 15px/1 var(--font-display);
+  letter-spacing: 0.3em;
+}
+.build {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.build__brain {
+  color: var(--red);
+  font: 600 13px/1.2 var(--font-display);
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.build__version {
+  color: var(--text-2);
+  white-space: nowrap;
 }
 
-.sections {
+.frame {
   flex: 1;
-  overflow-y: auto;
-  padding: 4px 16px 16px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  min-height: 0;
+  display: flex;
+  gap: 22px;
+  padding: 18px 22px 0;
 }
 
-/* one section: a red line down its left, its name in yellow */
-.section {
-  border-left: 3px solid var(--red);
-  padding: 2px 0 14px 14px;
-  margin: 12px 0 18px;
+/* the tabs down the left, like her game's contacts: outlined red, the open one lit */
+.tabs {
+  flex: none;
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
-.section__name {
-  margin: 0 0 10px;
-  color: var(--yellow);
-  font: 600 12px/1 var(--font-mono);
+.tab {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 9px 14px 9px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red-dim);
+  background: transparent;
+  color: var(--red);
+  text-align: left;
+  cursor: pointer;
+  clip-path: var(--cut);
+}
+.tab:hover {
+  border-color: var(--red-dim);
+  background: var(--red-wash);
+}
+.tab.is-on {
+  border-color: var(--red);
+  background: linear-gradient(90deg, rgba(255, 95, 86, 0.28), rgba(255, 95, 86, 0.08));
+}
+.tab__name {
+  font: 700 14px/1.15 var(--font-display);
   letter-spacing: 0.06em;
 }
-.section__name::after {
-  content: ' >';
+.tab__plain {
+  color: var(--text-2);
+  font: 11px/1.3 var(--font-mono);
+}
+.tab.is-on .tab__plain {
+  color: var(--text);
+}
+.tab__tip {
+  display: none;
+  margin-top: 4px;
+  color: var(--yellow);
+  font: 11px/1.35 var(--font-mono);
+}
+.tab:focus-visible {
+  outline: 1px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* the open tab: its name, its plain name, and its cards */
+.pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pane__head {
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.pane__name {
+  margin: 0;
+  color: var(--red);
+  font: 700 22px/1.1 var(--font-display);
+  letter-spacing: 0.08em;
+}
+.pane__plain {
+  margin: 4px 0 0;
+  color: var(--text-2);
+}
+/* what it's for: in a yellow box, like a message in her game */
+.pane__tip {
+  display: none;
+  max-width: 720px;
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--yellow);
+  background: rgba(242, 231, 80, 0.05);
+  color: var(--yellow);
+  line-height: 1.5;
+  clip-path: var(--cut);
+}
+.is-help .pane__tip,
+.is-help .tab__tip {
+  display: block;
+}
+
+.cards {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  align-content: start;
+  align-items: start;
+  gap: 16px;
+  padding: 16px 4px 20px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--red-dim) transparent;
+}
+
+/* one card: a box with a cut corner and its name in red */
+.card {
+  position: relative;
+  padding: 12px 16px 16px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--red-dim);
+  background: var(--bg-2);
+  clip-path: var(--cut);
+}
+.card__name {
+  margin: 0 0 10px;
+  color: var(--red);
+  font: 700 13px/1 var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+/* the line along its cut corner (the border stops where the corner is cut) */
+.card::after,
+.tab::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: -3px;
+  width: 17px;
+  height: 2px;
+  background: var(--line);
+  transform: rotate(45deg);
+}
+.card::after {
+  background: var(--red-dim);
+}
+.tab.is-on::after {
+  background: var(--red);
 }
 .headline {
   margin: 0 0 4px;
-  font: 700 15px/1.25 var(--font-mono);
+  color: var(--cyan);
+  font: 700 15px/1.25 var(--font-display);
   overflow-wrap: anywhere;
 }
 .note {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: var(--text-2);
   overflow-wrap: anywhere;
 }
@@ -194,6 +361,17 @@ body {
 }
 .note.is-error {
   color: var(--red);
+}
+/* her sync, filling up */
+.meter {
+  height: 6px;
+  margin: 0 0 10px;
+  border: 1px solid var(--red-dim);
+}
+.meter span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--yellow));
 }
 
 .row {
@@ -206,7 +384,7 @@ body {
   min-width: 0;
 }
 .row__label {
-  width: 84px;
+  width: 96px;
   flex: none;
   color: var(--text-2);
 }
@@ -218,25 +396,27 @@ body {
 .select,
 .input {
   min-height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--bg-2);
+  border: 1px solid var(--red-dim);
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
   font: 12px/1 var(--font-mono);
 }
 /* long words in some languages: the label goes on two lines rather than getting cut */
 .button {
-  padding: 5px 8px;
+  padding: 5px 10px;
   line-height: 1.25;
   cursor: pointer;
   overflow-wrap: anywhere;
 }
 .button:hover,
 .select:hover {
-  border-color: oklch(0.55 0.04 300);
+  border-color: var(--red);
+  background: var(--red-wash);
 }
 .button.is-on {
   border-color: var(--cyan);
+  background: var(--cyan-wash);
   color: var(--cyan);
 }
 .button.is-danger {
@@ -252,12 +432,16 @@ body {
   appearance: none;
   padding: 0 30px 0 10px;
   /* the arrow, drawn: no image file */
-  background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--red) 50%), linear-gradient(135deg, var(--red) 50%, transparent 50%);
   background-position: right 15px center, right 10px center;
   background-size: 5px 5px;
   background-repeat: no-repeat;
   cursor: pointer;
   text-overflow: ellipsis;
+}
+.select:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .select option {
   background: var(--bg-2);
@@ -273,7 +457,7 @@ body {
   outline: 1px solid var(--cyan);
   outline-offset: 2px;
 }
-/* one reminder she keeps, with its ✕ */
+/* one reminder or memory she keeps, with its ✕ */
 .reminder {
   overflow-wrap: anywhere;
 }
@@ -291,20 +475,12 @@ body {
   display: block;
   width: 190px;
   margin: 0 auto 12px;
-  border-radius: 4px;
   image-rendering: pixelated;
-}
-/* her chat on Telegram, under her messages there */
-.subhead {
-  margin: 16px 0 8px;
-  color: var(--text-2);
-  font: 700 12px/1.2 var(--font-mono);
-  letter-spacing: 0.08em;
 }
 
 /* a checkbox: a square that fills with cyan */
 .check {
-  position: relative; /* its hidden box stays in it, scrolled with its section */
+  position: relative; /* its hidden box stays in it, scrolled with its card */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -321,9 +497,12 @@ body {
   flex: none;
   width: 14px;
   height: 14px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--red-dim);
   display: grid;
   place-items: center;
+}
+.check input:checked + span {
+  border-color: var(--cyan);
 }
 .check input:checked + span::after {
   content: '';
@@ -344,14 +523,77 @@ body {
   gap: 8px;
   margin-top: 8px;
 }
-
 .footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin: 4px 0 4px;
+  margin-top: 16px;
 }
 .row .trio,
 .row .split {
   margin-top: 0;
+}
+
+/* the bottom line, like her game's key hints: "?" at the right */
+.bottom {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 22px 12px;
+  border-top: 1px solid var(--line);
+}
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 600 12px/1 var(--font-display);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.hint__key {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cyan);
+  color: var(--bg);
+  font: 700 13px/1 var(--font-display);
+}
+.hint:hover,
+.is-help .hint {
+  color: var(--cyan);
+}
+
+/* what a tab is for, by the pointer */
+.tip {
+  position: fixed;
+  z-index: 10;
+  max-width: 320px;
+  padding: 8px 12px;
+  border: 1px solid var(--yellow);
+  background: #13120a;
+  color: var(--yellow);
+  line-height: 1.45;
+  pointer-events: none;
+  clip-path: var(--cut);
+}
+.tip[hidden] {
+  display: none;
+}
+
+/* narrow: the tabs shrink to their names */
+@media (max-width: 820px) {
+  .tabs {
+    width: 190px;
+  }
+  .tab__plain {
+    display: none;
+  }
+  .stat__label {
+    display: none;
+  }
 }

@@ -12,8 +12,9 @@ glitchuje, komentuje każdą akcję, przychodzi po ciebie, kiedy trzeba twojej z
 > - **Codex jako jej mózg**: jej czat może działać na Codexie (twój plan ChatGPT) przez jeden `codex app-server`, który
 >   chodzi w tle, a jej słowa pojawiają się na bieżąco. Jak długo Codex myśli (low, medium, high), wybierasz w Mainframe.
 >   Kiedy odpowiada Claude Code albo Codex, to ty decydujesz, czy jej własne moce (aplikacje, strony, muzyka, pliki) są włączone.
-> - **Mainframe**, jej okno ustawień: wszystko z jej menu na jednej stronie, plus to, co ustawia się tylko tam (telefon,
->   co pokazuje jej czat). Prawy klik na niej › **Ustawienia…**.
+> - **Mainframe**, jej okno ustawień: wszystko z jej menu plus to, co ustawia się tylko tam (telefon, co pokazuje jej
+>   czat), na zakładkach, w oknie jak menu z gry, któremu zmienisz rozmiar albo je zmaksymalizujesz. Prawy klik na niej
+>   › **Ustawienia…**.
 > - **Wiadomości na telefon** przez twojego własnego bota na Telegramie: kiedy Claude albo Codex cię potrzebuje, kończy
 >   albo się wysypuje, a ciebie nie ma przy komputerze, i jej wieczorny raport. Patrz „Co opuszcza twój komputer”.
 > - **Rozmowa przez Telegram**: ta sama rozmowa i pamięć z telefonu, odblokowana kodem z aplikacji uwierzytelniającej
@@ -26,7 +27,7 @@ glitchuje, komentuje każdą akcję, przychodzi po ciebie, kiedy trzeba twojej z
 > - **Instalator w jednej linijce** dla Windows, który dokłada też to, czego brakuje (łącznie z wingetem): patrz „Instalacja”.
 > - **Wersje** `x.y.z-n`: wersja mochiiwuff, a po myślniku numer commitu tego forka na niej (`0.4.4-2`).
 > - **Sama się aktualizuje**: zainstalowana skryptem szuka nowej wersji na GitHubie, mówi ci o niej i aktualizuje się
->   po twoim kliknięciu (Mainframe › Aktualizacje) albo, jeśli tak ustawisz, kiedy nie ma cię przy komputerze.
+>   po twoim kliknięciu (Mainframe › RIPPERDOC) albo, jeśli tak ustawisz, kiedy nie ma cię przy komputerze.
 
 ![Capri mówi ci, że Claude skończył](docs/done.png)
 
@@ -330,7 +331,7 @@ Dokłada to, czego potrzebuje, a potem samą Capri, pytając o części opcjonal
 - **Tailscale**, jeśli chcesz (domyślnie nie): to, co łączy ją na wszystkich twoich komputerach, do roju.
 - **Capri** z tego forka w `%LOCALAPPDATA%\Capri\capri-desktop`, ze skrótem w menu Start i na pulpicie, a potem ją uruchamia.
 
-Uruchom go jeszcze raz, żeby ją zaktualizować, albo zostaw to jej: Mainframe › **Aktualizacje** pokazuje nową wersję
+Uruchom go jeszcze raz, żeby ją zaktualizować, albo zostaw to jej: Mainframe › **RIPPERDOC** pokazuje nową wersję
 z GitHuba, co się zmieniło, i **Zaktualizuj i uruchom ponownie** (sprawdza minutę po starcie i co 6 godzin, mówi ci raz).
 Tylko przewinięcie jej gałęzi do przodu: gdy masz zmiany w jej folderze albo commity, których GitHub nie ma, zostawia to
 tobie. Pakiety instaluje od nowa tylko wtedy, gdy się zmieniły, przez małego pomocnika, kiedy jest już zamknięta (jej
@@ -348,6 +349,24 @@ Potem:
 2. Zamknij Claude Code całkowicie i otwórz go znowu (hooki czyta na starcie sesji). Gdy tylko Claude coś zrobi, powie ci
    **„Widzę Claude'a!”**: po tym poznasz, że działa.
 3. Cała reszta jest w **Mainframe** (prawy klik na niej › **Ustawienia…**): jej AI, Codex, telefon, to, co pokazuje jej czat.
+
+   Zakładki po lewej mają nazwy z jej świata, a pod każdą zwykłą nazwę; po najechaniu na zakładkę widać, do czego
+   służy, a **?** w prawym dolnym rogu (albo F1) pokazuje to przy wszystkich:
+
+   | Zakładka | Co w niej jest |
+   |---|---|
+   | **NEURAL CORE** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex), co pokazuje czat |
+   | **BLACKWALL GATEWAY** | Claude Code albo Codex w czacie: folder, uprawnienia, jak długo myśli Codex, jej moce z agentem |
+   | **ENGRAMS** | Wasza więź, jej persona, przypomnienia, co pamięta (i z którego komputera) |
+   | **CYBERWARE** | Jej rozmiar, gdzie odpoczywa, ekran, skrót do chowania i jak się zachowuje |
+   | **NETWATCH** | Asystent, którego pilnuje w terminalu, i jego hooki |
+   | **HOLO** | Jej wiadomości i rozmowa na telefonie (Telegram) |
+   | **SUBNET** | Jej rój: jedna Capri na wszystkich twoich komputerach (Tailscale) |
+   | **RIPPERDOC** | Jej aktualizacje |
+   | **CYBERDECK** | Język, animacje, sposób rysowania, menu, start z Windows, pomoc, wyjście |
+
+   U góry, jak poziom i street cred w grze: jej poziom, synchronizacja z tobą i dni razem; po prawej, kto odpowiada
+   w jej czacie i jej wersja. Okno pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę.
 
 Instalator oryginału (`Capri-Setup-x.y.z.exe`, w [wydaniach mochiiwuff](https://github.com/mochiiwuff/capri-desktop/releases/latest))
 instaluje Capri od mochiiwuff, bez dodatków tego forka. Nie jest podpisany, więc SmartScreen może powiedzieć „System
@@ -459,7 +478,7 @@ nazwane tak (`.mp3`, `.wav`, `.ogg` albo `.m4a`):
 ## FAQ
 
 - **Mac, Linux?** Instalatora jeszcze nie ma, ale możesz ją uruchomić ze źródeł (patrz wyżej).
-- **Telefon, Android?** Nie, potrzebuje pulpitu. Ale może pisać do ciebie na telefon przez Telegram (Mainframe › Telefon).
+- **Telefon, Android?** Nie, potrzebuje pulpitu. Ale może pisać do ciebie na telefon przez Telegram (Mainframe › HOLO).
 - **Inni asystenci?** Claude Code, Codex i Antigravity: jej menu › **Obserwuj**. Cursor, Windsurf i Gemini CLI: jeszcze nie.
 - **Ollama?** Na dwa sposoby. Claude Code działający na lokalnym modelu przez Ollamę (`ollama launch claude`): widzi go jak
   każdego innego Claude Code, tylko wolniejszego, a jej pasek odlicza sekundy, kiedy myśli. I sama może rozmawiać z tobą
@@ -523,7 +542,7 @@ Jedna Capri na wszystkich twoich komputerach: w domu, w pracy, na laptopie w sie
 [Tailscale](https://tailscale.com), prywatną sieć (WireGuard), w której każde twoje urządzenie ma jeden adres
 (`100.x.y.z`) niezależnie od sieci i samo przechodzi przez domowe routery i sieci komórkowe. Zainstaluj go i zaloguj się
 na każdym komputerze tym samym kontem (do użytku prywatnego za darmo; `install.ps1 -Tailscale` go instaluje). Potem
-w Mainframe › **Rój** włącz go na każdym komputerze: pod **Twoje urządzenia z Capri** każdy pokazuje pozostałe, które
+w Mainframe › **SUBNET** włącz go na każdym komputerze: pod **Twoje urządzenia z Capri** każdy pokazuje pozostałe, które
 znajdzie w twojej sieci Tailscale, a **Dołącz** je łączy, bez przepisywania czegokolwiek (Tailscale poświadcza, że oba
 są twoje: to samo konto; urządzenie z innego konta zostaje tam odrzucone). Dla urządzenia z innego konta: na jednym
 **Dodaj komputer**, a linijkę, którą pokaże, wklej w **Dołącz** na drugim (działa raz, przez 10 minut). Komputer,
@@ -560,11 +579,11 @@ to, co zrobił on, a Capri o tym mówi. Przypomnienie odzywa się raz, na komput
 To, jaka jest i co pamięta, trafia też do Claude Code albo Codexa, kiedy odpowiadają w jej czacie, na każdym komputerze.
 Dlatego gdy inny komputer zmieni jej personę albo wspomnienia, Capri mówi ci o tym na komputerze, przy którym jesteś
 (albo gdy następnym razem do któregoś wrócisz), pokazuje, co się zmieniło, i daje **Cofnij**, które przywraca poprzedni
-stan na wszystkich. Mainframe › Capri pokazuje, co pamięta i na którym komputerze to powiedziałeś; każde wspomnienie
+stan na wszystkich. Mainframe › ENGRAMS pokazuje, co pamięta i na którym komputerze to powiedziałeś; każde wspomnienie
 możesz usunąć osobno.
 
 Telefon też: sparuj bota Telegrama na jednym komputerze, a pozostałe wysyłają swoje wiadomości przez niego (Mainframe
-› Telefon na nich mówi, który komputer go obsługuje). „Nie ma cię” znaczy wtedy: nie ma cię przy żadnym z nich; żadnej
+› HOLO na nich mówi, który komputer go obsługuje). „Nie ma cię” znaczy wtedy: nie ma cię przy żadnym z nich; żadnej
 wiadomości, póki siedzisz przy którymkolwiek, a rozmowa przez Telegram blokuje się, gdy wrócisz do któregokolwiek.
 Dwa komputery sparowane z tym samym botem: czyta go jeden (bota da się czytać tylko z jednego miejsca), drugi przejmuje
 go, gdy tamtego zabraknie.

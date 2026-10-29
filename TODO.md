@@ -59,12 +59,16 @@ Wspólne dla wszystkich etapów:
 - Rozwinięcie czatu w stronę prawdziwej rozmowy: Capri sama wtrąca komentarze do twoich poleceń i do pracy Claude/Codexa
   także później, nie tylko zaraz po poleceniu (np. gdy agent kończy etap, długo coś robi albo coś się nie udaje),
   wraca do wcześniejszych wątków i zagaduje sama, bez czekania na twoją wiadomość.
-- Przerobienie okna Mainframe.
+- [x] Przerobienie okna Mainframe (zrobione w 0.4.4-23: zakładki w stylu menu z gry, okno ze zmianą rozmiaru).
 - Ograniczenie menu pod prawym przyciskiem myszy.
 - Głos klonowany z postaci z anime albo z własnego nagrania.
 - Zróżnicowane komentarze Capri do podejmowanych akcji (mniej powtórzeń tych samych tekstów).
 - Równoległe monitorowanie różnych AI naraz.
 - Komunikacja z Hermesem.
+- Pomysł: Erebus. Gdy działa brama przez Blackwall (Claude Code / Codex odpowiada w czacie), Capri ma małą szansę
+  chwilowo zmienić się w Erebusa, rogue AI z dodatku „Widmo wolności” (Phantom Liberty). Wtedy glitch w stylu
+  Blackwalla (czerwień, zakłócenia obrazu) i wypowiedzi groźne, destrukcyjne, jak broń Erebusa w rękach protagonisty
+  w grze. Po powrocie Capri komentuje to w swoim stylu: „wykryto wrogie AI”, „aktywacja LODU” (ICE), itd.
 - Do decyzji: telefon parowany raz dla całego roju. Komputery same przekazują sobie token bota i sekret TOTP
   (zaszyfrowanym kanałem roju, tylko między twoimi urządzeniami, na każdym zapisane kontem Windows), więc każdy
   może przejąć telefon i działa jeden kod w aplikacji uwierzytelniającej. Za: parowanie raz, telefon działa, nawet

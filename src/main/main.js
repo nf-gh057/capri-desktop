@@ -398,10 +398,11 @@ function updateConfig(patch) {
 }
 
 // Her menu's words in her language, with the assistant she watches named for Claude Code.
+// (what names both of them, as her chat's agents, stays as it is)
 function trayLabels(cfg = config.load()) {
   const watched = activeAssistant();
   return Object.fromEntries(Object.entries(TRAY[resolveLang(cfg.lang)]).map(([key, value]) =>
-    [key, typeof value === 'string' && watched.id !== 'claude' ? value.replaceAll('Claude Code', watched.name) : value]));
+    [key, typeof value === 'string' && watched.id !== 'claude' && key !== 'gatewayNone' ? value.replaceAll('Claude Code', watched.name) : value]));
 }
 
 // a screen picked in Mainframe: she goes there herself, as from her menu
@@ -436,6 +437,13 @@ function syncLabel(cfg, t) {
   const xp = cfg.bond?.xp || 0;
   const stage = [0, 100, 300, 550, 850].filter((at) => xp >= at).length - 1;
   return t.sync(Math.min(100, Math.floor(xp / 10)), t.stages[stage]);
+}
+
+// The same, for the top of Mainframe: her level (stage), her sync and your days together
+function bondStats(cfg, t) {
+  const { xp = 0, days = 1, streak = 1 } = cfg.bond || {};
+  const stage = [0, 100, 300, 550, 850].filter((at) => xp >= at).length - 1;
+  return { level: stage + 1, stage: t.stages[stage], percent: Math.min(100, Math.floor(xp / 10)), days, together: t.bondDays(days, streak) };
 }
 
 // The reminders she keeps (reminders.js), soonest first: { id, label } with when, as she'd say it
@@ -669,6 +677,8 @@ function mainframeState() {
     version: app.getVersion(),
     lang: resolveLang(cfg.lang),
     t: Object.fromEntries(Object.entries(t).filter(([, v]) => typeof v === 'string')),
+    tabs: t.tabs,
+    stats: bondStats(cfg, t),
     brain: {
       provider: cfg.provider,
       providers: Object.entries(llm.PROVIDERS).map(([id, p]) => ({ id, label: p.label })),
@@ -2348,7 +2358,11 @@ function main() {
     serveProtocol();
     registerIpc();
     createOverlay();
-    mainframe = createMainframe({ root: ROOT, display: targetDisplay, state: mainframeState, act: mainframeAct });
+    mainframe = createMainframe({
+      root: ROOT, display: targetDisplay, state: mainframeState, act: mainframeAct,
+      // where you left it, its size and maximized or not: on this PC only
+      bounds: { get: () => config.load().mainframeBounds, set: (mainframeBounds) => config.save({ mainframeBounds }) },
+    });
     createTray();
     windowWatch = startWindowWatch({
       overlay,
