@@ -73,7 +73,5 @@ Wspólne dla wszystkich etapów:
   może przejąć telefon i działa jeden kod w aplikacji uwierzytelniającej. Za: parowanie raz, telefon działa, nawet
   gdy komputer z botem jest wyłączony. Przeciw: token trafia na każdy komputer roju, więc przejęcie któregokolwiek
   daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
-- Animacje: Capri trzyma się szczytu okna, niby wisząc przy ścianie (rękami za górną krawędź, ciało zwisa wzdłuż
-  boku okna). Prace nad pozami na gałęzi `anim/poses`.
 - Animacja (gałąź `anim/poses`): Capri w trybie mini co jakiś czas otwiera jedno oko i spod przymrużonej powieki
   obserwuje, co się aktualnie dzieje na ekranie.
