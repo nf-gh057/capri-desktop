@@ -1,33 +1,303 @@
 **English** · [Polski](README.pl.md)
 
+# Capri: the nf-gh057 fork
+
+This is a fork of [mochiiwuff/capri-desktop](https://github.com/mochiiwuff/capri-desktop), kept up to date with it.
+First on this page: what the fork adds and how to install it. Below that, the original project's README, unchanged:
+everything it describes is in this fork too.
+
+## What this fork adds
+
+- **Mainframe**: her window, styled like her game's menus, with her chat and all her settings.
+- **Her chat** answered by Claude Code or Codex, quickly, and kept going without the network.
+- **Her phone**: messages and her chat through a Telegram bot of your own.
+- **Her swarm**: one Capri on all your PCs.
+- **Polish**: she speaks it, and understands it in her chat.
+- **A one-line installer** for Windows, and **her own updates** from GitHub.
+- Smaller things, listed further down.
+
+### Mainframe
+
+Right-click her › **Settings…**. A window like her game's menus: you can resize it, maximize it and snap it, and it
+remembers where you left it, its size and the tab you were on.
+
+- **At the top**, like a game's level and street cred: her level, her sync with you and your days together. In the
+  middle are the tabs. At the right, like a game's health and money: the model answering her chat, and the AI she watches
+  (IDLE when she only keeps you company).
+- **Bottom left**: MAINFRAME and her version. **Bottom right**: **?** (or F1) shows every tab and what it's for. A hover
+  on a tab says the same.
+
+| Tab | What's in it |
+|---|---|
+| **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM**: your phone. |
+| **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows. The assistant she watches in your terminal, and its hooks. With Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**, her own powers with it (apps, sites, music). |
+| **ENGRAMS** | Your bond, her persona, her reminders, and what she remembers, with the PC it was said on. |
+| **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts) and her swarm. |
+| **CYBERDECK** | Language, animations, display, menu, starting with Windows, her updates, help, quit. |
+
+What she said for HOLO is kept in `holo.json` (the last 300 lines), on this PC only.
+
+### Her chat: Claude Code, Codex, and without the network
+
+- **Claude Code**: one Claude Code runs while you chat, closed after 15 minutes unused. You don't wait for a new one with
+  every message. Her words show up as they're written, and her answer is there as soon as it's done: about a second or
+  two for a short one.
+- **Codex**, signed in with your ChatGPT plan: one `codex app-server` runs while you chat. It starts when her chat opens
+  and closes after 15 minutes unused, and her words show up as they come. It works in the folder you pick, read-only or
+  allowed to edit (`workspace-write`), and remembers the conversation across restarts. **Codex reasoning** (low,
+  medium, high) trades speed for thought: low answers in a couple of seconds.
+- **Blackwall Gateway** (Mainframe › NETWATCH): with Claude Code or Codex answering, it decides whether she still opens
+  apps, sites, music and files herself. When it's off, the agent does things its own way. Reminders, your name and
+  "remember this" work either way.
+- **No network?** With her brain online (Codex, Claude Code, a service with a key, an Ollama cloud model), losing the
+  network would leave her without a thought. With **[Ollama](https://ollama.com) and a model on your PC** (gemma3 is a
+  good pick; the installer puts it in), a model on your PC answers in her place, as her. It can do less (no Codex or
+  Claude Code tools, a smaller model), and a line under her answer says so. It's loaded as soon as the network goes, so
+  her first answer doesn't wait for it.
+- The top of her chat names the model answering, and the line under it says an AI answers, on your PC or online.
+  Mainframe can hide either one.
+
+### Her phone (Telegram)
+
+- **Messages to your phone** through a Telegram bot of your own, when you're away from the PC: when Claude or Codex
+  needs you, finishes or crashes, and her evening report.
+- **Her chat on Telegram**: the same conversation and memory, from your phone. It's unlocked with the code from your
+  authenticator app (`/unlock 123456`). From there she has no powers, and Claude Code or Codex only read.
+
+Her messages to your phone are off until you make a Telegram bot of your own (at @BotFather) and pair it in Mainframe ›
+HOLO › TELEGRAM, with a code only that window shows. After that, while you're away from the PC (no key or mouse for a
+few minutes, or the screen locked), she sends that one chat:
+
+- her line;
+- the project's name;
+- if you pick it, a snippet of the prompt or answer: 400 characters at most, with anything that looks like a key blanked
+  out.
+
+It goes through Telegram's servers, and bot chats aren't end-to-end encrypted. She never sends your files. The bot token
+is kept encrypted with your Windows account, and the only thing she ever reads from the bot is that pairing code.
+
+Her chat on Telegram is off until you turn it on in Mainframe. That takes the code from an authenticator app (Google or
+Microsoft Authenticator, Aegis, 2FAS…). Its secret is shown there once, as a QR code. It's kept encrypted like the token,
+and is only saved once the app's first code checks out.
+
+- The bot then listens to your paired chat alone. Anyone else doesn't even get an answer.
+- Nothing you send reaches her until `/unlock 123456`. A code works once, and the message holding it is deleted.
+- It stays unlocked for 1, 4 or 8 hours. It locks again sooner when you're back at the PC, after an hour of silence, with
+  `/lock`, or from Mainframe.
+- Three wrong codes in a row turn it off until you turn it back on at the PC.
+- From there she talks without her powers: nothing is opened, played or reminded. Claude Code or Codex only read,
+  whatever Mainframe allows on the desktop: Codex in its read-only sandbox, Claude Code with its reading tools alone (no
+  shell, edits, web or MCP servers).
+- Your messages and her answers go through Telegram's servers, and into the same memory as her chat at the PC.
+- Buttons under her messages ("remind me in 30 min", "quiet for an hour") need no code: they only change what she sends
+  you.
+
+### Her swarm
+
+One Capri on all your PCs: at home, at work, a laptop on mobile data. They link through
+[Tailscale](https://tailscale.com), a private network (WireGuard). Each of your devices keeps one address (`100.x.y.z`)
+whatever network it's on, and gets through home routers and mobile networks by itself.
+
+**Setting it up**
+
+1. Install Tailscale and sign in on each PC with the same account. It's free for personal use, and
+   `install.ps1 -Tailscale` puts it in.
+2. In Mainframe › **RELIC**, turn the swarm on on each PC.
+3. Under **Your devices with Capri**, each PC lists the others it finds on your Tailscale network. **Join** links them,
+   with nothing to copy over: Tailscale vouches that both are yours (the same account), and a device on another account
+   is refused there.
+4. For a device on another account: click **Add a PC** on one, and paste the line it shows into **Join** on the other. It
+   works once, for 10 minutes.
+
+A PC that joins learns the rest of the swarm from the one it joined. Installed with the script, the swarm keeps itself up
+to date: when one PC runs a newer Capri, the others look on GitHub and update as soon as you're not at them. That's never
+in the middle of an answer (**Update along with the swarm**, on by default).
+
+**Which PC she's on**
+
+Every few seconds each PC tells the others whether its screen is locked, and how long since a key or the mouse. She's on
+the unlocked one you used last, and put away into her biochip on the others. Another PC must be clearly fresher for her to
+hop. A PC that stops answering for a dozen seconds counts as one you're not at. A PC alone, with no network, has her to
+itself.
+
+**Security**
+
+- Each Capri has a key of her own. Every pair of PCs shares a key worked out from theirs, which is never sent.
+- Everything between two PCs is sealed with that key (AES-256-GCM, with a time and a one-time number that can't be played
+  again), on top of Tailscale's own encryption.
+- She listens on her Tailscale address only (and `127.0.0.1`), never on your local network or the internet, and only to
+  PCs paired with her.
+- PCs send their state and what their coding agents are doing, never something to run.
+
+**What reaches the PC you're at**
+
+What Claude Code or Codex does on a PC you're not at reaches the one you're at. She tells you there, with the PC's name
+next to the project ("project-x · laptop"). The PC you left stays quiet. Only what her brain reads goes across: the event,
+its texts clipped, and a tool's inputs one level deep. A tool's output or a file's contents never go.
+
+**One mind on all of them**
+
+These are the same on every PC: your chats with her, **Forget our conversations**, your name, how you want her, what you
+asked her to remember, her reminders, and how close she is to you. Her screen, size, hooks and AI stay each PC's own.
+
+- Each change is written down with when and on which PC.
+- Two PCs swap only what the other hasn't seen yet. The newer change wins, and what was removed stays removed.
+- A PC without the network goes on alone, then catches up as soon as it's back, and she says so.
+- A reminder goes off on the PC you're at, once.
+
+What she is and what she remembers also reach Claude Code or Codex when they answer her chat. So when another PC changes
+her persona or her memories, she tells you on the PC you're at, with what changed and **Undo**. Undo puts it back as it
+was on all of them.
+
+**Your phone**
+
+Pair the Telegram bot on one PC, and the others send their messages through it. "Away" then means away from all of them,
+and her chat on Telegram locks when you're back at any of them.
+
+### Smaller things
+
+- **Polish**: she speaks it, and understands it in her chat (reminders, music, files…). `npm run demo -- pl` too.
+- **Her shortcut** (Ctrl+Alt+C) can be changed: another one, one you press, or none. On a Polish keyboard Ctrl+Alt+C is
+  AltGr+C ("ć").
+- **Several screens**: with *Follow me across screens* off, she now and then teleports to another screen while she
+  wanders.
+- **The window you work in**: she doesn't float or idle in front of it, and gets out of the way after a moment. Sitting
+  on its edge or taking it over is still fine.
+- **Where's Claude?** She finds its window maximized too, and still knows it after a restart of hers.
+- **Her mission report** goes to your phone when you're away and her bot is paired.
+- **Her menu** has a **Compact** mode (what she does, her screen, settings, quit).
+- **Her bridge** only takes events that carry its token, a new one each time she starts, kept in
+  `~/.capri/bridge-token`. They must be addressed to `127.0.0.1` or `localhost`, so web pages can't puppet her.
+- **When something does nothing**: what went wrong is in `capri.log`, next to her settings (`%APPDATA%\capri-desktop`;
+  the one before it is in `capri.log.old`).
+
+## Install this fork
+
+### Windows, in one line
+
+In PowerShell (Start › type `powershell` › Enter):
+
+```powershell
+irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1 | iex
+```
+
+It puts in what she needs, then Capri herself, and asks about the optional parts:
+
+- **winget**, Windows' package manager, where it's missing (Windows LTSC, Server, Sandbox). It comes through Microsoft's
+  own WinGet module, or else straight from its release on GitHub.
+- **Git** and **Node.js** 20 or newer, if they aren't there. Node.js may ask for admin rights while it installs.
+- **Ollama with a model** (gemma3, about 5 GB in all; yes by default): her brain on your PC, and what keeps her thinking
+  without the network.
+- **Codex** or **Claude Code**, if you want them (no by default): the coding assistants she watches.
+- **Tailscale**, if you want it (no by default): what links her on all your PCs, for her swarm.
+- **Capri** from this fork, in `%LOCALAPPDATA%\Capri\capri-desktop`, with a Start menu and desktop shortcut. Then she
+  starts.
+
+To run it with options:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex
+```
+
+| Option | What it does |
+|---|---|
+| `-Yes` | No questions |
+| `-NoOllama` | Skips Ollama |
+| `-Model llama3.2` | Another model for Ollama |
+| `-Claude` | Puts in Claude Code |
+| `-Tailscale` | Puts in Tailscale |
+| `-Dir <folder>` | Installs her somewhere else |
+| `-NoShortcut` | No shortcuts |
+| `-NoLaunch` | Doesn't start her at the end |
+
+In a clone, double-click **`install.cmd`** instead: it installs that clone in place. `install.cmd -Uninstall` takes her
+hooks out of Claude Code and Codex, and removes her shortcuts and folder. Git, Node.js and Ollama stay.
+
+### Then
+
+1. Capri shows up and introduces herself. Click **Plug me in**: that connects her to Claude Code. For Codex instead,
+   right-click her › **Watch** › **Codex**.
+2. Close Claude Code completely and open it again (it reads its hooks when a session starts). As soon as Claude does
+   something, she tells you **"I can see Claude!"**: that's how you know it worked.
+3. Everything else is in **Mainframe** (right-click her › **Settings…**).
+
+### Updates
+
+Run the installer again, or let her do it. Mainframe › **CYBERDECK** shows a new version on GitHub, what changed, and
+**Update and restart**. She looks a minute after starting and every 6 hours, and tells you once.
+
+- She only fast-forwards her branch. If there are changes of yours in her folder, or commits GitHub doesn't have, she
+  leaves the update to you.
+- Her packages are installed again only when they changed, by a small helper once she's closed (her own Electron is among
+  them). If that fails, she goes back to the version before.
+- You can also let her update herself once you've been away from the PC for a quarter of an hour.
+
+The original's installer (`Capri-Setup-x.y.z.exe`, on [mochiiwuff's releases](https://github.com/mochiiwuff/capri-desktop/releases/latest))
+installs mochiiwuff's Capri, without this fork's additions.
+
+### From the source
+
+```bash
+git clone https://github.com/nf-gh057/capri-desktop.git
+cd capri-desktop
+npm install
+npm start
+```
+
+## For developers
+
+**Versions**: `x.y.z-n` is mochiiwuff's version `x.y.z` and this fork's `n`th commit on top of it. `n` goes back to 1
+when mochiiwuff's version goes up. Run `npm run bump` before each commit to set the next one: it reads mochiiwuff's
+version from the `upstream` remote.
+
+What this fork adds to the code:
+
+```
+install.ps1 / .cmd       the Windows installer: winget, Git, Node.js, Ollama, Codex or Claude Code, Capri, shortcuts
+scripts/version.js       this fork's version: mochiiwuff's, then our commit on top of it (npm run bump)
+scripts/update-finish.js her packages after an update, once she's closed, and her started again (back if it fails)
+src/main/
+  mainframe.js           her window, Mainframe
+  phone.js               her messages to your phone, through your own Telegram bot, and her chat there
+  totp.js                the code from your authenticator app that unlocks her chat on Telegram
+  swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
+  mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)
+  update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
+src/renderer/js/
+  mainframe.js           Mainframe's page: its tabs, HOLO
+```
+
+Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`.
+
+`npm run dev` turns on her debug routes:
+
+- `/debug/mainframe` opens Mainframe, acts in it and captures it.
+- `/debug/swarm` makes her PC locked or idle as you say. `{ "island": true }` makes it act as if it had no network, until
+  `false`.
+
+Environment variables:
+
+| Variable | What it does |
+|---|---|
+| `CAPRI_OFFLINE=1` | She acts as if the network were gone |
+| `CAPRI_SCREENS=2` | She cuts your screen in two |
+| `CAPRI_TELEGRAM_API` | Points her phone at a Telegram of your own |
+| `CAPRI_PROFILE=b` | A second Capri on the same PC, for her swarm, with settings of its own; give it its own `CAPRI_PORT`, `CAPRI_SWARM_PORT` and `CAPRI_TOKEN_FILE` |
+| `CAPRI_UPDATE_DEV=1` | In `--dev` (a developer's clone) she only tells of a new version; this lets her update that clone too |
+
+Capri was made by [mochiiwuff](https://github.com/mochiiwuff/capri-desktop). This fork
+([nf-gh057](https://github.com/nf-gh057/capri-desktop)) adds what's described above, under the same license.
+
+---
+
+> **Below: the original project's README** ([mochiiwuff/capri-desktop](https://github.com/mochiiwuff/capri-desktop)),
+> unchanged. Its installer and links lead to the original.
+
 # Capri
 
 Capri, the *Project Capricorn* construct from Cyberpunk: Edgerunners season 2, lives on your desktop
 and tells you what your coding AI is up to: **Claude Code**, **Codex** or **Antigravity**. She teleports,
 glitches, comments on every action, comes to find you when it needs your permission, and loses it when the job is done.
-
-> **This is a fork** of [mochiiwuff/capri-desktop](https://github.com/mochiiwuff/capri-desktop), kept up to date with
-> it. On top of everything below, it adds:
->
-> - **Codex as her brain**: her chat can run on Codex (your ChatGPT plan) through one `codex app-server` that stays
->   up, her words streaming in as they come, with how long Codex thinks (low, medium, high) picked in Mainframe.
->   With Claude Code or Codex answering, her own powers (apps, sites, music, files) are yours to turn on or off.
-> - **Mainframe**, her window like her game's menus, to resize or maximize: her chat with everything else she told you
->   (HOLO), everything in her menu, and what's only set up there (her phone, what her chat shows). Right-click her ›
->   **Settings…**.
-> - **Messages to your phone** through a Telegram bot of your own: when Claude or Codex needs you, finishes or crashes
->   while you're away from the PC, and her evening report. See "What leaves your machine".
-> - **Her chat on Telegram**: the same conversation and memory from your phone, unlocked with the code from your
->   authenticator app (`/unlock 123456`), without her powers, with Claude Code or Codex only reading.
-> - **Her swarm**: one Capri on all your PCs, wherever they are (linked through Tailscale): she's on the one you're at,
->   put away on the others; a locked screen or a PC out of reach means you're not there. See "Her swarm" below.
-> - **A brain without the network**: with Ollama and a model on your PC, she keeps thinking when the network goes
->   (see "No network?" below).
-> - **Polish**: she speaks it, and understands it in her chat (reminders, music, files...).
-> - **A one-line installer** for Windows that also puts in what's missing (winget included): see "Install".
-> - **Versions** `x.y.z-n`: mochiiwuff's version, then which of this fork's commits on top of it (`0.4.4-2`).
-> - **Her own updates**: installed with the script, she looks for a new version on GitHub, tells you, and updates
->   herself on your click (Mainframe › CYBERDECK), or while you're away if you say so.
 
 ![Capri telling you Claude is done](docs/done.png)
 
@@ -136,8 +406,7 @@ or glances back at you. When she's done, the wire reels back into her finger and
 ![The strike, and the hold while she explains](docs/point.png)
 
 - **Where's my icon?** She goes down by the clock and points at her tray icon, or at the **^** when Windows hides it.
-- **Where's Claude?** She points at Claude's window: the one you typed your last prompt in (maximized, its title bar;
-  she still knows it after a restart of hers, as long as it's open).
+- **Where's Claude?** She points at Claude's window: the one you typed your last prompt in.
 - **Claude's folder**: she opens `~/.claude` in Explorer with `settings.json` selected, points at the window, and
   explains what her hook in there is and how to take it out.
 - **Plug me into Claude**: her hooks in one click. It's also her welcome the first time she starts. Next to it,
@@ -185,28 +454,8 @@ The first time, she sets it up with you, with buttons, no terminal:
 Her menu › **AI model** lets you switch later: **Set it up with her…**, or straight to a service and a model, LM Studio
 (`:1234`), llama.cpp or vLLM (`:8080`), any OpenAI-compatible server (**API key or address…**), or **Claude Code**
 itself: your messages go to `claude -p` in the folder you pick, continuing one conversation, and her hooks show what it
-does. One Claude Code runs while you chat (closed after 15 minutes unused), so there's no new one to start for every
-message, her words show up as they're written, and her answer is there as soon as it's done (about a second or two for a
-short one), not once Claude Code has finished summing up the turn.
-In that last one, permission mode `default` only lets it read (nobody is there to say yes); `acceptEdits` lets it
+does. In that last one, permission mode `default` only lets it read (nobody is there to say yes); `acceptEdits` lets it
 edit files without asking. **Forget our conversations** clears what she remembers of your chats.
-
-Or **Codex** (signed in with your ChatGPT plan): one `codex app-server` runs while you chat (started when her chat
-opens, closed after 15 minutes unused), so there's no new Codex for every message and her words show up as they come.
-It works in the folder you pick, read-only or allowed to edit (`workspace-write`), and remembers the conversation across
-restarts. **Codex reasoning** (low, medium, high) trades speed for thought: low answers in a couple of seconds. With
-Claude Code or Codex answering, **Her powers with an agent** decides whether she still opens apps, sites, music and
-files herself (off, the agent does things its own way); reminders, your name and "remember this" work either way.
-
-**No network?** With her brain online (Codex, Claude Code, a service with a key, an Ollama cloud model), losing the
-network would leave her without a thought. **Install [Ollama](https://ollama.com) with a model on your PC** (gemma3 is a
-good pick): then, with no network, a model on your PC answers in her place, as her, in a narrower way (no Codex or
-Claude Code tools, a smaller model), and a line under her answer says so. It's loaded as soon as the network goes, so
-her first answer doesn't wait for it. Without Ollama she tells you plainly why she can't think. (Where winget isn't
-there, Windows LTSC for one, get Ollama from ollama.com.)
-
-The top of her chat names the model answering (the one on your PC while it stands in), and the line under it says an AI
-answers, on your PC or online. **Mainframe** can hide either one.
 
 **It's AI.** Her replies are written by the model, not by the show's writers: it's a fan version of her, and the chat
 panel says so every time.
@@ -295,77 +544,27 @@ She only catches the mouse on her actual body (pixel-precise): the rest of the s
 - **Click** the panel: it closes.
 - **Ctrl+Alt+C**: she puts herself away (into her biochip, like in the show) and all that's left of her is her mask,
   eyes shut, in the bottom-left corner. Her eyes only open when Claude needs you. Click the mask (or Ctrl+Alt+C again)
-  to bring her back. The shortcut can be changed in her menu (**Shortcut to put her away**: another one, one you
-  press, or none). On a Polish keyboard Ctrl+Alt+C is AltGr+C, "ć": pick another one there.
+  to bring her back.
 - **Her menu**: right-click her (it's also on her tray icon, next to the clock): teleport, look at the satellite, demo,
-  how it works, mission report, talk to her, look at your screen, reminders, size, sound, screen (and following you across screens),
-  shortcut, AI model, wander, possess your windows, jealous of other AIs, react to my PC, language, start with Windows, hooks. At the very
-  top: where you two stand. Everything is also in her settings window, **Mainframe**.
-- **More than one screen**: she follows your pointer to the screen you're on. With that off, wandering around, she now and
-  then teleports to another one.
-- **The window you work in**: she doesn't float or idle in front of it. If she ends up there, she gets out of the
-  way after a moment (somewhere free, or another screen). Sitting on its edge or taking it over is still fine.
+  how it works, mission report, talk to her, look at your screen, reminders, size, sound, screen (and following you across screens), AI
+  model, wander, possess your windows, jealous of other AIs, react to my PC, language, start with Windows, hooks. At the very top:
+  where you two stand.
 
-She speaks **French, English, Spanish, Brazilian Portuguese, Russian and Polish**, and picks the language of your system on her
+She speaks **French, English, Spanish, Brazilian Portuguese and Russian**, and picks the language of your system on her
 own. You can choose another one in her menu.
 
 ## Install
 
-### Quick start (Windows): this fork, in one line
+### Quick start (Windows, no coding)
 
-In PowerShell (Start › type `powershell` › Enter):
-
-```powershell
-irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1 | iex
-```
-
-It puts in what she needs and then Capri herself, asking about the optional parts:
-
-- **winget**, Windows' package manager, where it's missing (Windows LTSC, Server, Sandbox): through Microsoft's own
-  WinGet module, else straight from its release on GitHub.
-- **Git** and **Node.js** 20 or newer, if they aren't there (Node.js may ask for admin rights while it installs).
-- **Ollama with a model** (gemma3, about 5 GB in all; yes by default): her brain on your PC, and what keeps her thinking
-  without the network.
-- **Codex** or **Claude Code**, if you want them (no by default): the coding assistants she watches.
-- **Tailscale**, if you want it (no by default): what links her on all your PCs, for her swarm.
-- **Capri** from this fork in `%LOCALAPPDATA%\Capri\capri-desktop`, with a Start menu and desktop shortcut, then she
-  starts.
-
-Run it again to bring her up to date, or let her do it: Mainframe › **CYBERDECK** shows a new version on GitHub, what
-changed, and **Update and restart** (she looks a minute after starting and every 6 hours, and tells you once). Only a
-fast-forward of her branch: changes of yours in her folder, or commits GitHub doesn't have, and she leaves it to you.
-Her packages are installed again only when they changed, by a small helper once she's closed (her own Electron is among
-them), and if that fails she goes back to the version before. You can also let her update herself once you've been away
-from the PC a quarter of an hour. With options: `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Yes -Ollama -Codex`
-(no questions: `-Yes`; `-NoOllama`, `-Model llama3.2`, `-Claude`, `-Tailscale`, `-Dir <folder>`, `-NoShortcut`, `-NoLaunch`). In a
-clone, double-click **`install.cmd`** instead: it installs that clone in place. `install.cmd -Uninstall` takes her
-hooks out of Claude Code and Codex and removes her shortcuts and folder (Git, Node.js and Ollama stay).
-
-Then:
-
-1. Capri shows up and introduces herself. Click **Plug me in**: that connects her to Claude Code (or, right-click her ›
-   **Watch** › **Codex**).
-2. Close Claude Code completely and open it again (it reads its hooks when a session starts). As soon as Claude does
+1. Download **`Capri-Setup-x.y.z.exe`** from the [latest release](https://github.com/mochiiwuff/capri-desktop/releases/latest)
+   and run it. It installs for your user only (no admin rights), adds a desktop shortcut and starts Capri.
+   You don't need Node.js or anything else.
+2. The installer isn't signed (a code-signing certificate costs money), so Windows SmartScreen may say
+   "Windows protected your PC": click **More info**, then **Run anyway**.
+3. Capri shows up and introduces herself. Click **Plug me in**: that connects her to Claude Code.
+4. Close Claude Code completely and open it again (it reads its hooks when a session starts). As soon as Claude does
    something, she tells you **"I can see Claude!"**: that's how you know it worked.
-3. Everything else is in **Mainframe** (right-click her › **Settings…**): her AI, Codex, her phone, what her chat shows.
-
-   Its tabs, along the top, have names from her world; a hover on a tab says what it's for, and **?** at the bottom
-   right (or F1) shows it for all of them:
-
-   | Tab | What's in it |
-   |---|---|
-   | **HOLO** | Like her game's messages: her chat (the same conversation as in her panel, to write to her from here too), with everything else she told you on this PC (Claude, Codex, reminders, your PC), but not her little lines from her animations (the star, the satellite, being thrown around); and **TELEGRAM**, your phone |
-   | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows; the assistant she watches in your terminal and its hooks; Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**: her own powers with it (apps, sites, music) |
-   | **ENGRAMS** | Your bond, her persona, her reminders, what she remembers (and on which PC) |
-   | **RELIC** | Her body (her size, where she rests, her screen, her key, how she acts) and her swarm: one Capri on all your PCs (Tailscale) |
-   | **CYBERDECK** | Language, animations, display, menu, starting with Windows, her updates, help, quit |
-
-   At the top, like a game's level and street cred: her level, her sync with you and your days together; the tabs in
-   the middle; at the right, like a game's health and money, the model answering her chat and the AI she watches
-   (IDLE when she only keeps you company). Her version is in the bottom left corner, by MAINFRAME. The window remembers where you left it, its size, and the tab; what she said for HOLO is kept in `holo.json` (the last 300), on this PC only.
-
-The original's installer (`Capri-Setup-x.y.z.exe`, on [mochiiwuff's releases](https://github.com/mochiiwuff/capri-desktop/releases/latest))
-installs mochiiwuff's Capri, without this fork's additions.
 
 Her menu: **right-click her**. It's also on her tray icon, which Windows 11 often hides behind the **^** next to the clock.
 
@@ -383,7 +582,7 @@ asleep. You can just leave her there.
 You need [Node.js](https://nodejs.org) 20 or newer.
 
 ```bash
-git clone https://github.com/nf-gh057/capri-desktop.git
+git clone https://github.com/mochiiwuff/capri-desktop.git
 cd capri-desktop
 npm install
 npm start
@@ -431,7 +630,7 @@ prompt, the end), then shows everything she does on her own, a line before each 
 zapping your pointer, the whole satellite sequence, possessing a window (a little terminal opens for her, then closes
 under her and she falls), sleeping down to her mask, and putting herself away in the bottom-left corner.
 It's also in the tray menu, in her language; from the command line it's in English, or add one: `npm run demo -- fr`
-(or `es`, `pt`, `ru`, `pl`).
+(or `es`, `pt`, `ru`).
 
 ## Sounds
 
@@ -463,11 +662,10 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
 ## Is it safe?
 
 - All of the code is right here. The installer is built from it with `npm run dist`; you can build your own.
-- Nothing leaves your PC (see below), unless you pair her with a Telegram bot of your own: she only talks to Claude Code
-  through a hook on `127.0.0.1`.
+- Nothing leaves your PC (see below): she only talks to Claude Code through a hook on `127.0.0.1`.
 - What she changes on your system: the hook in `~/.claude/settings.json` (a backup is written first, and you can remove
-  it from her menu), and a startup entry only if you tick "Start with Windows". Installed with `install.ps1`,
-  `install.cmd -Uninstall` removes her (and her hooks); installed from the original's installer, Windows Settings › Apps.
+  it from her menu), and a startup entry only if you tick "Start with Windows". She uninstalls like any app, from
+  Windows Settings › Apps.
 - The SmartScreen warning comes from the installer not being signed, not from anything it does.
 
 ## FAQ
@@ -489,16 +687,12 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
   without her.
 - **She only floats around and says idle things.** That's normal until Claude Code does something. If it never reacts,
   check her menu says "Claude Code hooks: installed", then close Claude Code completely and open it again.
-- **Something of hers does nothing.** What went wrong is in `capri.log`, next to her settings
-  (`%APPDATA%\capri-desktop` on Windows; the one before it in `capri.log.old`).
 
 ## What leaves your machine
 
 Nothing. The hook only keeps what the display needs (tool name, file path, command, the start of your prompt,
 Claude's last message up to 6,000 characters so she can show it to you, all truncated) and sends it to `127.0.0.1` only.
 Your file contents are never sent: for a write, only its size goes through.
-Her bridge only takes events that carry its token, a new one each time she starts, kept in `~/.capri/bridge-token`
-(`CAPRI_TOKEN_FILE` moves it), and addressed to `127.0.0.1` or `localhost`: web pages can't puppet her.
 
 Her chat goes to Ollama on your PC (`127.0.0.1:11434`, or `OLLAMA_HOST`) with what she knows of the moment (the
 project's name, Claude's last action, today's counts). On one of Ollama's cloud models (the ones ending in `:cloud`),
@@ -510,74 +704,6 @@ it's never kept or sent anywhere.
 
 When she looks at your screen (only when you ask, or if you ticked *Look at my screen now and then*), a picture of the
 screen goes to her chat's AI: on your PC with Ollama (a local model), to the online service otherwise. It's never written to disk.
-
-Her messages to your phone are off until you make a Telegram bot of your own (at @BotFather) and pair it in Mainframe,
-with a code only that window shows. Then, while you're away from the PC (no key or mouse for a few minutes, or the
-screen locked), she sends that one chat her line, the project's name and, if you pick it, a snippet of the prompt or
-answer (400 characters at most, anything that looks like a key blanked out), through Telegram's servers: bot chats
-aren't end-to-end encrypted. Never your files. The bot token is kept encrypted with your Windows account, and the
-only thing she ever reads from the bot is that pairing code.
-
-Her chat on Telegram is off until you turn it on in Mainframe, and that takes the code from an authenticator app
-(Google or Microsoft Authenticator, Aegis, 2FAS…): its secret is shown there once, as a QR code, kept encrypted like
-the token, and stays only when the app's first code checks out. Then the bot listens to your paired chat alone (anyone
-else isn't even answered), and nothing you send reaches her until `/unlock 123456` (a code works once, and the message
-holding it is deleted). It stays unlocked for 1, 4 or 8 hours, and locks again sooner when you're back at the PC, after
-an hour of silence, with `/lock` or from Mainframe; three wrong codes in a row turn it off until you turn it back on at
-the PC. From there, she talks without her powers (nothing opened, played or reminded), and Claude Code or Codex only
-read, whatever Mainframe allows on the desktop: Codex in its read-only sandbox, Claude Code with its reading tools alone
-(no shell, edits, web or MCP servers). Your messages and her answers go through Telegram's servers, and into the same
-memory as her chat here. Buttons under her messages ("remind me in 30 min", "quiet for an hour") need no code: they
-only change what she sends you.
-
-### Her swarm
-
-One Capri on all your PCs: at home, at work, a laptop on mobile data. They link through
-[Tailscale](https://tailscale.com), a private network (WireGuard) where each of your devices keeps one address
-(`100.x.y.z`) whatever network it's on, and gets through home routers and mobile networks by itself. Install it and sign
-in on each PC with the same account (free for personal use; `install.ps1 -Tailscale` puts it in). Then in Mainframe ›
-**RELIC**, turn it on on each PC: under **Your devices with Capri**, each one lists the others it finds on your
-Tailscale network, and **Join** links them, nothing to copy over (Tailscale vouches that both are yours: the same
-account; one on another account is refused there). For a device on another account: **Add a PC** on one, and paste
-the line it shows into **Join** on the other (it works once, for 10 minutes). A PC that joins learns the rest of the
-swarm from the one it joined.
-
-Installed with the script, the swarm keeps itself up to date: when one PC runs a newer Capri, the others look on
-GitHub and update as soon as you're not at them (or not using them for a minute), never in the middle of an answer
-(**Update along with the swarm**, on by default).
-
-Every few seconds each PC tells the others whether its screen is locked and how long since a key or the mouse. She's on
-the unlocked one you used last (another must be clearly fresher for her to hop), and put away into her biochip on the
-others; a PC that stops answering for a dozen seconds counts as one you're not at. A PC alone, with no network, has her
-to itself (thinking through Ollama if her brain is online).
-
-Each Capri has a key of her own; every pair of PCs shares a key worked out from theirs, never sent, and seals everything
-between them with it (AES-256-GCM, with a time and a one-time number that can't be played again) on top of Tailscale's
-own encryption. She listens on her Tailscale address only (and `127.0.0.1`), never on your local network or the
-internet, and only to PCs paired with her. What they send is their state and what their coding agents are doing,
-never something to run.
-
-What Claude Code or Codex does on a PC you're not at reaches the one you're at: she tells you there, the PC's name next
-to the project ("projekt-x · laptop"), and names the agent watched on that PC if it isn't the one she watches here. The
-PC you left stays quiet (she's in her biochip there, and no phone message leaves from it). Only what her brain reads
-goes: the event, its texts clipped, a tool's inputs one level deep; never a tool's output or a file's contents.
-
-And she's one mind on all of them: your chats with her, **Forget our conversations**, your name, how you want her, what
-you asked her to remember, her reminders and how close she is to you are the same on every PC (her screen, size, hooks
-and AI stay each PC's own). Each change is written down with when and on which PC, and two PCs swap only what the other
-hasn't seen yet; the newer change wins, and what was removed stays removed. A PC without the network goes on alone
-(with Ollama, if her brain is online), then catches up as soon as it's back, with what the others did meanwhile and they
-with what it did, and she says so. A reminder goes off on the PC you're at, once.
-
-What she is and what she remembers also reach Claude Code or Codex when they answer her chat, on every PC. So when
-another PC changes her persona or her memories, she tells you on the PC you're at (or the next time you're back at one),
-with what changed and **Undo**, which puts it back as it was on all of them. Mainframe › ENGRAMS lists what she remembers
-and which PC it was said on, to forget one by one.
-
-Your phone too: pair the Telegram bot on one PC, and the others send their messages through it (Mainframe › HOLO › TELEGRAM on
-them says which PC holds it). "Away" then means away from all of them: no message while you're at any of your PCs, and
-her chat on Telegram locks when you're back at any. Two PCs paired with the same bot: one reads it (the bot can only be
-read from one place), the other takes over when it's gone.
 
 ## Art direction
 
@@ -647,12 +773,6 @@ src/main/                Electron: full-screen transparent click-through window,
   windows.js / .ps1      where the other windows are (Windows only), so she can sit on them
   ollama.js              her chat: the local model through Ollama, or one of its cloud models
   apps.js                closing an app you asked her to close (after your click)
-  phone.js               her messages to your phone, through your own Telegram bot, and her chat there
-  totp.js                the code from your authenticator app that unlocks her chat on Telegram
-  swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
-  mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)
-  update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
-scripts/update-finish.js her packages after an update, once she's closed, and her started again (back if it fails)
 src/renderer/js/
   sprite.js              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
   acting.js              the exposure sheets: every move, drawing by drawing
@@ -668,29 +788,15 @@ src/renderer/js/
   look.js                she looks at your screen: asking first, the scan, what her AI says about it
   pc.js                  your PC as she feels it: the processor, the battery, the network, USB sticks, games
   files.js               finding your files (Windows search index), screenshots
-  lines.js               what she says (FR / EN / ES / PT / RU / PL)
+  lines.js               what she says (FR / EN / ES / PT / RU)
   chip.js                her mask: while she sleeps, and bottom left when you put her away
   voice.js               the sounds
 ```
 
-```
-install.ps1 / .cmd       the Windows installer: winget, Git, Node.js, Ollama, Codex or Claude Code, Capri, shortcuts
-scripts/version.js       this fork's version: mochiiwuff's, then our commit on top of it (npm run bump)
-```
-
-**Versions**: `x.y.z-n` is mochiiwuff's version `x.y.z` and this fork's `n`th commit on top of it; `n` goes back to 1
-when mochiiwuff's version goes up. `npm run bump` before each commit sets the next one (it reads mochiiwuff's version
-from the `upstream` remote).
-
 To hack on it: `npm run dev` turns on debug routes on the bridge (`/debug/capture` saves a frame of the window to `captures/`,
 `/debug/testwin` opens test windows she can sit on, one per name, `/debug/mouse` moves and clicks a stand-in pointer
 over Capri's window, without touching the real one, `/debug/type` types in her chat, `/debug/menu` lists her menu and
-can click an item of it, `/debug/mainframe` opens Mainframe, acts in it and captures it). With `CAPRI_OFFLINE=1` she
-acts as if the network were gone, with `CAPRI_SCREENS=2` she cuts your screen in two, and `CAPRI_TELEGRAM_API` points
-her phone at a Telegram of your own. A second Capri on the same PC, for her swarm: `CAPRI_PROFILE=b` (settings of its
-own), with `CAPRI_PORT`, `CAPRI_SWARM_PORT` and `CAPRI_TOKEN_FILE` of its own; `/debug/swarm` makes her PC locked or
-idle as you say (`{ "island": true }`: as if it had no network, until `false`). In `--dev` (a developer's clone) she only tells of a new version: `CAPRI_UPDATE_DEV=1` lets her update
-that clone too.
+can click an item of it).
 `npm run dist` builds the Windows installer in `dist/`.
 
 ## Credits and rights

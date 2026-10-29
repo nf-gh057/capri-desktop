@@ -16,9 +16,10 @@ pracy nad Capri: `docs/ROZWOJ.md`.
   Jeśli autor dodał coś nowego, powiedz użytkownikowi, co się zmieniło (commity, obszary, wpływ na nasze zmiany:
   zwłaszcza nowe kwestie w `src/renderer/js/lines.js` bez `pl` i zmiany w `src/main/bridge.js` albo `hooks/`, które
   mogłyby cofnąć zabezpieczenie tokenem). **Nie scalaj sam**: zgłoś i zapytaj. Gdy nic nowego, jedno zdanie.
-- Scalanie upstreamu (gdy użytkownik o nie poprosi): `README.fr.md` zostaje usunięty (`git rm`), zmiany autora
-  w `README.md` przenieś też do `README.pl.md` (przetłumaczone); zachowaj w `README.md` sekcję o forku i opis
-  instalatora. Po scaleniu testy i sprawdzenie na żywo, dopiero potem push.
+- Scalanie upstreamu (gdy użytkownik o nie poprosi): `README.fr.md` zostaje usunięty (`git rm`). W `README.md` część
+  pod linią `---` („Below: the original project's README”) zastąp README autora bez zmian (bez jego pierwszej linii
+  z językami), a jego zmiany przetłumacz w tej samej części `README.pl.md`; część forka na górze zostaje. Po scaleniu
+  testy i sprawdzenie na żywo, dopiero potem push.
 
 ## Wersje i commity
 
@@ -50,7 +51,8 @@ pracy nad Capri: `docs/ROZWOJ.md`.
 - O autorze oryginału (mochiiwuff) i o każdej osobie, której zaimków nie znasz: neutralnie (nie „autorka”, nie „her”),
   np. „oryginalny projekt”.
 - Styl kodu jak w otoczeniu: komentarze opisowe, w głosie projektu („she…”), tam gdzie coś nie jest oczywiste.
-- Dokumentacja: każda funkcja trafia do `README.md` i `README.pl.md`; plany i etapy do `TODO.md`.
+- Dokumentacja: każda funkcja forka trafia do części forka na górze `README.md` i `README.pl.md` (co dokłada,
+  instalacja, dla programistów), nigdy do README oryginału pod nią; plany i etapy do `TODO.md`.
 - **Pilnuj `TODO.md` na bieżąco**: przy każdej pracy sprawdź, czy któryś etap albo pozycja listy „Do zrobienia”
   (także dopisana przez użytkownika albo inną sesję) jest już zrobiona: rozwiązany problem, dodana funkcja, również
   przy okazji czegoś innego. **Powiedz o tym użytkownikowi i usuń z listy dopiero po jego potwierdzeniu.** Do tego
