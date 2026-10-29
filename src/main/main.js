@@ -1676,19 +1676,31 @@ function registerIpc() {
     wanted = String(wanted || '');
     const [wins, buttons] = await Promise.all([apps.windows().catch(() => []), apps.taskbar().catch(() => [])]);
     const found = apps.findWindow(wanted, wins);
-    const button = (!found || !found.similar) && apps.findButton(wanted, buttons, found?.win);
-    if (button && (button.count >= 2 || (!found && button.count === 1))) {
+    const here = targetDisplay().id;
+    const dip = (r) => screen.screenToDipRect(null, { x: r.x, y: r.y, width: r.w, height: r.h });
+    const displayOf = (r) => screen.getDisplayMatching(dip(r)).id;
+    // a Store app's window belongs to its frame's process: its title names it
+    const nameOf = (win) => (/^applicationframehost$/i.test(win.process) ? win.title : win.label || win.process);
+    // its app named (not one window's title): all its windows, to pick one from
+    const group = found?.named ? apps.appWindows(found.win, wins) : [];
+    const pick = group.length >= 2 ? group.slice(0, 4).map((w) => ({ id: w.id, title: apps.shortTitle(w).slice(0, 60) })) : [];
+    // its button on a taskbar: the one on her screen, else another screen's (she goes there)
+    const candidates = !found || !found.similar ? apps.findButtons(wanted, buttons, found?.win) : [];
+    const button = candidates.find((b) => displayOf(b) === here) || candidates[0] || null;
+    const count = Math.max(group.length, button?.count || 0);
+    if (button && (count >= 2 || (!found && button.count === 1))) {
+      const display = displayOf(button);
       const o = overlay.getBounds();
-      const r = screen.screenToDipRect(null, { x: button.x, y: button.y, width: button.w, height: button.h });
-      const rect = { x: r.x - o.x, y: r.y - o.y, w: r.width, h: r.height };
-      const seen = rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= o.width && rect.y + rect.h <= o.height + 60;
-      return { stack: { name: button.name, count: button.count, rect: seen ? rect : null } };
+      const r = dip(button);
+      const rect = display === here ? { x: r.x - o.x, y: r.y - o.y, w: r.width, h: r.height } : null;
+      return { stack: { name: button.name, count, rect, display: display === here ? null : display, pick } };
     }
+    // several windows and no button for them (taskbar buttons not grouped, or a name Windows garbled):
+    // which one, by its title
+    if (pick.length) return { stack: { name: nameOf(found.win), count: group.length, rect: null, display: null, pick } };
     if (found) {
       const { win } = found;
-      // a Store app's window belongs to its frame's process: its title names it
-      const name = /^applicationframehost$/i.test(win.process) ? win.title : win.label || win.process;
-      return { id: win.id, name, similar: found.similar };
+      return { id: win.id, name: nameOf(win), similar: found.similar, display: win.min ? null : displayOf(win.rect) };
     }
     for (const name of apps.variants(wanted)) {
       const item = await launch.find(name).catch(() => null);
@@ -1696,7 +1708,12 @@ function registerIpc() {
     }
     return null;
   });
-  ipcMain.handle('windows:show', (_e, id) => apps.showWindow(id));
+  // brought up: { ok, display } with the screen it's on then (she goes there if it isn't hers)
+  ipcMain.handle('windows:show', async (_e, id) => {
+    const { ok, rect } = await apps.showWindow(id);
+    const display = rect ? screen.getDisplayMatching(screen.screenToDipRect(null, { x: rect.x, y: rect.y, width: rect.w, height: rect.h })).id : null;
+    return { ok, display };
+  });
   ipcMain.handle('apps:youtube', (_e, query) => launch.youtube(query).catch(() => null));
   ipcMain.handle('apps:roblox', (_e, query) => launch.roblox(query).catch(() => null));
   // your files (files.js): a search, opening what it found, a screenshot, a search on the web

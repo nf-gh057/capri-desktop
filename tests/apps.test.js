@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { findWindow, variants, button, findButton } = require('../src/main/apps');
+const { findWindow, variants, button, findButton, findButtons, appWindows, shortTitle } = require('../src/main/apps');
 
 // the windows as apps.windows() lists them
 const WINDOWS = [
@@ -53,6 +53,35 @@ test('nothing by that name', () => {
 test('what to start when no window is open: the same names', () => {
   assert.ok(variants('notatnik').includes('notepad'));
   assert.ok(variants('Bloc-notes').includes('notatnik'));
+});
+
+test('an app’s windows each on their own: its name finds them all, a title just that one', () => {
+  const list = [
+    ...WINDOWS,
+    { id: 6, process: 'firefox', label: 'Firefox', title: 'YouTube — Mozilla Firefox' },
+    { id: 7, process: 'firefox', label: 'Firefox', title: 'Poczta — Outlook — Mozilla Firefox' },
+    { id: 8, process: 'firefox', label: 'Firefox', title: 'GitHub - Mozilla Firefox' },
+    { id: 9, process: 'ApplicationFrameHost', label: 'Application Frame Host', title: 'Zdjęcia' },
+  ];
+  const app = findWindow('firefox', list);
+  assert.equal(app.named, true);
+  assert.deepEqual(appWindows(app.win, list).map((w) => w.id), [6, 7, 8]);
+  assert.deepEqual(appWindows(app.win, list).map(shortTitle), ['YouTube', 'Poczta — Outlook', 'GitHub']);
+  const one = findWindow('github', list); // a word of its title: that window, not the app
+  assert.deepEqual([one.win.id, one.named, one.similar], [8, false, false]);
+  // Store apps share a process: only the frames named alike are one app
+  assert.deepEqual(appWindows(list.find((w) => w.id === 4), list).map((w) => w.id), [4]);
+});
+
+test('taskbars on several screens: the app’s button on each', () => {
+  const at = (x) => ({ x, y: 1040, w: 40, h: 40 });
+  const buttons = [
+    { name: 'Firefox — uruchomione okna: 2', ...at(700) },
+    { name: 'Discord — 1 running window', ...at(760) },
+    { name: 'Firefox — 1 running window', ...at(2700) }, // the second screen's taskbar
+  ].map(button);
+  assert.deepEqual(findButtons('firefox', buttons).map((b) => [b.x, b.count]), [[700, 2], [2700, 1]]);
+  assert.deepEqual(findButtons('excel', buttons), []);
 });
 
 test('the taskbar: an app’s button and how many windows it has, in any language', () => {

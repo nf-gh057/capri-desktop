@@ -335,6 +335,15 @@ export class Chat {
     const asked = this.asked(text);
     if (asked?.kind === 'look') return this.sendLook(text, id);
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
+    // a window she looked for herself: what she found is her whole answer (her AI would only guess)
+    const found = asked?.kind === 'window' && (await early.catch(() => null));
+    if (found && this.turn === id) {
+      this.turn = 0;
+      this.remember({ role: 'assistant', content: found.line });
+      this.panel.setChatBusy(false);
+      this.lastActive = performance.now();
+      return this.after('', '…', asked, early, text);
+    }
     this.bond?.heard(text); // "sorry": she lets it go
     await Promise.race([this.appsReady, new Promise((r) => setTimeout(r, 1500))]);
     // what she greeted you with (angry, sulking…), in the conversation before your message, so her
@@ -453,6 +462,13 @@ export class Chat {
     this.bond?.heard(text);
     const asked = this.asked(text);
     const early = asked && !['close', 'look'].includes(asked.kind) ? this.doNow(asked).catch(() => null) : null;
+    // a window she looked for herself: what she found is her whole answer (her AI would only guess)
+    const found = asked?.kind === 'window' && (await early);
+    if (found?.line) {
+      Object.assign(this, { agent, agentName, powersOn });
+      this.remember({ role: 'assistant', content: found.line });
+      return { ok: true, text: found.line };
+    }
     let res = await this.host.chatSend({ id, messages: this.messages() });
     if (!res.ok && res.code === 'offline' && res.local) {
       this.agent = false;
@@ -696,9 +712,14 @@ export class Chat {
   // Only close to what you said (a typo, another name): she asks if that's the one. None: she offers to
   // start it. Without the word "window", a typo counts only in a single word ("notatnk"), and an app
   // to start only by that name (else: her chat answers).
-  async findWindow({ name, sure }) {
+  async findWindow({ name, sure }, moved = false) {
     const { t } = this;
     const found = await this.host.findWindow(name).catch(() => null);
+    // its button is on another screen's taskbar: she goes there, and looks again from there
+    if (found?.stack?.display != null && !moved && this.goScreen) {
+      await this.goScreen(found.stack.display);
+      return this.findWindow({ name, sure }, true);
+    }
     if (found?.stack) return this.showStack(found.stack);
     if (found?.id && !found.similar) return this.showWindow(found);
     // close to it (a typo, another name): asked about, when it's surely a window, or one long word
@@ -717,13 +738,21 @@ export class Chat {
       const win = capri.windows.wins.find((w) => w.id === found.id);
       return win && capri.canPoint(win) ? win : null;
     };
-    let win = visible();
-    if (!win) {
-      // minimized, behind others, or on another screen: brought up, and pointed at once it shows
-      await this.host.showWindow(found.id);
+    const wait = async () => {
       for (let i = 0; i < 15 && !win; i++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         win = visible();
+      }
+    };
+    let win = visible();
+    if (!win) {
+      // minimized, behind others, or on another screen: brought up, and pointed at once it shows (on
+      // another screen, she goes there first)
+      const up = await this.host.showWindow(found.id).catch(() => null);
+      await wait();
+      if (!win && up?.display != null && this.goScreen) {
+        await this.goScreen(up.display);
+        await wait();
       }
       if (!win) return { line: fmt(pick(t.windowUp), { app: found.name }), face: 'smug' };
     }
@@ -732,11 +761,12 @@ export class Chat {
   }
 
   // Several windows of that app (or one she only sees there): its button on the taskbar, where you pick
-  // the one you want. Not on her screen: she only says so.
-  showStack({ name, count, rect }) {
+  // the one you want, and each one by its title, a button each (`pick`). No button for it on her
+  // screen: she only says so.
+  showStack({ name, count, rect, pick: wins = [] }) {
     const { t } = this;
     if (rect) this.point(rect, count >= 2 ? `${name} ×${count}` : name);
-    return { line: fmt(pick(count >= 2 ? t.windowMany : t.windowHere), { app: name, count }), face: 'smug' };
+    return { line: fmt(pick(count >= 2 ? t.windowMany : t.windowHere), { app: name, count }), face: 'smug', choose: wins.length >= 2 ? wins : null };
   }
 
   // she points at it a while, then lets it go (unless she's pointing at something else by then)
@@ -801,6 +831,18 @@ export class Chat {
         this.panel.setActions([]);
         if (id !== 'yes') return;
         const shown = await this.showWindow(done.window);
+        this.addLine(answer, shown.line, shown.face);
+      });
+      return undefined;
+    }
+    if (done?.choose) {
+      // several windows of it: which one, by its title (she brings it up and points at it)
+      this.addLine(answer, done.line, done.face);
+      this.panel.setActions(done.choose.map((w) => ({ id: String(w.id), label: w.title.length > 34 ? `${w.title.slice(0, 33)}…` : w.title })), async (id) => {
+        const win = done.choose.find((w) => String(w.id) === id);
+        this.panel.setActions([]);
+        if (!win) return;
+        const shown = await this.showWindow({ id: win.id, name: win.title });
         this.addLine(answer, shown.line, shown.face);
       });
       return undefined;

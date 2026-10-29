@@ -76,18 +76,78 @@ async function close(name, { force = false } = {}) {
 
 // ---------- finding a window by its name (her chat: "where's Notepad?") ----------
 
-// The windows open right now, with what names them: [{ id (its handle), process, label, title }].
-// Asked for only when you ask her to find one; the titles stay here and in her overlay, never kept.
+// Every window you'd see on the taskbar (an app's other windows too, not just its main one), with
+// what names it and where it is: [{ id (its handle), process, label, title, min, rect: { x, y, w, h }
+// (physical pixels) }]. Asked for only when you ask her to find one; the titles stay here and in her
+// overlay, never kept. (Each one's process, as Get-Process names it.)
+const LIST_WINDOWS = [
+  'Add-Type -TypeDefinition \'',
+  'using System; using System.Text; using System.Collections.Generic; using System.Runtime.InteropServices;',
+  'public static class CapriList {',
+  '  delegate bool Each(IntPtr h, IntPtr l);',
+  '  [StructLayout(LayoutKind.Sequential)] struct RECT { public int L, T, R, B; }',
+  '  [DllImport("user32.dll")] static extern bool EnumWindows(Each f, IntPtr l);',
+  '  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);',
+  '  [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);',
+  '  [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr h, uint c);',
+  '  [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);',
+  '  [DllImport("user32.dll")] static extern int GetWindowTextLength(IntPtr h);',
+  '  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder s, int n);',
+  '  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder s, int n);',
+  '  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);',
+  '  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);',
+  '  [DllImport("user32.dll")] static extern bool SetProcessDPIAware();',
+  '  [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int a, out int v, int s);',
+  '  public static List<string> All() {',
+  '    SetProcessDPIAware();',
+  '    var all = new List<string>();',
+  '    EnumWindows((h, l) => {',
+  // visible, not owned by another window (a dialog), not a tool window, not cloaked (another desktop)
+  '      if (!IsWindowVisible(h) || GetWindow(h, 4) != IntPtr.Zero || (GetWindowLong(h, -20) & 0x80) != 0) return true;',
+  '      int cloaked;',
+  '      if (DwmGetWindowAttribute(h, 14, out cloaked, 4) == 0 && cloaked != 0) return true;',
+  '      int n = GetWindowTextLength(h);',
+  '      if (n == 0) return true;',
+  '      var cls = new StringBuilder(64); GetClassName(h, cls, 64);',
+  '      if (cls.ToString() == "Progman" || cls.ToString() == "WorkerW") return true;',
+  '      var title = new StringBuilder(n + 1); GetWindowText(h, title, n + 1);',
+  '      uint pid; GetWindowThreadProcessId(h, out pid);',
+  '      RECT r; GetWindowRect(h, out r);',
+  '      all.Add(String.Join("|", h.ToInt64(), pid, IsIconic(h) ? 1 : 0, r.L, r.T, r.R - r.L, r.B - r.T, title.ToString()));',
+  '      return true;',
+  '    }, IntPtr.Zero);',
+  '    return all;',
+  '  }',
+  '}',
+  '\'; $p = @{}; Get-Process | ForEach-Object { $p[$_.Id] = $_ }; ',
+  '[CapriList]::All() | ForEach-Object { $a = $_.Split([char]124, 8); $q = $p[[int]$a[1]]; ',
+  '[pscustomobject]@{ id = [int64]$a[0]; pid = [int]$a[1]; min = $a[2] -eq [string]1; x = [int]$a[3]; y = [int]$a[4]; w = [int]$a[5]; h = [int]$a[6]; ',
+  'process = $q.ProcessName; label = $q.Description; title = $a[7] } } | ConvertTo-Json -Compress',
+].join('\n');
+
 async function windows() {
   if (process.platform !== 'win32') return [];
-  const out = await powershell(
-    'Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle } | '
-    + 'ForEach-Object { [pscustomobject]@{ pid = $_.Id; id = [int64]$_.MainWindowHandle; process = $_.ProcessName; label = $_.Description; title = $_.MainWindowTitle } } | '
-    + 'ConvertTo-Json -Compress',
-  );
+  const out = await powershell(LIST_WINDOWS, 20000);
   return [].concat(out ? JSON.parse(out) : [])
-    .filter((w) => w.pid !== process.pid && !['capri', 'electron'].includes(String(w.process).toLowerCase()))
-    .map(({ id, process: name, label, title }) => ({ id, process: name, label: label || '', title: title || '' }));
+    .filter((w) => w.pid !== process.pid && w.process && !['capri', 'electron'].includes(String(w.process).toLowerCase()))
+    .map(({ id, process: name, label, title, min, x, y, w, h }) => ({
+      id, process: name, label: label || '', title: title || '', min: Boolean(min), rect: { x, y, w, h },
+    }));
+}
+
+// The windows of the same app as `win` (itself too): its process's, or a Store app's frames named alike
+function appWindows(win, list) {
+  const frame = (w) => /^applicationframehost$/i.test(w.process);
+  return list.filter((w) => w.process.toLowerCase() === win.process.toLowerCase() && (!frame(win) || w.title === win.title));
+}
+
+// A window's title without its app's name at the end ("YouTube — Mozilla Firefox": "YouTube"), for a
+// button to pick it by
+function shortTitle(win) {
+  const ends = [win.label, win.process, 'Mozilla Firefox', 'Google Chrome', 'Microsoft Edge'].filter(Boolean);
+  let title = String(win.title || '');
+  for (const end of ends) title = title.replace(new RegExp(`\\s+[—–-]\\s+${end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), '');
+  return title.trim() || win.title;
 }
 
 // The same app in her languages (and its program's name): "notatnik" finds Notepad, "bloc-notes" too
@@ -144,8 +204,9 @@ function distance(a, b) {
   return d[a.length][b.length];
 }
 
-// The window `wanted` names, among `list` (windows()): { win, similar } with `similar` when it's only
-// close to what you said (a typo, another name), for her to ask first; null when nothing is.
+// The window `wanted` names, among `list` (windows()): { win, similar, named } with `similar` when it's
+// only close to what you said (a typo, another name), for her to ask first, and `named` when you named
+// its app (not something in its title: "youtube" is that one window); null when nothing is.
 function findWindow(wanted, list) {
   const keys = variants(wanted);
   if (!keys.length) return null;
@@ -162,31 +223,43 @@ function findWindow(wanted, list) {
     let score = 0;
     for (const key of keys) {
       if (names.includes(key)) score = Math.max(score, 4);
-      else if (key.length >= 3 && (` ${title} `.includes(` ${key} `) || names.some((n) => n.startsWith(key)))) score = Math.max(score, 3);
+      else if (key.length >= 3 && names.some((n) => n.startsWith(key))) score = Math.max(score, 3.5);
+      else if (key.length >= 3 && ` ${title} `.includes(` ${key} `)) score = Math.max(score, 3);
       // a letter or two off (more for a long name), or the start of it
       else if (key.length >= 4 && words.some((w) => distance(key, w) <= (key.length >= 7 ? 2 : 1) || (w.length >= 5 && key.startsWith(w)))) score = Math.max(score, 1);
     }
     if (score > (best?.score || 0)) best = { win, score };
   }
-  return best && { win: best.win, similar: best.score < 3 };
+  return best && { win: best.win, similar: best.score < 3, named: best.score > 3 };
 }
 
-// Brought up in front of you (restored if it was minimized). Resolves true when it's there.
+// Brought up in front of you (restored if it was minimized): { ok, rect } with where it is then
+// (physical pixels: on which screen), or { ok: false }.
 async function showWindow(id) {
-  if (process.platform !== 'win32' || !Number.isSafeInteger(Number(id))) return false;
+  if (process.platform !== 'win32' || !Number.isSafeInteger(Number(id))) return { ok: false };
   const out = await powershell(
     'Add-Type -Namespace Capri -Name Win -MemberDefinition \''
     + '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(System.IntPtr h, int c);'
     + '[DllImport("user32.dll")] public static extern bool IsIconic(System.IntPtr h);'
-    + '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h);\'; '
-    + `$h = [System.IntPtr]::new([int64]${Number(id)}); `
-    + 'if ([Capri.Win]::IsIconic($h)) { [void][Capri.Win]::ShowWindowAsync($h, 9) }; [Capri.Win]::SetForegroundWindow($h)',
+    + '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h);'
+    + '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
+    + '[DllImport("user32.dll")] public static extern bool GetWindowRect(System.IntPtr h, int[] r);\'; '
+    + `[void][Capri.Win]::SetProcessDPIAware(); $h = [System.IntPtr]::new([int64]${Number(id)}); `
+    + 'if ([Capri.Win]::IsIconic($h)) { [void][Capri.Win]::ShowWindowAsync($h, 9); Start-Sleep -Milliseconds 250 }; '
+    + '$ok = [Capri.Win]::SetForegroundWindow($h); $r = New-Object int[] 4; [void][Capri.Win]::GetWindowRect($h, $r); '
+    + '[pscustomobject]@{ ok = $ok; x = $r[0]; y = $r[1]; w = $r[2] - $r[0]; h = $r[3] - $r[1] } | ConvertTo-Json -Compress',
   ).catch(() => '');
-  return /true/i.test(out);
+  try {
+    const { ok, x, y, w, h } = JSON.parse(out);
+    return { ok: Boolean(ok), rect: w > 0 && h > 0 ? { x, y, w, h } : null };
+  } catch {
+    return { ok: false };
+  }
 }
 
-// The apps' buttons on the taskbar (its main one, through UI Automation): [{ name, count, x, y, w, h }],
-// `name` as the button says it ("Firefox"), `count` its windows (0: only pinned), in physical pixels.
+// The apps' buttons on the taskbars (the main one, and each other screen's, through UI Automation):
+// [{ name, count, x, y, w, h }], `name` as the button says it ("Firefox"), `count` its windows (0: only
+// pinned), in physical pixels (main.js tells which screen from there).
 async function taskbar() {
   if (process.platform !== 'win32') return [];
   const out = await powershell(
@@ -194,11 +267,11 @@ async function taskbar() {
     + '[void][Capri.Dpi]::SetProcessDPIAware(); '
     + 'Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes; '
     + '$A = [System.Windows.Automation.AutomationElement]; '
-    + '$bar = $A::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, '
-    + '(New-Object System.Windows.Automation.PropertyCondition($A::ClassNameProperty, \'Shell_TrayWnd\'))); '
-    + 'if (-not $bar) { return }; '
-    + '$bar.FindAll([System.Windows.Automation.TreeScope]::Descendants, '
-    + '(New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button))) | '
+    + '$bars = $A::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, (New-Object System.Windows.Automation.OrCondition('
+    + '(New-Object System.Windows.Automation.PropertyCondition($A::ClassNameProperty, \'Shell_TrayWnd\')), '
+    + '(New-Object System.Windows.Automation.PropertyCondition($A::ClassNameProperty, \'Shell_SecondaryTrayWnd\'))))); '
+    + '$bars | ForEach-Object { $_.FindAll([System.Windows.Automation.TreeScope]::Descendants, '
+    + '(New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button))) } | '
     + 'Where-Object { $_.Current.AutomationId -like \'Appid:*\' } | ForEach-Object { $r = $_.Current.BoundingRectangle; '
     + '[pscustomobject]@{ name = $_.Current.Name; x = [int]$r.X; y = [int]$r.Y; w = [int]$r.Width; h = [int]$r.Height } } | '
     + 'ConvertTo-Json -Compress',
@@ -213,11 +286,11 @@ function button({ name, x, y, w, h }) {
   return { name: app.trim(), count, x, y, w, h };
 }
 
-// The button of the app `wanted` names (or of the window found for it): its name, in her languages too
-function findButton(wanted, buttons, win = null) {
+// The buttons of the app `wanted` names (or of the window found for it), on every taskbar it's on: its
+// name, in her languages too. The best ones, in the taskbars' order.
+function findButtons(wanted, buttons, win = null) {
   const keys = new Set([...variants(wanted), ...(win ? [fold(win.label), fold(win.process)] : [])].filter((k) => k.length >= 2));
-  let best = null;
-  for (const b of buttons) {
+  const scored = buttons.map((b) => {
     const name = fold(b.name);
     const known = ALIASES.find((group) => group.includes(name)) || [];
     let score = 0;
@@ -225,9 +298,14 @@ function findButton(wanted, buttons, win = null) {
       if (name === key || known.includes(key)) score = Math.max(score, 3);
       else if (key.length >= 4 && (name.split(' ').includes(key) || key.split(' ').includes(name))) score = Math.max(score, 2);
     }
-    if (score > (best?.score || 0)) best = { b, score };
-  }
-  return best?.b || null;
+    return { b, score };
+  });
+  const top = Math.max(0, ...scored.map((s) => s.score));
+  return top ? scored.filter((s) => s.score === top).map((s) => s.b) : [];
 }
 
-module.exports = { list, find, close, powershell, windows, findWindow, showWindow, variants, fold, taskbar, button, findButton };
+const findButton = (wanted, buttons, win = null) => findButtons(wanted, buttons, win)[0] || null;
+
+module.exports = {
+  list, find, close, powershell, windows, appWindows, shortTitle, findWindow, showWindow, variants, fold, taskbar, button, findButton, findButtons,
+};

@@ -182,8 +182,10 @@ nie ma cię przy żadnym z nich, a rozmowa przez Telegram blokuje się, gdy wró
   („notatnik”, „bloc-notes” i „блокнот” znajdują Notatnik, „przeglądarka” dowolną przeglądarkę), a po polsku także
   odmienione („okno discorda”). Gdy otwarte jest tylko coś podobnego (literówka, inna nazwa), pyta po swojemu, czy
   o to ci chodziło. Gdy nic nie jest otwarte, proponuje, że to uruchomi (po twoim kliknięciu). Gdy aplikacja ma kilka
-  otwartych okien, pokazuje ich stos na pasku zadań („Firefox ×3”) i każe ci wybrać. Tytuły okien i pasek zadań czyta
-  tylko wtedy, gdy pytasz, na twoim PC, i nigdzie ich nie zapisuje.
+  otwartych okien, pokazuje ich stos na pasku zadań („Firefox ×3”) i daje przycisk dla każdego okna, z jego tytułem.
+  Słowo z tytułu jednego okna („gdzie jest YouTube?”) znajduje tylko to okno. Okno albo przycisk na pasku innego
+  ekranu: najpierw tam przechodzi. Odpowiada tym, co znalazła, a nie zgadywaniem swojego AI. Tytuły okien i pasek
+  zadań czyta tylko wtedy, gdy pytasz, na twoim PC, i nigdzie ich nie zapisuje.
 - **Raport z misji** przychodzi na telefon, gdy cię nie ma, a jej bot jest sparowany.
 - **Jej menu** (prawy klik na niej albo na jej ikonie w zasobniku) jest ułożone jak Mainframe. Na górze to, po co
   sięgasz: pogadaj z nią, schowaj ją, Mainframe. Niżej jej części, nazwane jak zakładki Mainframe (HOLO, NETWATCH,

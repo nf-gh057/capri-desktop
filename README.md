@@ -178,8 +178,10 @@ and her chat on Telegram locks when you're back at any of them.
   "bloc-notes" and "блокнот" all find Notepad, "browser" finds any browser), and in Polish with their endings
   ("okno discorda"). When only something close is open (a typo, another name), she asks in her way whether that's the
   one you meant. When nothing is open, she offers to start it (on your click). When the app has several windows open,
-  she points at its stack on the taskbar ("Firefox ×3") and lets you take your pick. Window titles and the taskbar
-  are only read when you ask, on your PC, and never kept.
+  she points at its stack on the taskbar ("Firefox ×3") and gives you a button for each window, by its title. A word
+  of one window's title ("where's YouTube?") finds just that window. A window or taskbar button on another screen:
+  she goes there first. Her answer is what she found, not her AI's guess. Window titles and the taskbar are only read
+  when you ask, on your PC, and never kept.
 - **Her mission report** goes to your phone when you're away and her bot is paired.
 - **Her menu** (right-click her, or her tray icon) is laid out like Mainframe. On top is what you reach for: talk to
   her, put her away, Mainframe. Then come her parts, named like Mainframe's tabs (HOLO, NETWATCH, ENGRAMS, RELIC,
