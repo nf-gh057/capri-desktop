@@ -123,6 +123,50 @@ function saveMemory(patch) {
     console.error('[capri] could not save her memory:', err.message);
   }
 }
+// What she said to you on this PC (her panel: Claude, Codex, reminders, your PC…; not her little lines
+// from her animations, app.js leaves those out), for Mainframe's HOLO next to her chat: the newest ones,
+// across restarts. [{ kind, badge, line, tag, quote, at }]
+const HOLO_KEEP = 300;
+const holoFile = () => path.join(app.getPath('userData'), 'holo.json');
+let holoFeed = null;
+let holoSaving = 0;
+function holoLines() {
+  if (!holoFeed) {
+    try {
+      holoFeed = JSON.parse(fs.readFileSync(holoFile(), 'utf8'));
+      if (!Array.isArray(holoFeed)) holoFeed = [];
+    } catch {
+      holoFeed = [];
+    }
+  }
+  return holoFeed;
+}
+function holoAdd(entry) {
+  holoFeed = [...holoLines(), entry].slice(-HOLO_KEEP);
+  clearTimeout(holoSaving);
+  holoSaving = setTimeout(() => {
+    try {
+      fs.writeFileSync(holoFile(), JSON.stringify(holoFeed));
+    } catch {} // kept for this run only
+  }, 2000);
+  mainframe?.refresh();
+}
+// Your message typed in Mainframe's HOLO, being answered (chat.js fromDesk): { id, text, answer }
+let deskTurn = null;
+const DESK_ANSWER_MS = 6 * 60 * 1000;
+function deskSend(text) {
+  if (deskTurn || !overlay || typeof text !== 'string' || !text.trim()) return;
+  const id = `desk-${randomUUID()}`;
+  deskTurn = { id, text: text.trim().slice(0, 4000), answer: '' };
+  overlay.webContents.send('desk:chat', { id, text: deskTurn.text });
+  setTimeout(() => {
+    if (deskTurn?.id !== id) return;
+    chats.get(id)?.abort();
+    deskTurn = null;
+    mainframe?.refresh();
+  }, DESK_ANSWER_MS);
+}
+
 function forgetChats() {
   llm.resetAgents();
   saveMemory({ history: [], claude: null, codex: null });
@@ -748,6 +792,12 @@ function mainframeState() {
       open: phoneOpen ? t.phoneOpenUntil(phoneTime(phoneOpen.until, cfg)) : null,
     },
     update: updateState(cfg, t),
+    // HOLO: her chat (as on all your PCs) and what she said on this one, and your message being answered
+    holo: {
+      chat: (readMemory().history || []).slice(-150).map(({ role, content, at }) => ({ role, content: String(content), at: at || 0 })),
+      lines: holoLines().slice(-150),
+      turn: deskTurn && { text: deskTurn.text, answer: deskTurn.answer },
+    },
     swarm: {
       on: Boolean(cfg.swarmOn),
       name: hiveName(cfg),
@@ -805,6 +855,7 @@ async function mainframeAct(name, value) {
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
     case 'cancelReminder': cancelReminder(value); break;
     case 'forgetMemory': forgetMemory(value); break;
+    case 'holoSend': deskSend(value); break;
     case 'rest': if (one(['corner', 'taskbar'])) updateConfig({ rest: value }); break;
     case 'stowKey': if (value === null || STOW_KEYS.includes(value) || value === config.load().stowKey) setStowKey(value); break;
     case 'stowKeyCustom': sendCommand('stowKey'); break;
@@ -1429,6 +1480,7 @@ function registerIpc() {
       const send = (text) => {
         streamed = true;
         overlay?.webContents.send('chat:delta', { id, text });
+        if (deskTurn?.id === id) mainframe?.stream({ answer: (deskTurn.answer += text) }); // typed in Mainframe: shown there as it comes
       };
       if (local) {
         if (local !== (await localModel())) return { ok: false, error: 'no local model', code: 'offline' };
@@ -1490,6 +1542,7 @@ function registerIpc() {
     if (!Array.isArray(history)) return;
     saveMemory({ history });
     mindCapture();
+    mainframe?.refresh(); // HOLO shows her chat too
   });
   ipcMain.on('chat:ollama', () => shell.openExternal(OLLAMA_SITE));
   // something worth telling you about (brain.js), sent to your phone only while you're away
@@ -1498,6 +1551,19 @@ function registerIpc() {
     return phoneNote({ line: text('line'), project: text('project'), quote: text('quote') });
   });
   // her answer to a message from your phone (chat.js fromPhone)
+  // her answer to what you typed in Mainframe (chat.js fromDesk): her conversation already has it
+  ipcMain.on('desk:answer', (_e, answer) => {
+    if (deskTurn?.id !== answer?.id) return;
+    deskTurn = null;
+    if (!answer.ok) holoAdd({ kind: 'error', badge: '', line: String(answer.error || '…').slice(0, 500), tag: '', quote: '', at: Date.now() });
+    else mainframe?.refresh();
+  });
+  // something she said in her panel (app.js), for HOLO
+  ipcMain.on('holo:line', (_e, said) => {
+    const text = (key, max) => (typeof said?.[key] === 'string' ? said[key].slice(0, max) : '');
+    if (!text('line', 2000)) return;
+    holoAdd({ kind: text('kind', 20), badge: text('badge', 30), line: text('line', 2000), tag: text('tag', 80), quote: text('quote', 600), at: Date.now() });
+  });
   ipcMain.on('phone:answer', (_e, answer) => {
     const done = phoneTurns.get(answer?.id);
     if (done) done({ ok: Boolean(answer.ok), text: String(answer.text || ''), error: String(answer.error || '') });
@@ -1989,6 +2055,7 @@ function mindApply(keys, peer) {
     if (keys.includes('forgot')) llm.resetAgents(); // "forget" on another PC: the agents' conversations too
     saveMemory({ history });
     overlay?.webContents.send('chat:history', history);
+    mainframe?.refresh();
   }
   mindNoteNews(cfg, patch);
   if (Object.keys(patch).length) {

@@ -83,7 +83,12 @@ function createMainframe({ root, display, state, act, bounds }) {
     if (win && !win.isDestroyed()) win.webContents.send('mainframe:state', state());
   }
 
-  return { open, refresh, window: () => win };
+  // her answer in HOLO as it comes, piece by piece (without drawing everything again)
+  function stream(payload) {
+    if (win && !win.isDestroyed()) win.webContents.send('mainframe:stream', payload);
+  }
+
+  return { open, refresh, stream, window: () => win };
 }
 
 module.exports = { createMainframe };

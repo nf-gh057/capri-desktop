@@ -55,11 +55,11 @@ Wspólne dla wszystkich etapów:
 
 ## Do zrobienia
 
-- Okno czatu na pulpicie, zsynchronizowane z czatem Capri (ta sama rozmowa w obu miejscach).
+- [x] Okno czatu na pulpicie, zsynchronizowane z czatem Capri (ta sama rozmowa w obu miejscach) (zrobione w 0.4.4-24: Mainframe › HOLO).
 - Rozwinięcie czatu w stronę prawdziwej rozmowy: Capri sama wtrąca komentarze do twoich poleceń i do pracy Claude/Codexa
   także później, nie tylko zaraz po poleceniu (np. gdy agent kończy etap, długo coś robi albo coś się nie udaje),
   wraca do wcześniejszych wątków i zagaduje sama, bez czekania na twoją wiadomość.
-- [x] Przerobienie okna Mainframe (zrobione w 0.4.4-23: zakładki w stylu menu z gry, okno ze zmianą rozmiaru).
+- [x] Przerobienie okna Mainframe (zrobione w 0.4.4-23 i 0.4.4-24: zakładki u góry w stylu menu z gry, okno ze zmianą rozmiaru, HOLO).
 - Ograniczenie menu pod prawym przyciskiem myszy.
 - Głos klonowany z postaci z anime albo z własnego nagrania.
 - Zróżnicowane komentarze Capri do podejmowanych akcji (mniej powtórzeń tych samych tekstów).
@@ -78,3 +78,5 @@ Wspólne dla wszystkich etapów:
   (dziś: `origin` klonu, ustawiany przez `install.ps1 -Repo`).
 - Aktualizacje: Capri z instalatora oryginalnego projektu (`Capri-Setup-x.y.z.exe`, nie klon gita) tylko informuje
   o nowej wersji i odsyła do strony Releases.
+- Animacje: Capri trzyma się szczytu okna, niby wisząc przy ścianie (rękami za górną krawędź, ciało zwisa wzdłuż
+  boku okna). Prace nad pozami na gałęzi `anim/poses`.

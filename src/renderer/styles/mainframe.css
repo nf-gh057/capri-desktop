@@ -206,60 +206,52 @@ body {
   padding: 18px 22px 0;
 }
 
-/* the tabs down the left, like her game's contacts: outlined red, the open one lit */
+/* the tabs along the top, like her game's menus: a small square and the name, the open one lit */
 .tabs {
-  flex: none;
-  width: 250px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  scrollbar-width: none;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--line);
 }
 .tab {
-  position: relative;
-  display: grid;
-  gap: 2px;
-  padding: 9px 14px 9px 16px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--red-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid transparent;
   background: transparent;
-  color: var(--red);
-  text-align: left;
+  color: var(--red-dim);
+  font: 700 13px/1 var(--font-display);
+  letter-spacing: 0.1em;
   cursor: pointer;
   clip-path: var(--cut);
 }
+.tab__mark {
+  width: 9px;
+  height: 9px;
+  border: 1px solid currentColor;
+  transform: rotate(45deg);
+}
 .tab:hover {
-  border-color: var(--red-dim);
+  color: var(--red);
   background: var(--red-wash);
 }
 .tab.is-on {
   border-color: var(--red);
-  background: linear-gradient(90deg, rgba(255, 95, 86, 0.28), rgba(255, 95, 86, 0.08));
+  background: linear-gradient(180deg, rgba(255, 95, 86, 0.24), rgba(255, 95, 86, 0.06));
+  color: var(--red);
 }
-.tab__name {
-  font: 700 14px/1.15 var(--font-display);
-  letter-spacing: 0.06em;
-}
-.tab__plain {
-  color: var(--text-2);
-  font: 11px/1.3 var(--font-mono);
-}
-.tab.is-on .tab__plain {
-  color: var(--text);
-}
-.tab__tip {
-  display: none;
-  margin-top: 4px;
-  color: var(--yellow);
-  font: 11px/1.35 var(--font-mono);
+.tab.is-on .tab__mark {
+  background: var(--red);
 }
 .tab:focus-visible {
   outline: 1px solid var(--cyan);
   outline-offset: 2px;
 }
 
-/* the open tab: its name, its plain name, and its cards */
+/* the open tab: its name and plain name, and its cards */
 .pane {
   flex: 1;
   min-width: 0;
@@ -267,34 +259,48 @@ body {
   flex-direction: column;
 }
 .pane__head {
-  padding: 0 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 0 0 10px;
   border-bottom: 1px solid var(--line);
 }
 .pane__name {
   margin: 0;
   color: var(--red);
-  font: 700 22px/1.1 var(--font-display);
-  letter-spacing: 0.08em;
+  font: 700 18px/1.1 var(--font-display);
+  letter-spacing: 0.1em;
 }
 .pane__plain {
-  margin: 4px 0 0;
   color: var(--text-2);
 }
-/* what it's for: in a yellow box, like a message in her game */
-.pane__tip {
-  display: none;
-  max-width: 720px;
-  margin: 10px 0 0;
+/* "?": every tab and what it's for, in yellow boxes like a message in her game */
+.legend {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.legend__item {
+  display: grid;
+  gap: 4px;
   padding: 10px 14px;
   border: 1px solid var(--yellow);
   background: rgba(242, 231, 80, 0.05);
   color: var(--yellow);
-  line-height: 1.5;
+  font: 12px/1.45 var(--font-mono);
+  text-align: left;
+  cursor: pointer;
   clip-path: var(--cut);
 }
-.is-help .pane__tip,
-.is-help .tab__tip {
-  display: block;
+.legend__item:hover {
+  background: rgba(242, 231, 80, 0.12);
+}
+.legend__name {
+  font: 700 12px/1.2 var(--font-display);
+  letter-spacing: 0.08em;
 }
 
 .cards {
@@ -302,7 +308,7 @@ body {
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   align-content: start;
   align-items: start;
   gap: 16px;
@@ -328,22 +334,15 @@ body {
   text-transform: uppercase;
 }
 /* the line along its cut corner (the border stops where the corner is cut) */
-.card::after,
-.tab::after {
+.card::after {
   content: '';
   position: absolute;
   top: 5px;
   right: -3px;
   width: 17px;
   height: 2px;
-  background: var(--line);
-  transform: rotate(45deg);
-}
-.card::after {
   background: var(--red-dim);
-}
-.tab.is-on::after {
-  background: var(--red);
+  transform: rotate(45deg);
 }
 .headline {
   margin: 0 0 4px;
@@ -585,15 +584,166 @@ body {
   display: none;
 }
 
-/* narrow: the tabs shrink to their names */
+/* HOLO, like her game's messages: who's there on the left, the conversation on the right */
+.cards.is-holo {
+  display: block;
+  overflow: hidden;
+  padding: 16px 0 16px;
+}
+.holo {
+  height: 100%;
+  display: flex;
+  gap: 22px;
+}
+.holo__list {
+  flex: none;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.contact {
+  display: grid;
+  gap: 3px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red-dim);
+  background: transparent;
+  color: var(--red);
+  text-align: left;
+  cursor: pointer;
+  clip-path: var(--cut);
+}
+.contact:hover {
+  background: var(--red-wash);
+}
+.contact.is-on {
+  border-color: var(--red);
+  background: linear-gradient(90deg, rgba(255, 95, 86, 0.28), rgba(255, 95, 86, 0.08));
+}
+.contact__name {
+  font: 700 14px/1.1 var(--font-display);
+  letter-spacing: 0.08em;
+}
+.contact__plain {
+  color: var(--text-2);
+  font: 11px/1.3 var(--font-mono);
+}
+.contact.is-on .contact__plain {
+  color: var(--text);
+}
+.holo__cards {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  align-content: start;
+  align-items: start;
+  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--red-dim) transparent;
+}
+.holo__talk {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 8px 12px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--red-dim) transparent;
+  user-select: text;
+}
+.log__empty {
+  margin: auto;
+}
+/* one message: hers in yellow on the left, yours in cyan on the right */
+.msg {
+  max-width: min(640px, 78%);
+  padding: 10px 14px 8px;
+  border: 1px solid var(--yellow);
+  background: rgba(242, 231, 80, 0.05);
+  color: var(--yellow);
+  clip-path: var(--cut);
+}
+.msg--you {
+  align-self: flex-end;
+  border-color: var(--cyan);
+  background: var(--cyan-wash);
+  color: var(--cyan);
+}
+.msg__text {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* what else she said (Claude, Codex, a reminder…): a dimmer box, its kind and project on top */
+.msg--line {
+  border-color: rgba(242, 231, 80, 0.45);
+  background: transparent;
+}
+.msg--line.is-error {
+  border-color: var(--red);
+  color: var(--red);
+}
+.msg__head {
+  margin: 0 0 4px;
+  color: var(--text-2);
+  font: 600 10px/1.2 var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.msg__quote {
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid currentColor;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg__at {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: 10px;
+  text-align: right;
+}
+.msg.is-streaming {
+  border-style: dashed;
+}
+.reply__label {
+  margin: 10px 0 6px;
+  color: var(--red);
+  font: 700 11px/1 var(--font-display);
+  letter-spacing: 0.12em;
+}
+.reply {
+  display: flex;
+  gap: 8px;
+}
+.reply .input:disabled {
+  opacity: 0.5;
+}
+
+/* narrow: less of what's around */
 @media (max-width: 820px) {
-  .tabs {
-    width: 190px;
-  }
-  .tab__plain {
+  .stat__label,
+  .top__title {
     display: none;
   }
-  .stat__label {
+  .holo__list {
+    width: 150px;
+  }
+  .contact__plain {
     display: none;
   }
 }

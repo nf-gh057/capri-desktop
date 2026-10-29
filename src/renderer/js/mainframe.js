@@ -1,17 +1,18 @@
-// Her settings window, "Mainframe": her tray menu's choices on tabs, like her game's menus, drawn
-// again from what main.js sends (main/main.js mainframeState) each time anything changes, here or
-// elsewhere. Each tab has a name from her world and a plain one under it; what it's for shows on a
-// hover, and on all of them at once with "?" (bottom right) or F1.
+// Her settings window, "Mainframe": her chat and her tray menu's choices on tabs along the top, like
+// her game's menus, drawn again from what main.js sends (main/main.js mainframeState) each time
+// anything changes, here or elsewhere. Each tab has a name from her world and a plain one; what it's
+// for shows on a hover, and for all of them with "?" (bottom right) or F1.
 
 const host = window.mainframe;
 const sections = document.getElementById('sections');
 const TABS = [
-  ['core', 'NEURAL CORE'], ['gateway', 'BLACKWALL GATEWAY'], ['engrams', 'ENGRAMS'], ['cyberware', 'CYBERWARE'],
-  ['netwatch', 'NETWATCH'], ['holo', 'HOLO'], ['subnet', 'SUBNET'], ['ripperdoc', 'RIPPERDOC'], ['cyberdeck', 'CYBERDECK'],
+  ['holo', 'HOLO'], ['core', 'NEURAL CORE'], ['netwatch', 'NETWATCH'], ['engrams', 'ENGRAMS'], ['relic', 'RELIC'], ['cyberdeck', 'CYBERDECK'],
 ];
 let state = null;
-let tab = remembered() || 'core';
+let tab = remembered() || 'holo';
 let help = false;
+let holoView = 'capri'; // HOLO: her chat ('capri'), or your phone ('phone')
+let stick = true;       // her chat is scrolled to its newest message: it stays there as more come
 
 // the tab you were on, the next time it opens (this window's own storage; none, and it's the first)
 function remembered() {
@@ -56,7 +57,7 @@ const select = (items, picked, name, extra = {}) => el('select', {
   onchange: (e) => act(name, e.target.value === '' ? null : e.target.value),
 }, items.map(({ id, label }) => el('option', { value: id ?? '', selected: id === picked }, label)));
 
-const check = (label, checked, name) => el('label', { class: 'check' },
+const check = (label, checked, name, tip) => el('label', { class: 'check', 'data-tip': tip },
   el('input', { type: 'checkbox', checked, onchange: (e) => act(name, e.target.checked) }),
   el('span'),
   label);
@@ -105,7 +106,8 @@ function brain(s, t) {
     el('div', { class: 'split' }, button(t.aiSetup, 'aiSetup'), button(t.apiKey, 'apiKey')));
 }
 
-// Claude Code or Codex in her chat: where it works, what it may do, and her own powers with it
+// Claude Code or Codex in her chat: where it works, what it may do, and her own powers with it (the
+// Blackwall Gateway: what it is, on a hover)
 function gateway(s, t) {
   const a = s.brain.agent;
   if (!a) return section(t.secAgent, el('p', { class: 'note' }, t.gatewayNone));
@@ -114,7 +116,7 @@ function gateway(s, t) {
     row(t.permissions, select(a.modes, a.mode, 'mode', { label: t.permissions })),
     a.effort && row(t.effort, choice('trio grow', a.efforts.map(({ id, label }) => [id, label]), a.effort, 'effort')),
     row(null, button(a.cwd, 'folder', null, { class: 'grow' })),
-    check(t.agentPowers, a.powers, 'agentPowers'));
+    check('Blackwall Gateway', a.powers, 'agentPowers', t.agentPowers));
 }
 
 // who she is, what she remembers and the reminders she keeps
@@ -320,8 +322,73 @@ function system(s, t) {
     el('div', { class: 'footer' }, button(t.help, 'help'), button(t.quit, 'quit', null, { class: 'is-danger' })));
 }
 
+// HOLO, like her game's messages: who's there down the left (her, your phone), the conversation on the
+// right: her chat and everything else she said, her in yellow on the left, you in cyan on the right
+const unTagged = (text) => String(text).replace(/\[\[[^\]]*\]\]/g, '').trim(); // [[open: …]], as her chat hides them
+
+function when(at) {
+  const d = new Date(at);
+  const today = d.toDateString() === new Date().toDateString();
+  return new Intl.DateTimeFormat(state.lang, today ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
+}
+
+function message(m) {
+  if (m.role === 'user') return el('div', { class: 'msg msg--you' }, el('p', { class: 'msg__text' }, m.content), el('span', { class: 'msg__at' }, when(m.at)));
+  if (m.role === 'assistant') return el('div', { class: 'msg msg--her' }, el('p', { class: 'msg__text' }, unTagged(m.content)), el('span', { class: 'msg__at' }, when(m.at)));
+  return el('div', { class: `msg msg--her msg--line is-${m.kind || 'info'}` },
+    (m.badge || m.tag) && el('p', { class: 'msg__head' }, [m.badge, m.tag].filter(Boolean).join(' · ')),
+    el('p', { class: 'msg__text' }, m.line),
+    m.quote && el('p', { class: 'msg__quote' }, m.quote),
+    el('span', { class: 'msg__at' }, when(m.at)));
+}
+
+function holo(s, t) {
+  const h = s.holo;
+  const contact = (id, name, plain) => el('button', {
+    type: 'button', class: `contact ${holoView === id ? 'is-on' : ''}`, onclick: () => { holoView = id; stick = true; draw(state); },
+  }, el('span', { class: 'contact__name' }, name), el('span', { class: 'contact__plain' }, plain));
+  const list = el('div', { class: 'holo__list' },
+    contact('capri', 'CAPRI', t.holoCapri),
+    contact('phone', 'TELEGRAM', t.holoPhone));
+  if (holoView === 'phone') return el('div', { class: 'holo' }, list, el('div', { class: 'holo__cards' }, [phone(s, t)].flat()));
+  // your message being answered, until it's in her chat with her answer
+  const last = h.chat.at(-2);
+  const pending = h.turn && !(last?.role === 'user' && last.content === h.turn.text && h.chat.at(-1)?.role === 'assistant');
+  const all = [...h.chat, ...h.lines].sort((a, b) => a.at - b.at);
+  const log = el('div', { class: 'log', id: 'log' },
+    !all.length && !pending && el('p', { class: 'note log__empty' }, t.holoEmpty),
+    all.map(message),
+    pending && [
+      el('div', { class: 'msg msg--you' }, el('p', { class: 'msg__text' }, h.turn.text)),
+      el('div', { class: 'msg msg--her is-streaming' }, el('p', { class: 'msg__text' }, unTagged(h.turn.answer) || '…')),
+    ]);
+  log.addEventListener('scroll', () => { stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30; });
+  const input = el('input', {
+    type: 'text', class: 'input grow', placeholder: t.holoPlaceholder, 'aria-label': t.holoPlaceholder,
+    autocomplete: 'off', spellcheck: true, 'data-keep': 'holo', disabled: Boolean(h.turn),
+  });
+  const go = () => {
+    const text = input.value.trim();
+    if (!text || state.holo.turn) return;
+    input.value = '';
+    stick = true;
+    act('holoSend', text);
+  };
+  input.addEventListener('keydown', (e) => e.key === 'Enter' && go());
+  return el('div', { class: 'holo' }, list,
+    el('div', { class: 'holo__talk' },
+      log,
+      el('p', { class: 'reply__label' }, t.holoReply),
+      el('div', { class: 'reply' }, input, el('button', { type: 'button', class: 'button is-on', disabled: Boolean(h.turn), onclick: go }, t.holoSend))));
+}
+
 const PAGES = {
-  core: brain, gateway, engrams, cyberware, netwatch: watch, holo: phone, subnet: swarm, ripperdoc: updates, cyberdeck: system,
+  holo,
+  core: brain,
+  netwatch: (s, t) => [watch(s, t), gateway(s, t)],
+  engrams,
+  relic: (s, t) => [cyberware(s, t), swarm(s, t)].flat(),
+  cyberdeck: (s, t) => [system(s, t), updates(s, t)],
 };
 
 // her level, her sync and your days together, like a game's level and street cred
@@ -334,15 +401,20 @@ function stats(s, t) {
   ];
 }
 
-// the tabs, down the left like her game's contacts: a name from her world, a plain one under it
+// the tabs along the top, like her game's menus: a name from her world (its plain name, and what it's
+// for, on a hover)
 function tabs(s) {
-  return TABS.map(([id, name]) => {
-    const [plain, tip] = s.tabs[id];
-    return el('button', {
-      type: 'button', class: `tab ${id === tab ? 'is-on' : ''}`, 'data-tab': id, 'data-tip': tip,
-      onclick: () => show(id),
-    }, el('span', { class: 'tab__name' }, name), el('span', { class: 'tab__plain' }, plain), el('span', { class: 'tab__tip' }, tip));
-  });
+  return TABS.map(([id, name]) => el('button', {
+    type: 'button', class: `tab ${id === tab ? 'is-on' : ''}`, 'data-tab': id, 'data-tip': `${s.tabs[id][0]}: ${s.tabs[id][1]}`,
+    onclick: () => show(id),
+  }, el('span', { class: 'tab__mark' }), name));
+}
+
+// "?": every tab and what it's for, to go to one
+function legend(s) {
+  return el('div', { class: 'legend' }, TABS.map(([id, name]) => el('button', {
+    type: 'button', class: 'legend__item', onclick: () => { help = false; tab === id ? draw(state) : show(id); },
+  }, el('span', { class: 'legend__name' }, `${name} · ${s.tabs[id][0]}`), el('span', { class: 'legend__tip' }, s.tabs[id][1]))));
 }
 
 function show(id) {
@@ -364,14 +436,15 @@ function draw(next) {
   document.getElementById('build').replaceChildren(
     el('span', { class: 'build__brain' }, brainName(state.brain)), el('span', { class: 'build__version' }, `v${state.version}`));
   document.getElementById('tabs').replaceChildren(...tabs(state));
-  const [plain, tip] = state.tabs[tab];
   document.getElementById('head').replaceChildren(
     el('h2', { class: 'pane__name' }, TABS.find(([id]) => id === tab)[1]),
-    el('p', { class: 'pane__plain' }, plain),
-    el('p', { class: 'pane__tip' }, tip));
+    el('span', { class: 'pane__plain' }, state.tabs[tab][0]),
+    help ? legend(state) : '');
   document.getElementById('helpLabel').textContent = t.helpTips;
   const top = sections.scrollTop; // drawn again in place, not back at the top
+  const logTop = document.getElementById('log')?.scrollTop ?? 0;
   const typed = [...sections.querySelectorAll('[data-keep]')].map((input) => [input.dataset.keep, input.value, input === document.activeElement]);
+  sections.classList.toggle('is-holo', tab === 'holo');
   sections.replaceChildren(...[PAGES[tab](state, t)].flat());
   for (const [keep, value, focused] of typed) {
     const input = sections.querySelector(`[data-keep="${keep}"]`);
@@ -380,9 +453,23 @@ function draw(next) {
     if (focused) input.focus();
   }
   sections.scrollTop = top;
+  const log = document.getElementById('log');
+  if (log) log.scrollTop = stick ? log.scrollHeight : logTop;
+  if (log && !state.holo.turn && document.activeElement === document.body) sections.querySelector('[data-keep="holo"]')?.focus();
 }
 
-// what a tab is for: by the pointer, while it's on it
+// her answer to what you typed in HOLO, as it comes
+host.onStream(({ answer }) => {
+  if (!state?.holo?.turn) return;
+  state.holo.turn.answer = answer;
+  const text = document.querySelector('.msg.is-streaming .msg__text');
+  if (!text) return;
+  text.textContent = unTagged(answer) || '…';
+  const log = document.getElementById('log');
+  if (stick) log.scrollTop = log.scrollHeight;
+});
+
+// what a tab (or the Blackwall Gateway) is for: by the pointer, while it's on it
 const tip = document.getElementById('tip');
 let tipFor = null;
 document.addEventListener('mouseover', (e) => {
@@ -395,9 +482,10 @@ document.addEventListener('mouseover', (e) => {
   }
   tip.textContent = target.dataset.tip;
   tip.hidden = false;
+  // under it, in the window
   const box = target.getBoundingClientRect();
-  tip.style.left = `${Math.round(box.right + 10)}px`;
-  tip.style.top = `${Math.round(Math.max(8, Math.min(box.top, innerHeight - tip.offsetHeight - 8)))}px`; // in the window
+  tip.style.left = `${Math.round(Math.max(8, Math.min(box.left, innerWidth - tip.offsetWidth - 8)))}px`;
+  tip.style.top = `${Math.round(box.bottom + 8)}px`;
 });
 
 function toggleHelp() {

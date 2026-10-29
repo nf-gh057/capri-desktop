@@ -12,6 +12,11 @@ contextBridge.exposeInMainWorld('mainframe', {
     ipcRenderer.on('mainframe:state', listener);
     return () => ipcRenderer.removeListener('mainframe:state', listener);
   },
+  onStream: (fn) => {
+    const listener = (_e, payload) => fn(payload);
+    ipcRenderer.on('mainframe:stream', listener);
+    return () => ipcRenderer.removeListener('mainframe:stream', listener);
+  },
   minimize: () => ipcRenderer.send('mainframe:window', 'minimize'),
   close: () => ipcRenderer.send('mainframe:window', 'close'),
 });

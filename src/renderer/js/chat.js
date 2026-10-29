@@ -426,6 +426,41 @@ export class Chat {
     return { ok: true, text: said };
   }
 
+  // A message typed in Mainframe's HOLO (main.js streams her answer there): the same conversation and
+  // memory, at your PC, so what you ask plainly (a reminder, the music, an app you named) happens and
+  // her line about it follows her answer. What only her AI asked for (a button here) stays undone.
+  async fromDesk(id, text) {
+    while (this.turn) await new Promise((resolve) => setTimeout(resolve, 500)); // what you typed here first
+    const status = await this.host.chatStatus().catch(() => ({ ok: false, error: 'offline' }));
+    if (!status.ok) return { ok: false, error: status.error === 'offline' ? this.t.offline : status.error || '…' };
+    if (!this.open) this.history = await this.host.chatMemory().catch(() => this.history);
+    const { agent, agentName, powersOn } = this;
+    this.agent = Boolean(status.agent);
+    this.agentName = status.provider === 'codex' ? 'Codex' : 'Claude Code';
+    this.powersOn = status.powers !== false;
+    this.history.push(note('user', text));
+    this.capri.pulse();
+    this.onMessage?.();
+    this.bond?.heard(text);
+    const asked = this.asked(text);
+    const early = asked && !['close', 'look'].includes(asked.kind) ? this.doNow(asked).catch(() => null) : null;
+    let res = await this.host.chatSend({ id, messages: this.messages() });
+    if (!res.ok && res.code === 'offline' && res.local) {
+      this.agent = false;
+      res = await this.host.chatSend({ id, messages: this.messages(REMEMBER_LOCAL), local: res.local });
+    }
+    Object.assign(this, { agent, agentName, powersOn });
+    if (!res.ok) {
+      if (this.history.at(-1)?.content === text) this.history.pop();
+      return { ok: false, error: res.code === 'offline' ? this.t.offline : res.code === 'busy' ? this.t.swamped : res.error || '…' };
+    }
+    const done = await early;
+    const said = clean(res.text) || '…';
+    this.warm = true;
+    this.remember({ role: 'assistant', content: done?.line ? `${said}\n${done.line}` : said });
+    return { ok: true, text: said };
+  }
+
   // "Look at my screen" in her chat: she looks (asking you first, the first time) and answers here,
   // the conversation so far in mind.
   async sendLook(text, id) {

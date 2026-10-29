@@ -12,8 +12,9 @@ glitches, comments on every action, comes to find you when it needs your permiss
 > - **Codex as her brain**: her chat can run on Codex (your ChatGPT plan) through one `codex app-server` that stays
 >   up, her words streaming in as they come, with how long Codex thinks (low, medium, high) picked in Mainframe.
 >   With Claude Code or Codex answering, her own powers (apps, sites, music, files) are yours to turn on or off.
-> - **Mainframe**, her settings window: everything in her menu, and what's only set up there (her phone, what her chat
->   shows), on tabs in a window like her game's menus, to resize or maximize. Right-click her › **Settings…**.
+> - **Mainframe**, her window like her game's menus, to resize or maximize: her chat with everything else she told you
+>   (HOLO), everything in her menu, and what's only set up there (her phone, what her chat shows). Right-click her ›
+>   **Settings…**.
 > - **Messages to your phone** through a Telegram bot of your own: when Claude or Codex needs you, finishes or crashes
 >   while you're away from the PC, and her evening report. See "What leaves your machine".
 > - **Her chat on Telegram**: the same conversation and memory from your phone, unlocked with the code from your
@@ -26,7 +27,7 @@ glitches, comments on every action, comes to find you when it needs your permiss
 > - **A one-line installer** for Windows that also puts in what's missing (winget included): see "Install".
 > - **Versions** `x.y.z-n`: mochiiwuff's version, then which of this fork's commits on top of it (`0.4.4-2`).
 > - **Her own updates**: installed with the script, she looks for a new version on GitHub, tells you, and updates
->   herself on your click (Mainframe › RIPPERDOC), or while you're away if you say so.
+>   herself on your click (Mainframe › CYBERDECK), or while you're away if you say so.
 
 ![Capri telling you Claude is done](docs/done.png)
 
@@ -330,7 +331,7 @@ It puts in what she needs and then Capri herself, asking about the optional part
 - **Capri** from this fork in `%LOCALAPPDATA%\Capri\capri-desktop`, with a Start menu and desktop shortcut, then she
   starts.
 
-Run it again to bring her up to date, or let her do it: Mainframe › **RIPPERDOC** shows a new version on GitHub, what
+Run it again to bring her up to date, or let her do it: Mainframe › **CYBERDECK** shows a new version on GitHub, what
 changed, and **Update and restart** (she looks a minute after starting and every 6 hours, and tells you once). Only a
 fast-forward of her branch: changes of yours in her folder, or commits GitHub doesn't have, and she leaves it to you.
 Her packages are installed again only when they changed, by a small helper once she's closed (her own Electron is among
@@ -348,23 +349,20 @@ Then:
    something, she tells you **"I can see Claude!"**: that's how you know it worked.
 3. Everything else is in **Mainframe** (right-click her › **Settings…**): her AI, Codex, her phone, what her chat shows.
 
-   Its tabs, down the left, have names from her world, with a plain one under each; a hover on a tab says what it's
-   for, and **?** at the bottom right (or F1) shows it for all of them:
+   Its tabs, along the top, have names from her world; a hover on a tab says what it's for, and **?** at the bottom
+   right (or F1) shows it for all of them:
 
    | Tab | What's in it |
    |---|---|
+   | **HOLO** | Like her game's messages: her chat (the same conversation as in her panel, to write to her from here too), with everything else she told you on this PC (Claude, Codex, reminders, your PC), but not her little lines from her animations (the star, the satellite, being thrown around); and **TELEGRAM**, your phone |
    | **NEURAL CORE** | Who answers her chat (a model on your PC, online, or Claude Code / Codex), what her chat shows |
-   | **BLACKWALL GATEWAY** | Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, her powers with it |
+   | **NETWATCH** | The assistant she watches in your terminal and its hooks; Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**: her own powers with it (apps, sites, music) |
    | **ENGRAMS** | Your bond, her persona, her reminders, what she remembers (and on which PC) |
-   | **CYBERWARE** | Her size, where she rests, her screen, her key, and how she acts |
-   | **NETWATCH** | The assistant she watches in your terminal, and its hooks |
-   | **HOLO** | Her messages and her chat on your phone (Telegram) |
-   | **SUBNET** | Her swarm: one Capri on all your PCs (Tailscale) |
-   | **RIPPERDOC** | Her updates |
-   | **CYBERDECK** | Language, animations, display, menu, starting with Windows, help, quit |
+   | **RELIC** | Her body (her size, where she rests, her screen, her key, how she acts) and her swarm: one Capri on all your PCs (Tailscale) |
+   | **CYBERDECK** | Language, animations, display, menu, starting with Windows, her updates, help, quit |
 
    At the top, like a game's level and street cred: her level, her sync with you and your days together; at the
-   right, who answers her chat and her version. The window remembers where you left it, its size, and the tab.
+   right, who answers her chat and her version. The window remembers where you left it, its size, and the tab; what she said for HOLO is kept in `holo.json` (the last 300), on this PC only.
 
 The original's installer (`Capri-Setup-x.y.z.exe`, on [mochiiwuff's releases](https://github.com/mochiiwuff/capri-desktop/releases/latest))
 installs mochiiwuff's Capri, without this fork's additions.
@@ -538,7 +536,7 @@ One Capri on all your PCs: at home, at work, a laptop on mobile data. They link 
 [Tailscale](https://tailscale.com), a private network (WireGuard) where each of your devices keeps one address
 (`100.x.y.z`) whatever network it's on, and gets through home routers and mobile networks by itself. Install it and sign
 in on each PC with the same account (free for personal use; `install.ps1 -Tailscale` puts it in). Then in Mainframe ›
-**SUBNET**, turn it on on each PC: under **Your devices with Capri**, each one lists the others it finds on your
+**RELIC**, turn it on on each PC: under **Your devices with Capri**, each one lists the others it finds on your
 Tailscale network, and **Join** links them, nothing to copy over (Tailscale vouches that both are yours: the same
 account; one on another account is refused there). For a device on another account: **Add a PC** on one, and paste
 the line it shows into **Join** on the other (it works once, for 10 minutes). A PC that joins learns the rest of the
@@ -576,7 +574,7 @@ another PC changes her persona or her memories, she tells you on the PC you're a
 with what changed and **Undo**, which puts it back as it was on all of them. Mainframe › ENGRAMS lists what she remembers
 and which PC it was said on, to forget one by one.
 
-Your phone too: pair the Telegram bot on one PC, and the others send their messages through it (Mainframe › HOLO on
+Your phone too: pair the Telegram bot on one PC, and the others send their messages through it (Mainframe › HOLO › TELEGRAM on
 them says which PC holds it). "Away" then means away from all of them: no message while you're at any of your PCs, and
 her chat on Telegram locks when you're back at any. Two PCs paired with the same bot: one reads it (the bot can only be
 read from one place), the other takes over when it's gone.

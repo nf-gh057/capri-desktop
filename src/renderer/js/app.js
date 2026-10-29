@@ -81,6 +81,20 @@ async function boot() {
     ticker: document.getElementById('ticker'),
     labels: linesFor(config.lang, config.assistant, config.stowKey),
   });
+  // What she says in her panel also goes to Mainframe's HOLO, next to her chat: all of it but her chat
+  // itself (HOLO has it whole) and her little lines from her animations (idle, or `spont`: the
+  // satellite, being thrown around, her showcase)
+  const sayHere = panel.say.bind(panel);
+  panel.say = (msg) => {
+    const shown = sayHere(msg);
+    if (shown && msg.line && !msg.chat && !msg.spont && msg.kind !== 'idle') {
+      host.holoLine({
+        kind: msg.kind, badge: msg.badge || panel.labels.state?.[msg.kind] || '', line: msg.line,
+        tag: typeof msg.tag === 'string' ? msg.tag : '', quote: typeof msg.quote === 'string' ? msg.quote : '',
+      });
+    }
+    return shown;
+  };
 
   const capri = new Capri({
     root: document.getElementById('capri'),
@@ -216,7 +230,7 @@ async function boot() {
   // the red light has gone up (never during, nothing should cover that)
   capri.onGaze = (when) => {
     const lines = when === 'end' ? brain.t.uplink : brain.t.gaze;
-    if (!panel.visible && Math.random() < (when === 'end' ? 0.6 : 0.4)) panel.say({ kind: 'info', line: pick(lines), hold: 3800 });
+    if (!panel.visible && Math.random() < (when === 'end' ? 0.6 : 0.4)) panel.say({ kind: 'info', line: pick(lines), hold: 3800, spont: true });
   };
   panel.onChar = (kind) => voice.play('blip', { mood: kind });
   panel.onTalk = (talking) => talking && capri.perform('talk');
@@ -232,6 +246,11 @@ async function boot() {
   host.onPhoneChat(async ({ id, text }) => {
     const answer = await chat.fromPhone(id, String(text)).catch((err) => ({ ok: false, error: err.message }));
     host.phoneAnswer({ id, ...answer });
+  });
+  // what you type in Mainframe's HOLO: the same conversation, answered there
+  host.onDeskChat(async ({ id, text }) => {
+    const answer = await chat.fromDesk(id, String(text)).catch((err) => ({ ok: false, error: err.message }));
+    host.deskAnswer({ id, ...answer });
   });
   // Getting her chat going with buttons (setup.js): Ollama and a model, a key, or an address
   const setup = new Setup({ guide, panel, host, brain, capri, voice });
@@ -329,7 +348,7 @@ async function boot() {
   capri.onThrown = ({ how, hard = 0 }) => {
     const t = brain.t.thrown;
     if (how === 'leap') {
-      if (Math.random() < 0.4) panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.screens.hello), hold: 3000 });
+      if (Math.random() < 0.4) panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.screens.hello), hold: 3000, spont: true });
       return;
     }
     const now = performance.now();
@@ -365,14 +384,14 @@ async function boot() {
       feel = 'thrown';
     }
     if (feel && bond.feeling !== 'angry') bond.feel(feel);
-    panel.say({ kind: 'info', face, line, hold: 3800 });
+    panel.say({ kind: 'info', face, line, hold: 3800, spont: true });
   };
   // you said sorry in her chat: she lets it go (and lets you pick her up again)
   bond.onCalm = () => {
     jealousy.forgive();
     capri.refuseUntil = 0;
   };
-  capri.onDodge = () => panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.thrown.dodge), hold: 2500 });
+  capri.onDodge = () => panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.thrown.dodge), hold: 2500, spont: true });
 
   // A new stage with you: her minds come out to look at you, and she says so, the sync bar under it.
   // At a quiet moment, so it isn't missed.
@@ -491,7 +510,7 @@ async function boot() {
   const free = () => !capri.busy && !capri.act && capri.stance !== 'fall';
   brain.onShowcase = async () => {
     const t = brain.t.showcase;
-    const caption = (line) => panel.say({ kind: 'info', line, hold: 2200 });
+    const caption = (line) => panel.say({ kind: 'info', line, hold: 2200, spont: true });
     capri.nextMove = capri.nextGaze = performance.now() + 120000; // nothing of her own in between
     if (capri.stowed) await capri.unstow();
     if (capri.dormant) capri.wake();
@@ -553,7 +572,7 @@ async function boot() {
     await wait(3500);
     await capri.unstow();
     await wait(600);
-    panel.say({ kind: 'info', line: t.end, hold: 5000 });
+    panel.say({ kind: 'info', line: t.end, hold: 5000, spont: true });
   };
 
   // what's in here, for --dev scripts (debug route `eval`)

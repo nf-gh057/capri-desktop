@@ -76,6 +76,10 @@ contextBridge.exposeInMainWorld('host', {
   // your messages from her chat on Telegram, and her answers back
   onPhoneChat: on('phone:chat'),
   phoneAnswer: (answer) => ipcRenderer.send('phone:answer', answer),
+  // what you type in Mainframe's HOLO, her answer back, and what she says for it to show
+  onDeskChat: on('desk:chat'),
+  deskAnswer: (answer) => ipcRenderer.send('desk:answer', answer),
+  holoLine: (said) => ipcRenderer.send('holo:line', said),
   mindUndo: (id) => ipcRenderer.invoke('mind:undo', id),
   mindSeen: (id) => ipcRenderer.send('mind:seen', id),
 });
