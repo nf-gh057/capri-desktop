@@ -8,11 +8,13 @@ cut-out's (the shader grades them all the same way afterwards), and it's scaled 
   - standing, so that her eyes are as high above her feet as the cut-out's face is, under it;
   - on a ledge, so that her eyes are as far apart as on `like` (the generator draws her head the
     same size from one picture to the next far more reliably than her body), resting on her seat;
-    or, drawn from another ledge drawing as its in-between (`from`), at that one's scale exactly.
+    or, drawn from another ledge drawing as its in-between (`from`), at that one's scale exactly;
+  - in the air, folded up (nowhere near her feet), with her eyes as far apart as on `like` and
+    her face where the cut-out's is: her head stays put, the rest of her draws in under it.
 It's written at one texel per sprite pixel, like the cut-out: any finer and the line boil makes
 its edges crawl at her usual size.
 
-    python tools/build-poses.py hip=hip.png lie=lie.png lean=lean.png
+    python tools/build-poses.py hip=hip.png lie=lie.png lean=lean.png fidget=fidget.png cross=cross.png float=float.png
 
 prints each drawing's rect and face in sprite pixels: keep POSES in src/renderer/js/sprite.js in
 sync with it. Needs Pillow and numpy.
@@ -33,6 +35,9 @@ D0, D1 = 70.0, 150.0  # distance from the key colour: below D0 it's background, 
 # how each drawing sits in sprite space (see above); `mid` is where the middle of a ledge drawing goes
 POSES = {
     'hip': {'kind': 'stand'},
+    'fidget': {'kind': 'stand'},
+    'cross': {'kind': 'stand'},
+    'float': {'kind': 'air', 'like': 'hip'},
     'lie': {'kind': 'ledge', 'like': 'hip', 'mid': 120},
     'lean': {'kind': 'ledge', 'from': 'lie', 'mid': 120},  # lying down: between sitting and 'lie'
 }
@@ -104,6 +109,9 @@ def main():
         if spec['kind'] == 'stand':
             k = (FEET[1] - FACE[1]) / (im.height - ey)
             x0, y0 = FACE[0] - ex * k, FEET[1] - im.height * k
+        elif spec['kind'] == 'air':
+            k = apart[spec['like']] / span
+            x0, y0 = FACE[0] - ex * k, FACE[1] - ey * k
         elif 'from' in spec:
             k = scale[spec['from']]
             x0, y0 = spec['mid'] - im.width * k / 2, HIP + 3 - im.height * k

@@ -55,6 +55,42 @@ export const ACTS = {
     ],
   },
 
+  // floating, arms crossed, judging you
+  cross: {
+    loop: true,
+    draw: 'cross',
+    keys: [
+      [8, { bob: 0, hair: -2 }],
+      [5, { bob: -1.5, hair: 0 }],
+      [8, { bob: -3, hair: 2 }],
+      [5, { bob: -1.5, hair: 0 }],
+    ],
+  },
+
+  // floating, fiddling with her claws, watching them: a little restless
+  fidget: {
+    loop: true,
+    draw: 'fidget',
+    keys: [
+      [6, { bob: 0, hair: -2 }],
+      [3, { bob: -1, hair: 0, mane: 0.03 }],
+      [6, { bob: -2, hair: 2 }],
+      [3, { bob: -1, hair: 0 }],
+    ],
+  },
+
+  // levitating cross-legged, weightless: she drifts slowly up and down, her mane lifting
+  float: {
+    loop: true,
+    draw: 'float',
+    keys: [
+      [10, { bob: 0, hair: -1.5, mane: 0.02 }],
+      [6, { bob: -3, hair: 0, mane: 0.05 }],
+      [10, { bob: -6, hair: 1.5, mane: 0.03 }],
+      [6, { bob: -3, hair: 0 }],
+    ],
+  },
+
   // bored, stretched out along her ledge, head propped on her hand: her mane stirs, then settles a while
   lie: {
     loop: true,

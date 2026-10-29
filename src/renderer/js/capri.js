@@ -6,8 +6,9 @@
 // ("peek"), falling ("fall") when the window under her goes away or you drop her, held up by the
 // pointer ("held"), flying through the air when you throw her or she jumps to another screen
 // ("fly"), and knocked down on the floor after a crash ("down").
-// Bored, she lounges: floating with her hand on her hip, or lying on her ledge instead of sitting
-// on it (this.lounge; those are pose drawings, sprite.js POSES).
+// Bored, she lounges: floating with her hand on her hip, her arms crossed, fiddling with her claws
+// or cross-legged, or lying on her ledge instead of sitting on it (this.lounge; those are pose
+// drawings, sprite.js POSES).
 
 import { SpriteRenderer, SPRITE, POSES } from './sprite.js';
 import { ACTS, NEUTRAL, Player } from './acting.js';
@@ -19,6 +20,7 @@ const ASLEEP = 1000 / 6;
 const SLEEP_AFTER = 10 * 60 * 1000;
 const DOZE_AFTER = 20 * 1000; // asleep this long, she comes apart down to her mask
 const BORED_AFTER = 60 * 1000; // nothing going on this long, she may lie down on her ledge
+const AFLOAT = ['hip', 'cross', 'fidget', 'float']; // how she lounges floating (acting.js, sprite.js POSES)
 const GRAVITY = 2600; // px/s²
 const THIGH = 73;     // hip to knee, sprite px (see sprite.js)
 const DEG = Math.PI / 180;
@@ -55,7 +57,7 @@ export class Capri {
     this.facing = 1; // 1: as drawn (reaching left), -1: mirrored
     this.mode = 'idle'; // idle | work | alert | sleep
     this.stance = 'stand';
-    this.lounge = null;   // 'hip' (standing) or 'lie' (sitting): the pose drawing she's lounging in
+    this.lounge = null;   // one of AFLOAT (standing) or 'lie' (sitting): the pose drawing she's lounging in
     this.perch = null;    // { id, dx }: the window she sits on, and where along it
     this.peekSide = null; // left | right | top
     this.windows = { fg: 0, wins: [] };
@@ -698,11 +700,14 @@ export class Capri {
     else this.flourish();
   }
 
-  // Bored: a hand on her hip while she floats, lying down on her ledge after a while, and back.
+  // Bored: floating, she takes up a pose (and now and then another one), lying down on her ledge
+  // after a while, and back.
   loungeStep(now) {
     if (this.pointing || this.dormant) return;
-    if (this.stance === 'stand') this.loungeAs(!this.lounge && Math.random() < 0.6 ? 'hip' : null);
-    else if (this.stance === 'sit' && this.lounge) {
+    if (this.stance === 'stand') {
+      const other = pick(AFLOAT.filter((k) => k !== this.lounge));
+      this.loungeAs(Math.random() < (this.lounge ? 0.35 : 0.6) ? other : null);
+    } else if (this.stance === 'sit' && this.lounge) {
       if (Math.random() < 0.3) this.loungeAs(null);
     } else if (this.stance === 'sit' && now - this.lastActivity > BORED_AFTER && Math.random() < 0.6) {
       this.loungeAs('lie');
@@ -781,7 +786,7 @@ export class Capri {
     if (this.stance === 'fly') return this.flight?.kind === 'leap' ? 'leap' : 'tumble';
     if (this.stance === 'down') return 'ko';
     if (this.mode === 'sleep') return 'sleep';
-    return this.lounge === 'hip' ? 'hip' : 'stand';
+    return AFLOAT.includes(this.lounge) ? this.lounge : 'stand';
   }
 
   setMode(mode) {

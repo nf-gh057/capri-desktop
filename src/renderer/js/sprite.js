@@ -2,7 +2,7 @@
 // One texture, one quad: every bit of life (head tilt, mane sway and flare, both arms, sitting with
 // dangling legs, smear frames, afterimages, line boil, speckles, the violet misregistration, glitch
 // slices, teleport collapse) is done in the fragment shader.
-// Her pose drawings (POSES: hand on hip, lying on a ledge) are swapped in for the cut-out's texture
+// Her pose drawings (POSES: hand on hip, arms crossed, fiddling, cross-legged in the air, lying on a ledge) are swapped in for the cut-out's texture
 // now and then. They aren't rigged, only their mane moves; everything else is done to them the same way.
 
 const VERT = `
@@ -368,6 +368,9 @@ export const SPRITE = {
 //   sway  the height where her mane stops swaying (just above her body), and where it sways the most
 export const POSES = {
   hip: { rect: [34.3, 36.1, 175.3, 381.9], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
+  cross: { rect: [35.2, 37.9, 174.7, 380.1], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
+  fidget: { rect: [33.9, 36.6, 175.5, 381.4], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
+  float: { rect: [19.3, 38.9, 208.8, 242.9], face: [120, 132], mane: [125, 100, 115, 80], sway: [155, 40] }, // her head where it always is
   lie: { rect: [-57.3, 68.1, 354.6, 166.9], face: [203, 182], mane: [215, 140, 100, 75], sway: [200, 110] },
   lean: { rect: [-59.5, 64.6, 359.0, 170.4], face: [205, 164], mane: [215, 135, 100, 75], sway: [195, 110] }, // lying down, halfway
 };
