@@ -307,6 +307,9 @@ function createOverlay() {
     if (DEV) console.log(line);
     if (level === 'error') logError(line);
   });
+  // her page stays her page: no new windows, no going elsewhere (links go out through shell.openExternal)
+  overlay.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  overlay.webContents.on('will-navigate', (event) => event.preventDefault());
   if (DEV && process.env.CAPRI_DEVTOOLS) overlay.webContents.openDevTools({ mode: 'detach' });
 }
 
@@ -1942,18 +1945,27 @@ function mindApply(keys, peer) {
   if (!mind) return;
   const cfg = config.load();
   const patch = {};
-  if (keys.includes('name')) patch.userName = mind.get('name') || '';
-  if (keys.includes('persona')) patch.persona = mind.get('persona') || '';
-  if (keys.some((k) => k.startsWith('memo:'))) patch.memories = mind.list('memo:').sort((a, b) => a.at - b.at).map((e) => e.v);
-  if (keys.some((k) => k.startsWith('rem:'))) patch.reminders = mind.list('rem:').map((e) => e.v).sort((a, b) => a.at - b.at);
-  if (keys.includes('bond')) {
+  // what another PC sends is taken only in the shape this one writes it: text where it's text, and
+  // your chat's messages as yours or hers, never anything said to her AI as an instruction
+  const text = (v) => (typeof v === 'string' ? v : '');
+  const object = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+  if (keys.includes('name')) patch.userName = text(mind.get('name'));
+  if (keys.includes('persona')) patch.persona = text(mind.get('persona'));
+  if (keys.some((k) => k.startsWith('memo:'))) patch.memories = mind.list('memo:').sort((a, b) => a.at - b.at).map((e) => e.v).filter((v) => typeof v === 'string');
+  if (keys.some((k) => k.startsWith('rem:'))) {
+    patch.reminders = mind.list('rem:').map((e) => e.v)
+      .filter((r) => object(r) && typeof r.id === 'string' && typeof r.text === 'string' && Number.isFinite(r.at))
+      .sort((a, b) => a.at - b.at);
+  }
+  if (keys.includes('bond') && object(mind.get('bond'))) {
     const joined = bondJoin(cfg.bond, mind.get('bond'));
     if (JSON.stringify(joined) !== JSON.stringify(cfg.bond)) patch.bond = joined;
     mind.write('bond', joined); // what this PC adds to it goes back
   }
   if (keys.some((k) => k.startsWith('chat:') || k === 'forgot')) {
     const cleared = Number(mind.get('forgot')) || 0;
-    const history = mind.list('chat:').filter((e) => (e.v?.at || 0) > cleared)
+    const history = mind.list('chat:')
+      .filter((e) => object(e.v) && ['user', 'assistant'].includes(e.v.role) && typeof e.v.content === 'string' && Number.isFinite(e.v.at) && e.v.at > cleared)
       .sort((a, b) => a.v.at - b.v.at || (a.key < b.key ? -1 : 1)).slice(-MIND_CHAT)
       .map((e) => ({ id: e.key.slice(5), role: e.v.role, content: e.v.content, at: e.v.at }));
     if (keys.includes('forgot')) llm.resetAgents(); // "forget" on another PC: the agents' conversations too

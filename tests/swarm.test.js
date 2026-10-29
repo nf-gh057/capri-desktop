@@ -183,9 +183,9 @@ test('her mind goes along the swarm: an island catches up when it is back, and t
   t.after(() => { a.stop(); b.stop(); });
   await Promise.all([a.start(), b.start()]);
   await b.join(a.startPairing('127.0.0.1').text);
-  minds.a.write('name', 'Luke');
+  minds.a.write('name', 'Sam');
   await new Promise((r) => setTimeout(r, 400));
-  assert.equal(minds.b.get('name'), 'Luke');
+  assert.equal(minds.b.get('name'), 'Sam');
   // the laptop drops off the network; both go on
   b.stop();
   minds.b.write('memo:tea', 'likes tea');

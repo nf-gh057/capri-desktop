@@ -24,14 +24,14 @@ jedna. Przed `npm run dev` zamknij zwykłą Capri.
 2. Kopia robocza forka:
 
    ```powershell
-   git clone https://github.com/nf-gh057/capri-desktop.git C:\Users\Luke\Code\Claude\Capri\capri-desktop
+   git clone https://github.com/nf-gh057/capri-desktop.git $HOME\Code\capri-desktop
    ```
 
 3. Repozytorium autora oryginału jako `upstream`, z zablokowanym wysyłaniem (tylko do porównań i scalania):
 
    ```powershell
-   git -C C:\Users\Luke\Code\Claude\Capri\capri-desktop remote add upstream https://github.com/mochiiwuff/capri-desktop.git
-   git -C C:\Users\Luke\Code\Claude\Capri\capri-desktop remote set-url --push upstream DISABLED
+   git -C $HOME\Code\capri-desktop remote add upstream https://github.com/mochiiwuff/capri-desktop.git
+   git -C $HOME\Code\capri-desktop remote set-url --push upstream DISABLED
    ```
 
 4. Pakiety i start w trybie dev (w folderze kopii):

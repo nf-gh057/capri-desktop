@@ -21,8 +21,8 @@ const view = (m) => JSON.stringify(Object.entries(m.state().items).sort().map(([
 
 test('writing: a change is an entry; the same value again is nothing', () => {
   const m = createMind({ me: A });
-  assert.equal(m.write('name', 'Luke', { now: 10 }), true);
-  assert.equal(m.write('name', 'Luke', { now: 20 }), false);
+  assert.equal(m.write('name', 'Sam', { now: 10 }), true);
+  assert.equal(m.write('name', 'Sam', { now: 20 }), false);
   assert.equal(m.write('name', 'Luk', { now: 15 }), true);
   assert.equal(m.get('name'), 'Luk');
   assert.ok(m.state().items.name.at > 10); // never older than what it replaces, whatever the clock says
