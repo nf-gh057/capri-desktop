@@ -11,6 +11,8 @@
 // or cross-legged, or lying on her ledge instead of sitting on it (this.lounge; those are pose
 // drawings, sprite.js POSES). Walking or sitting at the end of a window's top, she may go over the
 // edge and hang off its side like in a platformer, trying to pull herself up.
+// Now and then Erebus, a rogue AI from beyond the Blackwall, gets into her through her Blackwall
+// Gateway and has her for a while (this.erebus), until her ICE throws him out.
 
 import { SpriteRenderer, SPRITE, POSES } from './sprite.js';
 import { ACTS, NEUTRAL, Player } from './acting.js';
@@ -21,6 +23,7 @@ const ON_ONES = 1000 / 24;
 const ASLEEP = 1000 / 6;
 const SLEEP_AFTER = 10 * 60 * 1000;
 const DOZE_AFTER = 20 * 1000; // asleep this long, she comes apart down to her mask
+const EREBUS_FOR = [20000, 35000]; // how long Erebus has her, ms
 const BORED_AFTER = 60 * 1000; // nothing going on this long, she may lie down on her ledge
 const AFLOAT = ['hip', 'cross', 'fidget', 'float']; // how she lounges floating (acting.js, sprite.js POSES)
 const GRAVITY = 2600; // px/s²
@@ -62,6 +65,7 @@ export class Capri {
     this.stance = 'stand';
     this.lounge = null;   // one of AFLOAT (standing) or 'lie' (sitting): the pose drawing she's lounging in
     this.perch = null;    // { id, dx, side }: the window she sits on, where along it (hanging: off which side)
+    this.erebus = null;   // { until, win, next… }: Erebus has her (erebusIn)
     this.hanging = null;  // { at, way, turns, off }: hanging off a window's side, how it's been moved (shook)
     this.walking = null;  // { to, dir, draw }: walking along her ledge, to that dx on it (stroll)
     this.peekSide = null; // left | right | top
@@ -632,6 +636,10 @@ export class Capri {
     }
     if (this.skid) this.updateSkid(now);
     if (this.busy || this.dragging) return;
+    if (this.erebus) {
+      this.updateErebus(now);
+      return;
+    }
 
     if (now > this.nextTwitch) {
       this.nextTwitch = now + rand(5000, 13000);
@@ -886,6 +894,140 @@ export class Capri {
     else this.perform(pick(['spin', 'look', 'hop', 'curious', 'split']), this.towardCenter());
   }
 
+  // ---------- Erebus ----------
+
+  // Erebus, the rogue AI from beyond the Blackwall, gets into her (through her Blackwall Gateway:
+  // chat.js) and has her for a while. She glitches into him over a few drawings (acting.js possessed),
+  // and while he has her the fight for the construct goes on (updateErebus): her breaking through
+  // for a drawing, glitches, the screen torn around her, the Blackwall leaking out of her, and the
+  // window she deals with burnt the way the Blackwall burns people (corruptWin). Then her ICE throws
+  // him out (erebusOut). `win`: the window she was dealing with, if any. Returns whether he's in.
+  erebusIn({ win = null } = {}) {
+    if (this.erebus || reducedMotion.matches || !this.poseMaps.erebus) return false;
+    if (this.busy || this.dragging || this.stowed || this.dormant || this.hidden || this.pointing) return false;
+    if (!['stand', 'sit', 'walk', 'hang'].includes(this.stance)) return false;
+    const at = { ...this.pos };
+    if (this.stance !== 'stand') this.setStance('stand'); // up off her window, floating where she was
+    this.pos = at;
+    this.lounge = null;
+    const now = performance.now();
+    this.erebus = {
+      until: now + rand(...EREBUS_FOR), win: win?.id ?? null,
+      nextGlitch: now + 900, nextTear: now + rand(2500, 4000), nextBurn: now + rand(6000, 9000), nextLine: now + rand(3500, 5000),
+    };
+    this.base = this.restBase();
+    this.perform('possessed');
+    this.twitch();
+    this.voice.play('charge');
+    this.fx.rain(this.erebusRect(), { count: 14 });
+    this.corruptWin(win || this.erebusTarget());
+    this.onErebus?.('in');
+    return true;
+  }
+
+  // The fight for the construct, while he has her: every moment or so a glitch (her pulling at him,
+  // him clamping down), the Blackwall leaking out of her, the screen torn around her now and then,
+  // another window burnt, and him talking. Over when his time's up.
+  updateErebus(now) {
+    const e = this.erebus;
+    const p = this.p;
+    if (this.stowed || this.dormant || this.hidden || now > e.until) {
+      this.erebusOut({ quiet: this.stowed || this.dormant || this.hidden });
+      return;
+    }
+    if (now > e.nextGlitch) {
+      e.nextGlitch = now + rand(250, 900);
+      p.glitchSeed = Math.random() * 100;
+      p.glitch = rand(0.2, 0.55);
+      p.split = rand(3, 9);
+      setTimeout(() => {
+        if (!this.erebus) return;
+        p.glitch = 0.06; // never quite still while he has her
+        p.split = 1.5;
+      }, ON_ONES * rand(1, 3));
+      if (Math.random() < 0.2) this.flash([RED]);
+      if (Math.random() < 0.5) this.fx.rain(this.erebusRect());
+      if (Math.random() < 0.35) {
+        const h = this.head();
+        this.fx.slices(h.x - 80 * this.scale, h.y - 40 * this.scale, 200 * this.scale, 320 * this.scale, { count: 5 });
+      }
+    }
+    if (now > e.nextTear) {
+      e.nextTear = now + rand(3000, 6000);
+      const [tear] = this.tearAround([this.pos]);
+      if (tear) this.under.tear(tear.rect, tear.picture, { split: this.pos.x });
+    }
+    if (now > e.nextBurn) {
+      e.nextBurn = now + rand(7000, 12000);
+      this.corruptWin(this.erebusTarget());
+    }
+    if (now > e.nextLine) {
+      e.nextLine = now + rand(8000, 14000);
+      this.onErebus?.('speak');
+    }
+  }
+
+  // Her ICE throws him out: the takeover backwards (acting.js purge), a green flash, and her again.
+  // `thrown`: knocked out of him (grabbed, thrown), no show; `quiet`: put away meanwhile, not a word.
+  erebusOut({ thrown = false, quiet = false } = {}) {
+    if (!this.erebus) return;
+    this.erebus = null;
+    const p = this.p;
+    p.glitch = 0;
+    p.split = 0;
+    if (quiet) return;
+    if (!thrown) {
+      this.base = this.restBase();
+      this.perform('purge');
+    }
+    this.flash([GREEN, INK]);
+    const h = this.head();
+    this.fx.burst(h.x, h.y + 60 * this.scale, { count: 16, power: 0.7, spread: 120 * this.scale });
+    this.voice.play('rise');
+    const now = performance.now();
+    this.nextMove = Math.max(this.nextMove, now + 8000); // she takes a moment to come back to herself
+    this.dodgeAt = now + 6000;
+    this.onErebus?.('out');
+  }
+
+  // Around her (in Erebus's stiff pose), for the Blackwall leaking out of her.
+  erebusRect() {
+    const s = this.scale;
+    return { x: this.pos.x - 130 * s, y: this.pos.y - 400 * s, w: 260 * s, h: 400 * s };
+  }
+
+  // The window he deals with through her: the one she was dealing with, else the one you work in,
+  // else the nearest one to her; one whose top is in sight, and not a maximized one if there's
+  // another.
+  erebusTarget() {
+    const { wins, fg } = this.windows;
+    const shown = (w) => w && w.w > 120 && w.h > 80 && !this.covered(w, w.x + w.w / 2);
+    const far = (w) => Math.hypot(w.x + w.w / 2 - this.pos.x, w.y - this.pos.y);
+    const pick1 = wins.find((w) => w.id === this.erebus?.win);
+    if (shown(pick1)) return pick1;
+    const options = wins.filter(shown).sort((a, b) => Number(a.max) - Number(b.max) || (b.id === fg) - (a.id === fg) || far(a) - far(b));
+    return options[0] || null;
+  }
+
+  // A window burnt by the Blackwall the way people are (fx.js corrupt), a bolt off her onto it, and
+  // it shaking: `win` is one of her windows (followed if it moves) or just a rect. Not the taskbar.
+  corruptWin(win) {
+    if (!win || win.id === 'taskbar' || !this.under || !this.onScreenBits) return;
+    const { w: vw, h: vh } = this.view;
+    const x = clamp(win.x, 0, vw), y = clamp(win.y, 0, vh);
+    const at = { x, y, w: clamp(win.x + win.w, 0, vw) - x, h: clamp(win.y + win.h, 0, vh) - y, x0: win.x, y0: win.y };
+    if (at.w < 40 || at.h < 40) return;
+    const mine = win.id !== undefined && this.windows.wins.some((o) => o.id === win.id);
+    const rect = mine ? () => this.windows.wins.find((o) => o.id === win.id) || null : () => win;
+    const covers = mine ? () => this.coversOf(win.id) : () => [];
+    const picture = this.onScreenBits([at]).then((bits) => bits[0]);
+    this.under.corrupt(rect, at, picture, { covers });
+    this.fx.jolt(rect, { covers, power: 1 });
+    const h = this.head();
+    this.fx.bolt({ x: h.x, y: h.y }, { x: at.x + at.w / 2, y: at.y + Math.min(60, at.h / 2) }, { life: 300, forks: 2, width: 3 });
+    this.voice.play('bolt');
+  }
+
   // ---------- acting ----------
 
   // Play an act from acting.js. Resolves when it's over (or cut off by a stronger one).
@@ -895,7 +1037,9 @@ export class Capri {
     const act = ACTS[name];
     // hanging, she's on her hang drawings: nothing done with the cut-out (she's busy holding on; when
     // something's really going on, setMode has her climb back up first)
-    if (this.stance === 'hang' && !act.keeps && !act.draw && !act.keys.some(([, k]) => k.draw)) return Promise.resolve();
+    // and while Erebus has her, nothing of hers either (but being grabbed: that throws him out)
+    const drawn = act.keeps || act.draw || act.keys.some(([, k]) => k.draw !== undefined);
+    if ((this.stance === 'hang' || this.erebus) && !drawn && name !== 'grabbed') return Promise.resolve();
     if (reducedMotion.matches && act.fps === 24) {
       if (act.flip) this.facing *= -1;
       return Promise.resolve();
@@ -917,6 +1061,9 @@ export class Capri {
   }
 
   setStance(stance, { perch = null, peekSide = null, dir = 0 } = {}) {
+    if (this.erebus && stance !== 'stand') this.erebusOut({ thrown: true }); // grabbed, thrown, fallen: knocked out of him
+    // his drawings are of her floating: off it, they'd be in the wrong place
+    if (stance !== 'stand' && ['possessed', 'purge'].includes(this.act?.player.name)) this.endAct(false);
     const ledged = (st) => st === 'sit' || st === 'walk';
     const onTaskbar = ledged(stance) && perch?.id === 'taskbar';
     if (onTaskbar !== (this.perch?.id === 'taskbar' && ledged(this.stance))) this.onTaskbar?.(onTaskbar);
@@ -950,6 +1097,7 @@ export class Capri {
     if (this.stance === 'held') return 'held';
     if (this.stance === 'fly') return this.flight?.kind === 'leap' ? 'leap' : 'tumble';
     if (this.stance === 'down') return 'ko';
+    if (this.erebus) return 'erebus';
     if (this.mode === 'sleep') return 'sleep';
     return AFLOAT.includes(this.lounge) ? this.lounge : 'stand';
   }
@@ -2008,6 +2156,10 @@ export class Capri {
   // until stopPointing(). Resolves once she's there with her arm out.
   async pointAt(rect, { label = '' } = {}) {
     if (this.stowed) return false;
+    if (this.erebus) {
+      this.corruptWin(rect); // he doesn't show you things: he burns them
+      return false;
+    }
     rect = this.target(rect);
     this.stopPointing();
     const spot = this.spotNear(rect);

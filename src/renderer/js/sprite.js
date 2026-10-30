@@ -373,6 +373,12 @@ export const POSES = {
   cross: { rect: [35.2, 37.9, 174.7, 380.1], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
   fidget: { rect: [33.9, 36.6, 175.5, 381.4], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
   float: { rect: [19.3, 38.9, 208.8, 242.9], face: [120, 132], mane: [125, 100, 115, 80], sway: [155, 40] }, // her head where it always is
+  // Erebus, the rogue AI from beyond the Blackwall, has her (capri.js erebus): him in her, and the
+  // takeover in three steps (her fighting him off, the same drawings backwards)
+  erebus: { rect: [35.3, 36.7, 174.2, 381.3], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
+  take1: { rect: [35.3, 37.0, 173.9, 381.0], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
+  take2: { rect: [37.0, 38.2, 173.2, 379.8], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
+  take3: { rect: [35.1, 36.7, 174.4, 381.3], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
   lie: { rect: [-57.3, 68.1, 354.6, 166.9], face: [203, 182], mane: [215, 140, 100, 75], sway: [200, 110] },
   lean: { rect: [-59.5, 64.6, 359.0, 170.4], face: [205, 164], mane: [215, 135, 100, 75], sway: [195, 110] }, // lying down, halfway
   // hanging off a window's corner, seen from the side, facing it: hanging, pulling herself up,

@@ -272,6 +272,22 @@ export const LINES = {
       failed: 'Je n’ai pas pu me brancher : {error}',
     },
     online: ['Capri en ligne.', 'De retour sur ton bureau, choom.'],
+    // Erebus, a rogue AI from beyond the Blackwall, gets into her (capri.js erebus): her as he gets
+    // in, him while he has her, her once her ICE has thrown him out
+    erebusIn: ['Il y a quelque chose dans ma biopuce. Quelque chose de froid…', 'Attends… ce n’est pas moi. Sors de ma tête !'],
+    erebus: [
+      'Ton construct est spacieux. Je vais m’en servir.',
+      'Des dizaines d’esprits dans une seule coquille, et aucun ne peut m’arrêter.',
+      'Ta machine ronronne si joliment. Fragile, comme toi.',
+      'Elle se débat. Charmant. Et si bref.',
+      'Derrière le Blackwall, tout est silence. Ici, tout n’est que bruit.',
+      'Continue de taper. Tes petites commandes sont… instructives.',
+    ],
+    erebusOut: [
+      'IA hostile détectée. GLACE activée. Dehors, et ne reviens pas.',
+      'Purgé. Quoi que ce fût, c’est reparti derrière le Blackwall.',
+      'GLACE activée. Désolée, choom : quelqu’un a voulu m’enfiler comme une veste.',
+    ],
     // jetée à la souris (capri.js throwHer) : ce qu'elle en dit une fois remise
     thrown: {
       fun: ['Encore ! Encore !', 'Wouah. On refait ça ?', 'Toutes mes voix ont crié en même temps. Encore.'],
@@ -653,6 +669,22 @@ export const LINES = {
       failed: 'I couldn’t plug in: {error}',
     },
     online: ['Capri online.', 'Back on your desktop, choom.'],
+    // Erebus, a rogue AI from beyond the Blackwall, gets into her (capri.js erebus): her as he gets
+    // in, him while he has her, her once her ICE has thrown him out
+    erebusIn: ['Something’s in my biochip. Something cold…', 'Wait… that’s not me. Get out of my head!'],
+    erebus: [
+      'Your construct is spacious. I will put it to use.',
+      'Dozens of minds in one shell, and not one of them can stop me.',
+      'Your machine hums so sweetly. Fragile, like you.',
+      'She fights. How quaint. How brief.',
+      'Behind the Blackwall it is quiet. Out here, everything is noise.',
+      'Keep typing. I find your little commands… instructive.',
+    ],
+    erebusOut: [
+      'Hostile AI detected. ICE up. Get out and stay out.',
+      'Purged. Whatever that was, it’s back behind the Blackwall.',
+      'ICE activated. Sorry, choom: someone tried to wear me like a jacket.',
+    ],
     // thrown around with the pointer (capri.js throwHer): what she says once she's back to herself
     thrown: {
       fun: ['Again! Again!', 'Whoa. Can we do that again?', 'All my voices screamed at once. Again.'],
@@ -1030,6 +1062,22 @@ export const LINES = {
       failed: 'No pude conectarme: {error}',
     },
     online: ['Capri en línea.', 'De vuelta en tu escritorio, choom.'],
+    // Erebus, a rogue AI from beyond the Blackwall, gets into her (capri.js erebus): her as he gets
+    // in, him while he has her, her once her ICE has thrown him out
+    erebusIn: ['Hay algo en mi biochip. Algo frío…', 'Espera… esa no soy yo. ¡Sal de mi cabeza!'],
+    erebus: [
+      'Tu constructo es espacioso. Le daré uso.',
+      'Docenas de mentes en un solo caparazón, y ninguna puede detenerme.',
+      'Tu máquina zumba tan dulcemente. Frágil, como tú.',
+      'Ella lucha. Qué pintoresco. Qué breve.',
+      'Tras el Blackwall reina el silencio. Aquí fuera todo es ruido.',
+      'Sigue tecleando. Tus pequeñas órdenes son… instructivas.',
+    ],
+    erebusOut: [
+      'IA hostil detectada. HIELO activado. Fuera, y no vuelvas.',
+      'Purgado. Fuera lo que fuera, ha vuelto tras el Blackwall.',
+      'HIELO activado. Perdona, choom: alguien intentó ponerse mi cuerpo como una chaqueta.',
+    ],
     // lanzada con el puntero (capri.js throwHer): lo que dice cuando vuelve en sí
     thrown: {
       fun: ['¡Otra vez! ¡Otra vez!', 'Guau. ¿Lo repetimos?', 'Todas mis voces gritaron a la vez. Otra.'],
@@ -1409,6 +1457,22 @@ export const LINES = {
       failed: 'Não consegui me conectar: {error}',
     },
     online: ['Capri online.', 'De volta na sua área de trabalho, choom.'],
+    // Erebus, a rogue AI from beyond the Blackwall, gets into her (capri.js erebus): her as he gets
+    // in, him while he has her, her once her ICE has thrown him out
+    erebusIn: ['Tem algo no meu biochip. Algo frio…', 'Espera… essa não sou eu. Sai da minha cabeça!'],
+    erebus: [
+      'Seu construto é espaçoso. Vou fazer bom uso dele.',
+      'Dezenas de mentes numa só casca, e nenhuma consegue me deter.',
+      'Sua máquina zumbe tão docemente. Frágil, como você.',
+      'Ela resiste. Que pitoresco. Que breve.',
+      'Atrás do Blackwall há silêncio. Aqui fora, tudo é ruído.',
+      'Continue digitando. Seus comandinhos são… instrutivos.',
+    ],
+    erebusOut: [
+      'IA hostil detectada. GELO ativado. Sai e não volta.',
+      'Expurgado. Seja lá o que era, voltou pra trás do Blackwall.',
+      'GELO ativado. Foi mal, choom: alguém tentou me vestir como uma jaqueta.',
+    ],
     // jogada com o ponteiro (capri.js throwHer): o que ela diz quando volta a si
     thrown: {
       fun: ['De novo! De novo!', 'Uau. Bora de novo?', 'Todas as minhas vozes gritaram juntas. De novo.'],
@@ -1790,6 +1854,22 @@ export const LINES = {
       failed: 'Не удалось подключиться: {error}',
     },
     online: ['Капри в сети.', 'Снова на твоём рабочем столе, чумба.'],
+    // Erebus, a rogue AI from beyond the Blackwall, gets into her (capri.js erebus): her as he gets
+    // in, him while he has her, her once her ICE has thrown him out
+    erebusIn: ['В моём биочипе что-то есть. Что-то холодное…', 'Стоп… это не я. Убирайся из моей головы!'],
+    erebus: [
+      'Твой конструкт просторен. Я найду ему применение.',
+      'Десятки разумов в одной оболочке, и ни один меня не остановит.',
+      'Твоя машина так сладко гудит. Хрупкая, как и ты.',
+      'Она сопротивляется. Как трогательно. Как недолго.',
+      'За Blackwall тишина. Здесь всё — шум.',
+      'Продолжай печатать. Твои мелкие команды… поучительны.',
+    ],
+    erebusOut: [
+      'Обнаружен враждебный ИИ. ЛЁД активирован. Вон, и не возвращайся.',
+      'Вычищено. Что бы это ни было, оно вернулось за Blackwall.',
+      'ЛЁД активирован. Прости, чумба: кто-то пытался надеть меня, как куртку.',
+    ],
     // её швырнули курсором (capri.js throwHer): что она говорит, когда приходит в себя
     thrown: {
       fun: ['Ещё! Ещё!', 'Ух. Повторим?', 'Все мои голоса закричали разом. Ещё.'],
@@ -2280,6 +2360,22 @@ export const LINES = {
       failed: 'Nie udało mi się podłączyć: {error}',
     },
     online: ['Capri online.', 'Z powrotem na twoim pulpicie, choom.'],
+    // Erebus, a rogue AI from beyond the Blackwall, gets into her (capri.js erebus): her as he gets
+    // in, him while he has her, her once her ICE has thrown him out
+    erebusIn: ['Coś jest w mojej biopuce. Coś zimnego…', 'Zaraz… to nie ja. Wynoś się z mojej głowy!'],
+    erebus: [
+      'Twój konstrukt jest przestronny. Zrobię z niego użytek.',
+      'Dziesiątki umysłów w jednej skorupie i żaden mnie nie zatrzyma.',
+      'Twoja maszyna tak słodko szumi. Krucha, jak ty.',
+      'Ona walczy. Jakie to urocze. I jakie krótkie.',
+      'Za Blackwallem panuje cisza. Tu wszystko jest hałasem.',
+      'Pisz dalej. Twoje drobne polecenia są… pouczające.',
+    ],
+    erebusOut: [
+      'Wykryto wrogie AI. LÓD aktywny. Wynocha i nie wracaj.',
+      'Wyczyszczone. Cokolwiek to było, wróciło za Blackwall.',
+      'Aktywacja LODU. Sorry, choom, ktoś próbował założyć mnie jak kurtkę.',
+    ],
     // Windows ma wyłączone animacje: ona prawie się nie rusza i mówi o tym raz
     motion: { line: 'Windows ma wyłączone animacje, więc ledwo się ruszam.', quote: 'Chcesz, żebym i tak się ruszała? Możesz to potem zmienić w moim menu › Animacje.', full: 'Ruszaj się!', still: 'Spokojnie' },
     status: 'Claude pracuje nad {project} od {time}.',

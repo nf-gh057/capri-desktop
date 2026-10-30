@@ -391,6 +391,57 @@ export class FxLayer {
     }, () => { item.life = 0; });
   }
 
+  // The Blackwall leaking through (Erebus has her, capri.js): streaks of red data falling in `rect`,
+  // flickering, for a moment.
+  rain(rect, { count = 9, life = 520 } = {}) {
+    const cols = Array.from({ length: count }, () => ({
+      x: rect.x + rand(0, rect.w),
+      y: rect.y + rand(-0.2, 0.6) * rect.h,
+      len: rand(20, 90),
+      w: pick([2, 2, 3, 5]),
+      speed: rand(500, 1300),
+      color: COLORS[pick(['red', 'red', 'red', 'violet', 'paper'])],
+    }));
+    this.add({ type: 'rain', life, rect, cols });
+  }
+
+  // A window the Blackwall burns the way it burns people (Erebus has her, capri.js): struck by a red
+  // column from above, then its picture (`picture`, a promise of one, of `at`: where it was when the
+  // picture was taken) gone black and red, strobing, torn in bands, red data falling down it, before
+  // it comes back. `rect()` is where the window is now (it may be moved meanwhile: the picture goes
+  // with it), `covers()` what's in front of it. On the layer under her.
+  corrupt(rect, at, picture, { covers = () => [] } = {}) {
+    const item = this.add({ type: 'corrupt', life: 2000, rect, at, covers, seed: rand(0, 100) });
+    Promise.resolve(picture).then((img) => {
+      if (!img) {
+        item.life = 0;
+        return;
+      }
+      // its light parts red, its dark ones black: the window seen through the Blackwall
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const o = c.getContext('2d');
+      o.drawImage(img, 0, 0);
+      const data = o.getImageData(0, 0, c.width, c.height);
+      const px = data.data;
+      const stops = [[8, 4, 10], [138, 0, 25], [255, 26, 60], [255, 214, 230]];
+      for (let i = 0; i < px.length; i += 4) {
+        const l = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) / 255;
+        const u = Math.min(2.999, l * l * 3.4); // contrast up: most of it dark, its lights burning
+        const k = Math.floor(u), f = u - k;
+        const [a, b] = [stops[k], stops[k + 1]];
+        px[i] = a[0] + (b[0] - a[0]) * f;
+        px[i + 1] = a[1] + (b[1] - a[1]) * f;
+        px[i + 2] = a[2] + (b[2] - a[2]) * f;
+      }
+      o.putImageData(data, 0, 0);
+      item.burnt = c;
+      item.start = performance.now();
+      item.life = item.start - item.born + FRAME_MS * 40;
+    }, () => { item.life = 0; });
+  }
+
   // How she comes back in the show: her pieces spiralling in, mane shards and green eye-stars.
   vortex(x, y, { radius = 170, life = 360, count = 18 } = {}) {
     const ps = Array.from({ length: count }, (_, i) => ({
@@ -1326,6 +1377,68 @@ export class FxLayer {
           }
         }
         ctx.restore();
+        break;
+      }
+      case 'rain': {
+        const age = (now - it.born) / 1000;
+        ctx.save();
+        for (const c of it.cols) {
+          if (hash(Math.floor((now - it.born) / FRAME_MS), c.x) < 0.25) continue; // flickering
+          const y = c.y + c.speed * age;
+          if (y > it.rect.y + it.rect.h + c.len) continue;
+          ctx.fillStyle = c.color;
+          ctx.globalAlpha = 1 - t * 0.6;
+          ctx.fillRect(c.x, y, c.w, c.len);
+          ctx.fillRect(c.x, y + c.len + 6, c.w, c.len * 0.3); // a dash after it
+        }
+        ctx.restore();
+        break;
+      }
+      case 'corrupt': {
+        if (!it.burnt) break; // its picture isn't here yet
+        const r = it.rect();
+        if (!r) {
+          it.life = 0;
+          break;
+        }
+        const frame = Math.floor((now - it.start) / FRAME_MS);
+        const dx = r.x - it.at.x0, dy = r.y - it.at.y0; // the window moved since its picture was taken
+        const a = it.at;
+        // strobing, on and off like a failing feed, longer off as it lets go of it
+        const on = frame < 3 || [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0][frame - 3];
+        const seed = it.seed + Math.floor(frame / 2);
+        const img = it.burnt;
+        const ky = img.height / a.h;
+        if (frame < 3) {
+          // the strike: a red column down from the top of the screen onto it, white at its core
+          const cx = a.x + dx + a.w / 2, w = [70, 46, 24][frame];
+          ctx.fillStyle = COLORS.red;
+          ctx.fillRect(cx - w / 2, 0, w, r.y + r.h * 0.3);
+          ctx.fillStyle = COLORS.paper;
+          ctx.fillRect(cx - w / 6, 0, w / 3, r.y + r.h * 0.2);
+        }
+        if (!on) break;
+        this.onWindow(it, r, it.covers, () => {
+          const c = this.ctx;
+          c.drawImage(img, a.x + dx, a.y + dy, a.w, a.h);
+          // bands of it torn sideways
+          for (let i = 0; i < 9; i++) {
+            const h = 4 + hash(i, seed) * 40;
+            const y = hash(i + 50, seed) * (a.h - h);
+            const off = (hash(i + 90, seed) - 0.5) * 120;
+            c.drawImage(img, 0, y * ky, img.width, h * ky, a.x + dx + off, a.y + dy + y, a.w, h);
+          }
+          // its scanlines, and red data falling down it
+          c.fillStyle = 'rgba(0, 0, 0, 0.28)';
+          for (let y = a.y + dy; y < a.y + dy + a.h; y += 4) c.fillRect(a.x + dx, y, a.w, 1.5);
+          for (let i = 0; i < 14; i++) {
+            c.fillStyle = COLORS[hash(i + 700, seed) < 0.7 ? 'red' : 'paper'];
+            const x = a.x + dx + hash(i + 600, it.seed) * a.w;
+            const len = 20 + hash(i + 650, it.seed) * 90;
+            const y = a.y + dy + ((hash(i + 680, it.seed) * a.h + frame * 26) % (a.h + len)) - len;
+            c.fillRect(x, y, hash(i + 720, it.seed) < 0.6 ? 2 : 4, len);
+          }
+        }, 0);
         break;
       }
       case 'vortex': {

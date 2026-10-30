@@ -1,4 +1,4 @@
-"""Builds her pose drawings (assets/capri/pose-<name>.png) from generated pictures of her on a flat
+r"""Builds her pose drawings (assets/capri/pose-<name>.png) from generated pictures of her on a flat
 key colour (any flat colour that isn't hers; yellow #FFFF00 works best), or already cut out.
 
 The cut-out (capri-full.png) is rigged in the shader; a pose drawing isn't: it's a whole new
@@ -22,10 +22,14 @@ cut-out's (the shader grades them all the same way afterwards), and it's scaled 
     (hang1=h1.png@255,84), and goes to GRIP on every one of them; the first is scaled so that,
     hanging straight down, her toes are as far below her eyes as a standing one's feet, the
     others (`from`) at its scale.
+  - with none of her blue eyes on it to find her face by (Erebus has her: his one eye instead), its
+    face is given after the file name the same way (erebus=e.png@378,425), and its own colours kept.
 It's written at one texel per sprite pixel, like the cut-out: any finer and the line boil makes
 its edges crawl at her usual size.
 
-    python tools/build-poses.py hip=hip.png lie=lie.png lean=lean.png fidget=fidget.png cross=cross.png float=float.png         walk1=w1.png ... walk8=w8.png hang1=h1.png@255,84 ... hang4=h4.png@250,228
+    python tools/build-poses.py hip=hip.png lie=lie.png lean=lean.png fidget=fidget.png cross=cross.png float=float.png \
+        walk1=w1.png ... walk8=w8.png hang1=h1.png@255,84 ... hang4=h4.png@250,228 \
+        erebus=e.png@378,425 take1=t1.png@377,423 ...
 
 prints each drawing's rect and face in sprite pixels: keep POSES in src/renderer/js/sprite.js in
 sync with it. Needs Pillow and numpy.
@@ -48,6 +52,10 @@ D0, D1 = 70.0, 150.0  # distance from the key colour: below D0 it's background, 
 POSES = {
     'hip': {'kind': 'stand'},
     'fidget': {'kind': 'stand'},
+    # Erebus, the rogue AI from beyond the Blackwall, has her (capri.js erebus): him, and the takeover in three steps
+    # (no blue eyes to find on them: their face is given, and their own colours are kept)
+    'erebus': {'kind': 'stand', 'own': True},
+    **{f'take{i}': {'kind': 'stand', 'own': True} for i in (1, 2, 3)},
     'cross': {'kind': 'stand'},
     'float': {'kind': 'air', 'like': 'hip'},
     # walking to the right, a step on each leg: contact, down, passing, up, and again on the other
@@ -144,10 +152,11 @@ def steps(feet):
 def main():
     args = dict(a.split('=', 1) for a in sys.argv[1:])
     grips = {}  # hanging drawings: the ledge's corner on the picture
+    faces = {}  # the others: her face, where there are no blue eyes of hers to find it by
     for name, arg in list(args.items()):
         if '@' in arg:
             args[name], at = arg.rsplit('@', 1)
-            grips[name] = tuple(float(v) for v in at.split(','))
+            (grips if POSES[name]['kind'] == 'hang' else faces)[name] = tuple(float(v) for v in at.split(','))
     feet = {}  # walk drawings: where they touch the ground, in sprite px
     ref = classes(Image.open(CUTOUT).convert('RGBA'))
     apart = {}  # her eyes apart, in sprite px
@@ -155,8 +164,11 @@ def main():
     # standing ones first (the others take their head size), in-betweens last
     for name in sorted(args, key=lambda n: (POSES[n]['kind'] not in ('stand', 'walk', 'hang'), 'from' in POSES[n])):
         im, spec = key(args[name]), POSES[name]
-        (lx, ly), (rx, ry) = eyes(im)
-        ex, ey, span = (lx + rx) / 2, (ly + ry) / 2, np.hypot(rx - lx, ry - ly)
+        if name in faces:
+            (ex, ey), span = faces[name], 0.0
+        else:
+            (lx, ly), (rx, ry) = eyes(im)
+            ex, ey, span = (lx + rx) / 2, (ly + ry) / 2, np.hypot(rx - lx, ry - ly)
         if spec['kind'] in ('stand', 'walk'):
             k = scale[spec['from']] if 'from' in spec else (FEET[1] - FACE[1]) / (im.height - ey)
             x0, y0 = (FEET[0] + 10 if spec['kind'] == 'walk' else FACE[0]) - ex * k, FEET[1] - im.height * k
@@ -175,7 +187,9 @@ def main():
             x0, y0 = spec['mid'] - im.width * k / 2, HIP + 3 - im.height * k
         apart[name], scale[name] = span * k, k
         w, h = im.width * k, im.height * k
-        im = recolour(im.resize((round(w), round(h)), Image.LANCZOS), ref)
+        im = im.resize((round(w), round(h)), Image.LANCZOS)
+        if not spec.get('own'):
+            im = recolour(im, ref)
         im.save(ASSETS / f'pose-{name}.png', optimize=True)
         if spec['kind'] == 'walk':
             feet[name] = [(x0 + a, x0 + b) for a, b in soles(im)]

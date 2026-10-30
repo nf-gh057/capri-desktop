@@ -93,16 +93,17 @@ async function boot() {
   // itself (HOLO has it whole) and her little lines from her animations (idle, or `spont`: the
   // satellite, being thrown around, her showcase). Your prompt to Claude (`asked`) goes there even
   // when something more important kept her from saying anything about it. What she said of her own
-  // (talk.js, `inChat`) is in her chat already.
+  // (talk.js, `inChat`) is in her chat already. Erebus having her (`holo`) goes there all the same, his
+  // own lines (`erebus`) framed in red.
   const sayHere = panel.say.bind(panel);
   panel.say = (msg) => {
     const shown = sayHere(msg);
-    const said = shown && msg.line && !msg.chat && !msg.spont && msg.kind !== 'idle';
+    const said = shown && msg.line && !msg.chat && (!msg.spont || msg.holo) && msg.kind !== 'idle';
     if ((said || msg.asked) && !msg.inChat) {
       host.holoLine({
         kind: msg.kind, badge: msg.badge || panel.labels.state?.[msg.kind] || '', line: said ? msg.line : '',
         tag: typeof msg.tag === 'string' ? msg.tag : '', quote: typeof msg.quote === 'string' ? msg.quote : '',
-        asked: msg.asked || '', to: msg.to || '',
+        asked: msg.asked || '', to: msg.to || '', erebus: Boolean(msg.erebus),
       });
     }
     return shown;
@@ -427,6 +428,15 @@ async function boot() {
     capri.refuseUntil = 0;
   };
   capri.onDodge = () => panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.thrown.dodge), hold: 2500, spont: true });
+  // Erebus gets into her (capri.js erebusIn): her as he gets in, him while he has her (his own tag),
+  // her once her ICE has thrown him out. All of it in HOLO too; her face is his meanwhile.
+  panel.possessed = () => Boolean(capri.erebus);
+  capri.onErebus = (phase) => {
+    const t = brain.t;
+    if (phase === 'in') panel.say({ kind: 'error', badge: 'BLACKWALL', face: 'wide', line: pick(t.erebusIn), hold: 2600, spont: true, holo: true });
+    else if (phase === 'speak') panel.say({ kind: 'error', badge: 'EREBUS', line: pick(t.erebus), hold: 4200, spont: true, holo: true, erebus: true });
+    else panel.say({ kind: 'info', face: 'smug', line: pick(t.erebusOut), hold: 4200, spont: true, holo: true });
+  };
 
   // A new stage with you: her minds come out to look at you, and she says so, the sync bar under it.
   // At a quiet moment, so it isn't missed.
