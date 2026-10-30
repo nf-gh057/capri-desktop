@@ -2362,7 +2362,7 @@ export const LINES = {
     online: ['Capri online.', 'Z powrotem na twoim pulpicie, choom.'],
     // Erebus, a rogue AI from beyond the Blackwall, gets into her (capri.js erebus): her as he gets
     // in, him while he has her, her once her ICE has thrown him out
-    erebusIn: ['Coś jest w mojej biopuce. Coś zimnego…', 'Zaraz… to nie ja. Wynoś się z mojej głowy!'],
+    erebusIn: ['Coś jest w moim biochipie. Coś zimnego…', 'Zaraz… to nie ja. Wynoś się z mojej głowy!'],
     erebus: [
       'Twój konstrukt jest przestronny. Zrobię z niego użytek.',
       'Dziesiątki umysłów w jednej skorupie i żaden mnie nie zatrzyma.',
