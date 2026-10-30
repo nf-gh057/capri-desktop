@@ -682,16 +682,19 @@ html[data-motion='reduced'] .panel__bar {
 .panel.is-asked .panel__meta { order: -2; }
 
 /* what you said goes up top ("<", you, as in HOLO): in a chat (not in her setup's panels with a line to
-   type in), and your prompt to Claude Code or Codex. Yours keeps to the right, away from her side, its
-   "<" in a column of its own past your words */
+   type in), and your prompt to Claude Code or Codex. Yours keeps to the right, away from her side (a
+   column read from its left, as wide as your words), its "<" in a column of its own past them */
 .panel.is-chat:not(.is-guide) .panel__quote,
 .panel.is-asked .panel__quote {
   order: -1;
   position: relative;
-  margin: 0 0 8px 18%;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: 82%;
+  margin: 0 0 8px auto;
   padding: 0 1.7em 0 0;
   border-left: 0;
-  text-align: right;
+  text-align: left;
   -webkit-line-clamp: 2;
 }
 
