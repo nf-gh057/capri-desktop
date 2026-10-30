@@ -432,12 +432,22 @@ async function boot() {
   // her once her ICE has thrown him out. All of it in HOLO too; her face is his meanwhile.
   panel.possessed = () => Boolean(capri.erebus);
   capri.erebusOn = config.erebus !== false; // Mainframe › RELIC can keep him out
+  let erebusSaid = []; // what he's said this time he has her: he never says it twice
   capri.onErebus = (phase) => {
     const t = brain.t;
-    if (phase === 'in') panel.say({ kind: 'error', badge: 'BLACKWALL', face: 'wide', line: pick(t.erebusIn), hold: 2600, spont: true, holo: true });
-    else if (phase === 'speak') panel.say({ kind: 'error', badge: 'EREBUS', line: pick(t.erebus), hold: 4200, spont: true, holo: true, erebus: true });
-    // (as a `done`: his line just before doesn't keep hers out, nor his face on her)
-    else panel.say({ kind: 'done', badge: 'ICE', face: 'smug', line: pick(t.erebusOut), hold: 4200, spont: true, holo: true });
+    if (phase === 'in') {
+      erebusSaid = [];
+      panel.say({ kind: 'error', badge: 'BLACKWALL', face: 'wide', line: pick(t.erebusIn), hold: 2600, spont: true, holo: true });
+    } else if (phase === 'speak') {
+      const left = t.erebus.filter((l) => !erebusSaid.includes(l));
+      if (!left.length) return; // said it all: he lets the glitches talk
+      const line = pick(left);
+      erebusSaid.push(line);
+      panel.say({ kind: 'error', badge: 'EREBUS', line, hold: 4200, spont: true, holo: true, erebus: true });
+    } else {
+      // (as a `done`: his line just before doesn't keep hers out, nor his face on her)
+      panel.say({ kind: 'done', badge: 'ICE', face: 'smug', line: pick(t.erebusOut), hold: 4200, spont: true, holo: true });
+    }
   };
 
   // A new stage with you: her minds come out to look at you, and she says so, the sync bar under it.
