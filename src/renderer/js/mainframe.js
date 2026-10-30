@@ -182,6 +182,7 @@ function cyberware(s, t) {
       check(t.wander, c.wander, 'wander'),
       check(t.possess, c.possess, 'possess'),
       check(t.jealous, c.jealous, 'jealous'),
+      check(t.erebus, c.erebus, 'erebus'),
       check(t.pcReact, c.pcReact, 'pcReact'),
       check(t.mute, c.muted, 'muted'),
       check(t.lookAuto, c.lookAuto, 'lookAuto'),

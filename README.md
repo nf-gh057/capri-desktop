@@ -185,7 +185,9 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   glitches into him, black and red with his one eye; the fight for the construct goes on the whole time (her breaking
   through, glitches, the screen torn around her, red data leaking out of her). The window she deals with gets burnt
   the way the Blackwall burns people: struck by a red column, black and red, strobing and torn. He talks, cold and
-  superior. Then her ICE throws him out; grabbing her does too. With reduced motion, none of it.
+  superior. Then her ICE throws him out; grabbing her does too. Meanwhile her face in her panel is his, and what he
+  says goes to HOLO too, framed in red. With reduced motion, none of it; untick *Erebus can take her over* in
+  Mainframe › RELIC to keep him out.
 
 ### Smaller things
 

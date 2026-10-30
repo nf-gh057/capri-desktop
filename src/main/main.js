@@ -761,6 +761,7 @@ function mainframeState() {
       screens: displays().map((d, i) => ({ id: d.id, label: `${i + 1} — ${d.size.width}×${d.size.height}` })),
       follow: cfg.follow !== false,
       jealous: cfg.jealous !== false,
+      erebus: cfg.erebus !== false,
       pcReact: cfg.pcReact !== false,
       lookAuto: Boolean(cfg.watchScreen),
       sync: syncLabel(cfg, t),
@@ -861,7 +862,7 @@ async function mainframeAct(name, value) {
     case 'userName': if (typeof value === 'string') updateConfig({ userName: value.trim().slice(0, 24) }); break;
     case 'help': sendCommand('welcome'); break;
     case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
-    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'pcReact': case 'talkCloud': updateConfig({ [name]: Boolean(value) }); break;
+    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'erebus': case 'pcReact': case 'talkCloud': updateConfig({ [name]: Boolean(value) }); break;
     case 'talk': if (one(['quiet', 'normal', 'chatty'])) updateConfig({ talk: value }); break;
     case 'lookNow': sendCommand('look'); break;
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself

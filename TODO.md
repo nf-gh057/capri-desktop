@@ -61,10 +61,6 @@ Wspólne dla wszystkich etapów:
 - Animacja (gałąź `anim/poses`): przy kilku oknach jednej aplikacji Capri pokazuje ich stos na pasku zadań gestem
   „wybierz sobie” (np. rozkłada ręce nad przyciskiem albo rozsuwa wachlarz okien), zamiast zwykłego wskazania palcem;
   dziś tylko wskazuje go jak okno, z etykietą „Firefox ×3”.
-- Pomysł: Erebus. Gdy działa brama przez Blackwall (Claude Code / Codex odpowiada w czacie), Capri ma małą szansę
-  chwilowo zmienić się w Erebusa, rogue AI z dodatku „Widmo wolności” (Phantom Liberty). Wtedy glitch w stylu
-  Blackwalla (czerwień, zakłócenia obrazu) i wypowiedzi groźne, destrukcyjne, jak broń Erebusa w rękach protagonisty
-  w grze. Po powrocie Capri komentuje to w swoim stylu: „wykryto wrogie AI”, „aktywacja LODU” (ICE), itd.
 - Do decyzji: telefon parowany raz dla całego roju. Komputery same przekazują sobie token bota i sekret TOTP
   (zaszyfrowanym kanałem roju, tylko między twoimi urządzeniami, na każdym zapisane kontem Windows), więc każdy
   może przejąć telefon i działa jeden kod w aplikacji uwierzytelniającej. Za: parowanie raz, telefon działa, nawet

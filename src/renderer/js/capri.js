@@ -66,6 +66,7 @@ export class Capri {
     this.lounge = null;   // one of AFLOAT (standing) or 'lie' (sitting): the pose drawing she's lounging in
     this.perch = null;    // { id, dx, side }: the window she sits on, where along it (hanging: off which side)
     this.erebus = null;   // { until, win, next… }: Erebus has her (erebusIn)
+    this.erebusOn = true; // he may (Mainframe › RELIC)
     this.hanging = null;  // { at, way, turns, off }: hanging off a window's side, how it's been moved (shook)
     this.walking = null;  // { to, dir, draw }: walking along her ledge, to that dx on it (stroll)
     this.peekSide = null; // left | right | top
@@ -903,7 +904,7 @@ export class Capri {
   // window she deals with burnt the way the Blackwall burns people (corruptWin). Then her ICE throws
   // him out (erebusOut). `win`: the window she was dealing with, if any. Returns whether he's in.
   erebusIn({ win = null } = {}) {
-    if (this.erebus || reducedMotion.matches || !this.poseMaps.erebus) return false;
+    if (this.erebus || !this.erebusOn || reducedMotion.matches || !this.poseMaps.erebus) return false;
     if (this.busy || this.dragging || this.stowed || this.dormant || this.hidden || this.pointing) return false;
     if (!['stand', 'sit', 'walk', 'hang'].includes(this.stance)) return false;
     const at = { ...this.pos };

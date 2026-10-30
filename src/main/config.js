@@ -54,6 +54,7 @@ const DEFAULTS = {
   phoneDetail: 'line', // what she writes: 'line' (her words and the project) or 'quote' (with a bit of what was said)
   follow: true,      // with several screens, she follows the pointer to the one you're on
   jealous: true,     // she gets jealous when she sees you on another AI (bond.js)
+  erebus: true,      // Erebus takes her over now and then, through her Blackwall Gateway (capri.js erebusIn)
   reminders: [],     // the reminders she keeps: [{ id, at, text, made }] (reminders.js)
   bond: null,        // how close she is to you: { xp, first, last, days, streak, caps } (bond.js)
   pcReact: true,     // she reacts to your PC: the processor at full tilt, the battery, the network, a USB stick, a game (pc.js)

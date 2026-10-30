@@ -13,7 +13,7 @@ wszystko, co opisuje, jest też w tym forku.
 - **Jej telefon**: wiadomości i rozmowa przez twojego własnego bota na Telegramie.
 - **Rój**: jedna Capri na wszystkich twoich komputerach.
 - **Więcej jej animacji**: pozy, gdy się nudzi, chodzenie po oknach i wiszenie na nich, teleporty, które rozdzierają
-  ekran, i Erebus, wrogie AI zza Czarnego Muru, które od czasu do czasu ją przejmuje.
+  ekran, i Erebus, wrogie AI zza Blackwalla, które od czasu do czasu ją przejmuje.
 - **Polski**: mówi po polsku i rozumie polski w czacie.
 - **Instalator w jednej linijce** dla Windows i **aktualizacje**, które robi sama z GitHuba.
 - Drobniejsze rzeczy, wypisane niżej.
@@ -184,13 +184,14 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   rozjeżdża się pasami z rozszczepionymi kolorami i zrasta z powrotem. Okno, z którego odchodzi albo na które ląduje,
   się szarpie. Do tego robi zdjęcie tylko tych dwóch kawałków ekranu; jest rysowane przez chwilę, nigdy nie zapisywane
   ani nigdzie wysyłane. Przy ograniczonych animacjach nic z tego.
-- **Erebus**, wrogie AI zza Czarnego Muru (Blackwall): gdy w jej czacie odpowiada Claude Code albo Codex przy włączonym
+- **Erebus**, wrogie AI zza Blackwalla: gdy w jej czacie odpowiada Claude Code albo Codex przy włączonym
   Blackwall Gateway, od czasu do czasu (mniej więcej przy co dwunastej odpowiedzi) przechodzi razem z nią i przejmuje
   Capri na 20–35 sekund. Capri glitchuje w niego, czarno-czerwonego, z jednym okiem; przez cały czas trwa walka
   o konstrukt (Capri się przebija, glitche, ekran rozdarty wokół niej, wyciekające z niej czerwone dane). Okno, którym
-  się zajmuje, płonie tak, jak Czarny Mur pali ludzi: uderza w nie czerwony słup, robi się czarno-czerwone, miga
-  i rozdziera się. Erebus mówi, chłodno i z wyższością. Potem jej LÓD go wyrzuca; złapanie jej też. Przy ograniczonych
-  animacjach nic z tego.
+  się zajmuje, płonie tak, jak Blackwall pali ludzi: uderza w nie czerwony słup, robi się czarno-czerwone, miga
+  i rozdziera się. Erebus mówi, chłodno i z wyższością. Potem jej LÓD go wyrzuca; złapanie jej też. W tym czasie jej
+  twarz w dymku jest jego, a to, co mówi, trafia też do HOLO, w czerwonej ramce. Przy ograniczonych animacjach nic
+  z tego; odznacz *Erebus może ją opętać* w Mainframe › RELIC, żeby go nie wpuszczać.
 
 ### Drobniejsze rzeczy
 

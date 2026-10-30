@@ -431,11 +431,13 @@ async function boot() {
   // Erebus gets into her (capri.js erebusIn): her as he gets in, him while he has her (his own tag),
   // her once her ICE has thrown him out. All of it in HOLO too; her face is his meanwhile.
   panel.possessed = () => Boolean(capri.erebus);
+  capri.erebusOn = config.erebus !== false; // Mainframe › RELIC can keep him out
   capri.onErebus = (phase) => {
     const t = brain.t;
     if (phase === 'in') panel.say({ kind: 'error', badge: 'BLACKWALL', face: 'wide', line: pick(t.erebusIn), hold: 2600, spont: true, holo: true });
     else if (phase === 'speak') panel.say({ kind: 'error', badge: 'EREBUS', line: pick(t.erebus), hold: 4200, spont: true, holo: true, erebus: true });
-    else panel.say({ kind: 'info', face: 'smug', line: pick(t.erebusOut), hold: 4200, spont: true, holo: true });
+    // (as a `done`: his line just before doesn't keep hers out, nor his face on her)
+    else panel.say({ kind: 'done', badge: 'ICE', face: 'smug', line: pick(t.erebusOut), hold: 4200, spont: true, holo: true });
   };
 
   // A new stage with you: her minds come out to look at you, and she says so, the sync bar under it.
@@ -749,6 +751,8 @@ async function boot() {
     talk.configure(cfg);
     voice.configure(cfg);
     jealousy.enabled = cfg.jealous !== false;
+    capri.erebusOn = cfg.erebus !== false;
+    if (!capri.erebusOn) capri.erebusOut(); // turned off while he has her: her ICE throws him out
     followOn = cfg.follow !== false;
     capri.follows = followOn;
     look.configure(cfg);
