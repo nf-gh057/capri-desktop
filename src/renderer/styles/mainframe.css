@@ -707,6 +707,14 @@ body {
   border-color: var(--red);
   color: var(--red);
 }
+/* Erebus talking through her: the Blackwall's crimson, glowing in from its frame */
+.msg.msg--line.msg--erebus {
+  border: 2px solid #ff1f4b;
+  background: rgba(255, 31, 75, 0.1);
+  box-shadow: inset 0 0 18px rgba(255, 31, 75, 0.35);
+  color: #ff8fa6;
+  --who: #ff1f4b;
+}
 /* your prompt to Claude Code or Codex: yours, but not to her */
 .msg--you.msg--line {
   border-color: rgba(94, 246, 255, 0.45);

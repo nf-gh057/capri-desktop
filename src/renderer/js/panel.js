@@ -16,6 +16,7 @@ export const FACES = {
   laugh: 'face-laugh.png', // mouth wide open
   many: 'face-many.png',   // all her eyes on you
   grin: 'capri-face.png',
+  erebus: 'face-erebus.png', // Erebus has her: his colours over her, torn by the Blackwall
 };
 const KIND_FACE = { alert: 'many', done: 'look', error: 'laugh', work: 'calm', idle: 'calm', report: 'smug', chat: 'look', remind: 'look' };
 const PRIORITY = { info: 1, idle: 1, work: 2, done: 3, error: 3, report: 3, chat: 3, alert: 4, remind: 4 };
@@ -52,6 +53,7 @@ export class Panel {
     this.view = { w: innerWidth, h: innerHeight };
     this.onChar = null;    // (mood) => void, for the voice blips
     this.onTalk = null;    // (talking: boolean) => void
+    this.possessed = null; // () => boolean: Erebus has her (her face is his)
     this.suspended = false;
     this.tickerAction = null;
     this.tickerShownAt = 0;
@@ -175,8 +177,10 @@ export class Panel {
     this.place();
   }
 
-  // Change her expression; the swap glitches across a couple of drawings.
+  // Change her expression; the swap glitches across a couple of drawings. While Erebus has her
+  // (`possessed`, app.js), it's his face whatever she'd show.
   setFace(name) {
+    if (this.possessed?.()) name = 'erebus';
     const src = FACE_DIR + (FACES[name] || FACES.grin);
     if (this.portrait.getAttribute('src') === src) return;
     this.portrait.setAttribute('src', src);

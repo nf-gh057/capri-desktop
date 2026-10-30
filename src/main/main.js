@@ -1615,6 +1615,7 @@ function registerIpc() {
       kind: text('kind', 20), badge: text('badge', 30), line: text('line', 2000), tag: text('tag', 80), quote: text('quote', 600),
       // your prompt to Claude Code or Codex, and to which: shown as yours, before what she said about it
       ...(text('asked', 4000) && { asked: text('asked', 4000), to: text('to', 40) }),
+      ...(said.erebus === true && { erebus: true }), // Erebus talking through her: framed in red
       at: Date.now(),
     });
   });

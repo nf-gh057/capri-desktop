@@ -39,7 +39,46 @@ FACES = {
 }
 
 
+def possessed(face):
+    """Her face with Erebus in her (panel.js FACES.erebus): his colours over hers, as in pose-erebus.png
+    (her green skin gone black, her pinks his crimson, her eyes his one burning pink), torn by the
+    Blackwall (slices of her shifted, scanlines)."""
+    import random
+    src = face.convert('RGB')
+    out = Image.new('RGB', src.size)
+    px, po = src.load(), out.load()
+    lerp = lambda a, b, t: tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(3))
+    for y in range(src.height):
+        for x in range(src.width):
+            r, g, b = px[x, y]
+            lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255
+            if b > r + 25 and b > g + 10:      # her eyes: his glow, white at the core
+                po[x, y] = lerp((235, 30, 120), (255, 225, 240), min(1, lum * 1.6))
+            elif g > r + 20 and g > b:         # her skin: his black, a dark red sheen on it
+                po[x, y] = lerp((4, 0, 2), (34, 0, 8), lum)
+            elif r > g + 20:                   # her pinks and reds: his crimson
+                po[x, y] = lerp((90, 0, 14), (230, 20, 48), lum)
+            else:                              # black lines stay black, her white grin goes hot pink
+                po[x, y] = lerp((6, 0, 3), (255, 120, 150), lum)
+    rnd = random.Random(7)
+    for _ in range(6):                         # torn: a few bands of her slid sideways
+        top = rnd.randrange(0, src.height - 12)
+        band = out.crop((0, top, src.width, top + rnd.randrange(4, 14)))
+        out.paste(band, (rnd.choice((-1, 1)) * rnd.randrange(5, 16), top))
+    po = out.load()
+    for y in range(0, src.height, 3):          # scanlines
+        for x in range(src.width):
+            r, g, b = po[x, y]
+            po[x, y] = (r * 3 // 4, g * 3 // 4, b * 3 // 4)
+    return out
+
+
 def main():
+    # her possessed face only, from her own: python tools/build-cutins.py --erebus
+    if sys.argv[1:] == ['--erebus']:
+        possessed(Image.open(OUT / 'face-look.png')).save(OUT / 'face-erebus.png', optimize=True)
+        print('face-erebus.png written to', OUT)
+        return
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     frames = [f.convert('RGB') for f in ImageSequence.Iterator(Image.open(sys.argv[1]))]
