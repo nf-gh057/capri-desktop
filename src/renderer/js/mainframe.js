@@ -371,7 +371,7 @@ function message(m) {
   const asked = m.asked || (m.kind === 'work' && m.tag && m.quote) || '';
   return [
     asked && el('div', { class: 'msg msg--you msg--line' }, head(true, m.to, m.tag), el('p', { class: 'msg__text' }, asked), at),
-    m.line && el('div', { class: `msg msg--her msg--line is-${m.kind || 'info'}` },
+    m.line && el('div', { class: `msg msg--her msg--line is-${m.kind || 'info'} ${m.erebus ? 'msg--erebus' : ''}` },
       head(false, null, m.badge, !asked && m.tag),
       el('p', { class: 'msg__text' }, m.line),
       m.quote && !asked && el('p', { class: 'msg__quote' }, m.quote),

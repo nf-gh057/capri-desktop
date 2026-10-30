@@ -12,8 +12,8 @@ everything it describes is in this fork too.
 - **Her chat** answered by Claude Code or Codex, quickly, and kept going without the network.
 - **Her phone**: messages and her chat through a Telegram bot of your own.
 - **Her swarm**: one Capri on all your PCs.
-- **More of her animation**: poses when she's bored, walking along windows and hanging off them, and teleports that tear
-  the screen open.
+- **More of her animation**: poses when she's bored, walking along windows and hanging off them, teleports that tear
+  the screen open, and Erebus, a rogue AI from beyond the Blackwall, taking her over now and then.
 - **Polish**: she speaks it, and understands it in her chat.
 - **A one-line installer** for Windows, and **her own updates** from GitHub.
 - Smaller things, listed further down.
@@ -180,6 +180,12 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   with its colours pulled apart, and mends. The window she leaves or lands on jolts. For that she takes a picture of
   just those two bits of the screen; it's only drawn for a moment, never kept or sent anywhere. With reduced motion,
   none of it.
+- **Erebus**, a rogue AI from beyond the Blackwall: when Claude Code or Codex answers in her chat with her Blackwall
+  Gateway on, now and then (one answer in about twelve) he comes through with it and has her for 20 to 35 seconds. She
+  glitches into him, black and red with his one eye; the fight for the construct goes on the whole time (her breaking
+  through, glitches, the screen torn around her, red data leaking out of her). The window she deals with gets burnt
+  the way the Blackwall burns people: struck by a red column, black and red, strobing and torn. He talks, cold and
+  superior. Then her ICE throws him out; grabbing her does too. With reduced motion, none of it.
 
 ### Smaller things
 

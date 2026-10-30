@@ -11,6 +11,7 @@ import { parseReminder, parseWhen, clock } from './reminders.js';
 
 const REMEMBER = 20; // messages she has in mind when answering
 const REMEMBER_LOCAL = 8; // the same, with a model on this PC standing in (no network): less to read, a quicker answer
+const EREBUS_CHANCE = 0.08; // an answer through her Blackwall Gateway that brings Erebus in with it
 // a message from your phone (her chat on Telegram): what her AI is told, by the message
 const PHONE_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from their phone, on Telegram. You can\'t open apps, sites or music, play anything or set reminders for them now: if they ask, say so. Plain text, a few sentences at most.';
 const PHONE_AGENT = 'You only read here: change no file and run nothing that changes anything, even if asked; that waits until they\'re back at the PC.';
@@ -806,6 +807,9 @@ export class Chat {
   // her tag asks for, if your message (text) asked for that kind of thing.
   async after(raw, answer, asked, early, text) {
     const { t } = this;
+    // her Blackwall Gateway open (her powers, with Claude Code or Codex): now and then something from
+    // beyond the Blackwall comes through with them and has her a while (capri.js erebusIn)
+    if (this.agent && this.powersOn && Math.random() < EREBUS_CHANCE) this.capri.erebusIn();
     const done = early && (await early);
     if (done?.reminder) {
       // a reminder set: a button to take it back, right there

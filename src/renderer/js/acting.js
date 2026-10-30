@@ -163,6 +163,64 @@ export const ACTS = {
     ],
   },
 
+  // Erebus has her (capri.js erebus). `draw: false` is her own cut-out, breaking through for a drawing.
+  // He gets in: from her through the takeover's three steps to him, flickering back to her, on ones
+  possessed: {
+    priority: 2,
+    fps: 24,
+    keys: [
+      [3, { draw: false, mane: 0.15 }],
+      [2, { draw: 'take1', hair: 2 }],
+      [1, { draw: false }],
+      [5, { draw: 'take1', mane: 0.1 }],
+      [1, { draw: 'take2' }],
+      [2, { draw: 'take1' }],
+      [5, { draw: 'take2', hair: -2, mane: 0.2 }],
+      [1, { draw: false }],
+      [3, { draw: 'take2' }],
+      [3, { draw: 'take3' }],
+      [1, { draw: 'take2' }],
+      [6, { draw: 'take3', mane: 0.15 }],
+      [2, { draw: 'erebus', sy: 1.05, sx: 0.97 }],
+      [6, { draw: 'erebus', mane: 0.1 }],
+    ],
+  },
+  // while he has her: still, stiff, staring, and the fight for the construct going on under it, her
+  // breaking through for a drawing now and then
+  erebus: {
+    loop: true,
+    draw: 'erebus',
+    keys: [
+      [20, { mane: 0.05, hair: -1 }],
+      [1, { draw: 'take3' }],
+      [12, { hair: 1 }],
+      [1, { draw: 'take2', mane: 0.2 }],
+      [1, { draw: false }],
+      [1, { draw: 'take2' }],
+      [24, { mane: 0.08, hair: -1.5 }],
+      [2, { draw: 'take3' }],
+      [16, { hair: 0.5 }],
+      [1, { draw: false, mane: 0.15 }],
+      [10, { mane: 0.1 }],
+    ],
+  },
+  // her ICE throws him out: the takeover backwards, and her, shaking it off
+  purge: {
+    priority: 2,
+    fps: 24,
+    keys: [
+      [3, { draw: 'erebus', mane: 0.2 }],
+      [1, { draw: 'take3' }],
+      [3, { draw: 'take2', hair: 2 }],
+      [1, { draw: false }],
+      [3, { draw: 'take2' }],
+      [2, { draw: 'take1', mane: 0.15 }],
+      [3, { draw: false, mane: 0.2 }],
+      [1, { draw: 'take1' }],
+      [6, { draw: false, mane: 0.15, hair: 2 }],
+    ],
+  },
+
   // bored, stretched out along her ledge, head propped on her hand: her mane stirs, then settles a while
   lie: {
     loop: true,
