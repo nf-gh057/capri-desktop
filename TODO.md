@@ -61,9 +61,6 @@ Wspólne dla wszystkich etapów:
 - Animacja (gałąź `anim/poses`): przy kilku oknach jednej aplikacji Capri pokazuje ich stos na pasku zadań gestem
   „wybierz sobie” (np. rozkłada ręce nad przyciskiem albo rozsuwa wachlarz okien), zamiast zwykłego wskazania palcem;
   dziś tylko wskazuje go jak okno, z etykietą „Firefox ×3”.
-- [x] Szukanie okien: stos na pasku zadań drugiego ekranu (dziś tylko główny pasek, przy zegarze); kilka okien jednej
-  aplikacji widzianych osobno (dziś jej główne okno albo jej stos na pasku) (zrobione w 0.4.4-36: paski wszystkich
-  ekranów, przycisk dla każdego okna; drugi ekran sprawdzony na żywo na Legionie w 0.4.4-39).
 - Pomysł: Erebus. Gdy działa brama przez Blackwall (Claude Code / Codex odpowiada w czacie), Capri ma małą szansę
   chwilowo zmienić się w Erebusa, rogue AI z dodatku „Widmo wolności” (Phantom Liberty). Wtedy glitch w stylu
   Blackwalla (czerwień, zakłócenia obrazu) i wypowiedzi groźne, destrukcyjne, jak broń Erebusa w rękach protagonisty
