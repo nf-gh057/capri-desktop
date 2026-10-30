@@ -3,7 +3,7 @@
 # Capri: fork nf-gh057
 
 To jest fork [mochiiwuff/capri-desktop](https://github.com/mochiiwuff/capri-desktop), na bieżąco z oryginałem. Na
-górze tej strony: co fork dokłada i jak go zainstalować. Niżej README oryginalnego projektu, przetłumaczone bez zmian:
+górze tej strony: co fork dokłada i [jak go zainstalować](#instalacja-tego-forka), krok po kroku. Niżej README oryginalnego projektu, przetłumaczone bez zmian:
 wszystko, co opisuje, jest też w tym forku.
 
 ## Co dokłada ten fork
@@ -23,6 +23,8 @@ wszystko, co opisuje, jest też w tym forku.
 Prawy klik na niej › **Mainframe**. Okno jak menu z gry: zmienisz mu rozmiar, zmaksymalizujesz je i zadokujesz do
 krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na której byłeś.
 
+![Mainframe › HOLO: jej czat, twoje wiadomości po prawej, jej po lewej](docs/fork/mainframe-holo.png)
+
 - **U góry**, jak poziom i street cred w grze: jej poziom, synchronizacja z tobą i dni razem. Pośrodku są zakładki. Po
   prawej, jak zdrowie i pieniądze w grze: model odpowiadający w jej czacie i AI, którego pilnuje (SPOCZYNEK, gdy tylko
   dotrzymuje ci towarzystwa).
@@ -37,9 +39,19 @@ krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na 
 | **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa) i jej rój. |
 | **CYBERDECK** | Język, animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście. |
 
+<p>
+  <img src="docs/fork/mainframe-netwatch.png" width="32%" alt="NETWATCH: kto odpowiada w jej czacie i asystent, którego obserwuje">
+  <img src="docs/fork/mainframe-relic.png" width="32%" alt="RELIC: jej ciało, jak się zachowuje i rój">
+  <img src="docs/fork/mainframe-cyberdeck.png" width="32%" alt="CYBERDECK: język, wyświetlanie, jej aktualizacje">
+</p>
+
+Zrzuty są z wersji angielskiej. Po polsku Mainframe i Capri mówią po polsku.
+
 To, co powiedziała, HOLO trzyma w `holo.json` (ostatnie 300 kwestii), tylko na tym komputerze.
 
 ### Jej czat: Claude Code, Codex i bez sieci
+
+![Jej czat: to, co napisałeś, po prawej, pod modelem, który odpowiada, i jej odpowiedź ustawiająca przypomnienie](docs/fork/chat.png)
 
 - **Claude Code**: kiedy rozmawiacie, działa jeden Claude Code, który zamyka się po 15 minutach bez użycia. Nie czekasz
   na nowy przy każdej wiadomości. Jej słowa pojawiają się na bieżąco, a odpowiedź jest gotowa, gdy tylko Claude Code ją
@@ -77,7 +89,11 @@ To, co powiedziała, HOLO trzyma w `holo.json` (ostatnie 300 kwestii), tylko na 
   (`/unlock 123456`). Stamtąd Capri nie ma swoich mocy, a Claude Code i Codex tylko czytają.
 
 Wiadomości na telefon są wyłączone, dopóki nie założysz własnego bota na Telegramie (u @BotFather) i nie sparujesz go
-w Mainframe › HOLO › TELEGRAM, kodem, który pokazuje tylko to okno. Potem, kiedy nie ma cię przy PC (kilka minut bez
+w Mainframe › HOLO › TELEGRAM, kodem, który pokazuje tylko to okno.
+
+![Mainframe › HOLO › TELEGRAM przed parowaniem: otwórz @BotFather, wklej token swojego bota](docs/fork/telegram.png)
+
+Potem, kiedy nie ma cię przy PC (kilka minut bez
 klawiatury i myszy albo zablokowany ekran), wysyła na ten jeden czat:
 
 - swoją kwestię;
@@ -193,6 +209,12 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   twarz w dymku jest jego, a to, co mówi, trafia też do HOLO, w czerwonej ramce. Przy ograniczonych animacjach nic
   z tego; odznacz *Erebus może ją opętać* w Mainframe › RELIC, żeby go nie wpuszczać.
 
+![Znudzona: ręka na biodrze, skrzyżowane ręce, zabawa pazurami, siad po turecku w powietrzu](docs/fork/poses.png)
+
+![Teleport nad edytorem kodu: ekran rozdarty tam, gdzie znika, słup, przez który przechodzi, i znowu rozdarcie tam, gdzie ląduje](docs/fork/teleport.png)
+
+![Erebus ją ma: jego twarz w jej dymku i przekreślone jej imię; w HOLO jego kwestie w czerwonej ramce](docs/fork/erebus.png)
+
 ### Drobniejsze rzeczy
 
 - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…). Także `npm run demo -- pl`.
@@ -224,13 +246,85 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
 
 ## Instalacja tego forka
 
-### Windows, w jednej linijce
+### Krok po kroku (Windows)
 
-W PowerShellu (Start › wpisz `powershell` › Enter):
+Dla Windows 10 albo 11, bez programowania: kopiujesz jedną linijkę, odpowiadasz na najwyżej cztery pytania i czekasz.
+Trwa to od 10 do 30 minut, głównie pobieranie.
+
+**Zanim zaczniesz**
+
+- Połączenie z internetem i około 7 GB wolnego miejsca na dysku (2 GB bez jej mózgu na twoim PC).
+- Windows może poprosić o zgodę na zmiany przez instalator. Na komputerze z pracy może to wymagać administratora.
+- Jeśli chcesz, żeby obserwowała Codexa albo Claude Code (i rozmawiała przez nie), potrzebujesz planu ChatGPT albo planu
+  Claude Pro. Bez nich Capri i tak mieszka na twoim pulpicie i rozmawia z modelem na twoim PC.
+
+**1. Otwórz PowerShell.** Kliknij Start (albo naciśnij klawisz Windows), wpisz `powershell` i naciśnij Enter. Otworzy się
+okno z linijką zakończoną `>` i migającym kursorem: tam się pisze. Nie trzeba *Uruchom jako administrator*.
+
+**2. Wklej linijkę instalacji.** Skopiuj tę linijkę (przycisk po prawej stronie ramki ją kopiuje):
 
 ```powershell
 irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1 | iex
 ```
+
+Kliknij w okno PowerShella, wklej ją prawym przyciskiem myszy (albo Ctrl+V) i naciśnij Enter.
+
+**3. Odpowiedz na pytania.** Instalator pyta po angielsku, a każde pytanie kończy się `[Y/n]` albo `[y/N]`. Wpisz `y`
+(tak) albo `n` (nie) i naciśnij Enter. Sam Enter wybiera wielką literę, czyli odpowiedź domyślną.
+
+| Pyta o | Odpowiedz tak, jeśli… |
+|---|---|
+| **Ollama** z gemma3, około 5 GB `[Y/n]` | Tak prawie zawsze: to jej mózg na twoim PC i to, dzięki czemu rozmawia bez sieci. |
+| **Codex** `[y/N]` | Masz plan ChatGPT i chcesz, żeby obserwowała Codexa. |
+| **Claude Code** `[y/N]` | Masz plan Claude Pro lub wyższy i chcesz, żeby obserwowała Claude Code. |
+| **Tailscale** `[y/N]` | Chcesz jednej Capri na kilku komputerach (rój). W przeciwnym razie nie. |
+
+**4. Poczekaj.** Instaluje wszystko po kolei, a linijki zaczynające się od `[capri]` mówią, co właśnie robi. Gdy Windows
+zapyta, czy pozwolić aplikacji wprowadzić zmiany na urządzeniu, kliknij **Tak**. Pobieranie modelu chwilę trwa: nie
+zamykaj okna. Gotowe, gdy napisze **All set**, a Capri pojawi się w prawym dolnym rogu ekranu.
+
+**5. Poznaj ją.** Capri się przedstawia. Na później (na przykład po restarcie) ma skrót **Capri** na pulpicie i w menu
+Start.
+
+- **Prawy klik na niej** otwiera jej menu. **Mainframe** w nim otwiera jej okno, ze wszystkim.
+- **Dwuklik na nią** otwiera rozmowę.
+- W Mainframe › **ENGRAMS** wpisz pod **Twoje imię**, jak ma cię nazywać, i kliknij **Zapisz**.
+- Język zmienisz w Mainframe › **CYBERDECK** (domyślnie taki jak Windows).
+- W Mainframe › **NETWATCH** sekcja **MÓZG** powinna pokazywać *Działa na tym PC*: to model, który właśnie
+  zainstalowałeś.
+
+**6. Jeśli wybrałeś Codexa albo Claude Code.** Zaloguj się do niego raz: w PowerShellu wpisz `codex` (albo `claude`),
+naciśnij Enter i rób, co mówi (otworzy przeglądarkę). Potem:
+
+- **Claude Code**: kliknij **Podłącz mnie** w jej powitaniu albo **Zainstaluj hooki Claude Code** w Mainframe ›
+  NETWATCH › OBSERWACJA. Zamknij Claude Code całkowicie i otwórz go znowu (hooki czyta na starcie sesji). Gdy tylko
+  Claude coś zrobi, powie ci **„Widzę Claude'a!”**: po tym poznasz, że działa.
+- **Codex**: w Mainframe › NETWATCH › **OBSERWACJA** wybierz **Codex** i zainstaluj jego hooki.
+
+**Gdy coś pójdzie nie tak**
+
+- **Czerwony tekst, że `irm` nie jest rozpoznawane**: to Wiersz polecenia, nie PowerShell. Otwórz PowerShell jak
+  w kroku 1.
+- **Zatrzymał się z błędem** (najczęściej nieudane pobieranie): uruchom tę samą linijkę jeszcze raz. To, co już jest,
+  zostanie pominięte, a instalacja ruszy od miejsca, w którym stanęła.
+- **Capri jest czarnym prostokątem**: prawy klik na niej › Mainframe › **CYBERDECK** › **Wyświetlanie** › *OpenGL*,
+  a jeśli dalej jest czarna, *Bez karty graficznej*.
+- **Zniknęła**: Ctrl+Alt+C (na polskiej klawiaturze AltGr+C) chowa ją i przywraca, tak samo jej ikona przy zegarze. Po
+  restarcie uruchom ją z menu Start albo zaznacz *Uruchamiaj z Windowsem* w Mainframe › CYBERDECK.
+- **Coś nic nie robi**: co poszło nie tak, jest w `capri.log`. Wklej `%APPDATA%\capri-desktop` w pasek adresu
+  Eksploratora plików, żeby go znaleźć.
+
+**Odinstalowanie.** W PowerShellu:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/nf-gh057/capri-desktop/main/install.ps1))) -Uninstall
+```
+
+Wyjmuje jej hooki z Claude Code i Codexa oraz usuwa jej skróty i folder. To, co instalator dołożył dla niej (Git,
+Node.js, Ollama, Codex, Claude Code, Tailscale), zostaje: usuń to w Ustawieniach Windows › Aplikacje, jeśli chcesz. Jej
+ustawienia i wspomnienia zostają w `%APPDATA%\capri-desktop`: usuń też ten folder, żeby zapomniała wszystko.
+
+### Instalator w szczegółach
 
 Dokłada to, czego potrzebuje, a potem samą Capri, i pyta o części opcjonalne:
 
@@ -260,17 +354,10 @@ Z opcjami:
 | `-Dir <folder>` | Instaluje ją gdzie indziej |
 | `-NoShortcut` | Bez skrótów |
 | `-NoLaunch` | Nie uruchamia jej na końcu |
+| `-Uninstall` | Odinstalowuje ją (wyżej) |
 
 W sklonowanym repozytorium kliknij dwa razy **`install.cmd`**: instaluje ten klon na miejscu. `install.cmd -Uninstall`
-wyjmuje jej hooki z Claude Code i Codexa oraz usuwa jej skróty i folder. Git, Node.js i Ollama zostają.
-
-### Potem
-
-1. Capri się pojawia i przedstawia. Kliknij **Podłącz mnie**: to łączy ją z Claude Code. Dla Codexa: prawy klik na niej ›
-   **Obserwuj** › **Codex**.
-2. Zamknij Claude Code całkowicie i otwórz go znowu (hooki czyta na starcie sesji). Gdy tylko Claude coś zrobi, powie ci
-   **„Widzę Claude'a!”**: po tym poznasz, że działa.
-3. Cała reszta jest w **Mainframe** (prawy klik na niej › **Mainframe**).
+wyjmuje jej hooki z Claude Code i Codexa oraz usuwa jej skróty (klon zostaje).
 
 ### Aktualizacje
 
