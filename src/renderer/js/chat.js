@@ -27,8 +27,13 @@ const IN_LANGUAGE = {
   ru: { we: '"мы" in Russian', last: 'Пиши всё по-русски, если только пользователь не пишет тебе на другом языке: тогда на его языке. По-английски остаются только словечки Найт-Сити, никогда не целые фразы.', now: 'Отвечай по-русски, если только это сообщение не написано на другом языке.' },
   pl: { we: '"my" in Polish', last: 'Pisz wszystko po polsku, chyba że użytkownik pisze do ciebie w innym języku: wtedy w jego. Tylko słówka ze slangu Night City zostają po angielsku, nigdy całe zdania. O sobie mówisz w rodzaju żeńskim (zrobiłam, widziałam).' , now: 'Odpowiadaj po polsku, chyba że ta wiadomość jest napisana w innym języku.' },
 };
+const LANGUAGE_NAMES = { fr: 'French', en: 'English', es: 'Spanish', pt: 'Brazilian Portuguese', ru: 'Russian', pl: 'Polish' };
 const STAY_MS = 10 * 60 * 1000; // no wandering off mid-conversation
 const LOADING_AFTER_MS = 5000;
+// her chat closes itself once you've stopped talking (nothing typed, no answer coming), so what
+// Claude does comes through again: a minute, or a few seconds when something of it is waiting
+const IDLE_MS = 60 * 1000;
+const IDLE_MISSED_MS = 8 * 1000;
 const CLOSE_TAG = /\[\[\s*close\s*:?\s*([^\]]*)\]\]/i; // [[close: AM Music]] at the end of her answer
 // "close", "shut down", "ferme", "quitte", "cierra", "fecha", "закрой", "zamknij"... in any of her languages
 const CLOSE_ASK = /\b(close|shut|quit|kill|exit)|ferm|quitt|coupe|arr[êe]t|cierr|cerra|fech|закр|выключ|zamkn|wyłącz|wylacz|zakończ|zakoncz|ubij|zabij/i;
@@ -75,6 +80,12 @@ const VAGUE_SONG = /^(?:(?:de\s+la|du|des|la|le|les|une?|some|a|the|un|algo\s+de
 const SEARCH_VERB = /(?:cherche|recherche|trouve|retrouve|où (?:est|sont)|search(?: for)?|find|look (?:for|up)|where(?:'s| is| are)|busca|encuentra|d[óo]nde est[áa]n?|procura|acha|onde est[áa]o?|найди|поищи|где|znajd[źz]|wyszukaj|poszukaj|szukaj|gdzie (?:jest|s[ąa]))/i;
 const FILE_WORD = /fichier|dossier|document|photo|image|vid[ée]o|\bpdf\b|\bfiles?\b|folder|archivo|carpeta|arquivo|pasta|файл|папк|\.\w{2,4}\b|sur mon (?:pc|ordi)|dans mes fichiers|on my (?:pc|computer)|en mi (?:pc|ordenador)|no meu (?:pc|computador)|на (?:компьютере|пк)|plik|katalog|dokument|zdj[eę]ci|obraz|wideo|na (?:moim )?(?:pc|komputerze|kompie)|w moich plikach/i;
 const WEB_WORD = /google|internet|\ble web\b|the web|\bonline\b|en ligne|в интернете|в гугле|w sieci|w necie/i;
+// "where's Notepad?", "show me the Spotify window", "où est le bloc-notes ?", "gdzie jest notatnik", "pokaż okno
+// discorda": a window to find. Said with "window", it's surely one; without, only if one by that name is there.
+const WINDOW_ASK = /^(?:capri,?\s+)?(?:where(?:'s| is| are)|o[uù] (?:est|sont)|d[óo]nde est[áa]n?|onde est[áa]o?|где|gdzie (?:jest|s[ąa]|mam)|show(?: me)?|find|montre(?:[- ]moi)?|trouve(?:[- ]moi)?|mu[ée]strame|encuentra|mostra(?:-me)?|me mostra|encontra|ache|покажи|найди|poka[żz](?: mi)?|znajd[źz](?: mi)?)\s+(.{2,60}?)[\s?!.]*$/iu;
+const WINDOW_WORD = /\b(?:window|fen[êe]tre|ventana|janela)\b|окн[оае]|(?:^|\s)okn(?:o|a|ie)(?=\s|$)/iu;
+// what's around its name: "the", "my", "window"…
+const WINDOW_FILLER = /(?:^|\s)(?:the|my|its|le|la|les|l|ma|mon|el|mi|o|a|meu|minha|мой|моё|моя|mój|moj|moja|moje|window|fen[êe]tre|ventana|janela|окно|окна|okno|okna|oknie|de|du|da|do|of)(?=\s|$)/giu;
 // "fais une capture d'écran", "take a screenshot"
 const SHOT_ASK = /capture d['’][ée]cran|screenshot|screen ?shot|captura de (?:pantalla|tela)|скриншот|снимок экрана|zrzut(?:u)? ekranu|\bscreena?\b/i;
 // the words that aren't what to look for
@@ -160,6 +171,12 @@ const short = (model) => String(model || '').replace(/:latest$/, '').replace(/^m
 
 const MOOD_FACE = { angry: 'many', sulk: 'aside', dizzy: 'wide', thrown: 'wide', jealous: 'look', fun: 'laugh', happy: 'laugh', forgiven: 'smug' };
 
+// A message of your chat, with what tells it apart on all your PCs (her swarm, main.js): an id, and when
+const note = (role, content, at = Date.now()) => ({ role, content, id: crypto.randomUUID().replaceAll('-', '').slice(0, 16), at });
+// what her AI gets of one: who said what, nothing else (what you sent Claude Code or Codex, said so: she
+// talked about it on her own, talk.js)
+const said = ({ role, content, to }) => ({ role, content: to ? `(The user sent this to ${to}, their coding assistant, not to you:) ${content}` : content });
+
 export class Chat {
   constructor({ capri, panel, voice, host, brain }) {
     this.capri = capri;
@@ -167,7 +184,7 @@ export class Chat {
     this.voice = voice;
     this.host = host;
     this.brain = brain;
-    this.history = []; // your chats with her, [{ role, content }], kept by main.js across restarts
+    this.history = []; // your chats with her, [{ role, content, id, at }], kept by main.js across restarts
     this.warm = false; // a model already answered this run (Ollama's first answer waits for it to load)
     this.open = false;
     this.turn = 0;     // id of the answer coming in, if any
@@ -184,6 +201,13 @@ export class Chat {
     this.onMessage = null; // () => void: you said something to her
     this.waitingWhen = null; // a reminder you asked for without saying when: { text, until }
     host.onChatDelta(({ id, text }) => this.onDelta(id, text));
+    this.lastActive = 0;
+    panel.chatInput.addEventListener('input', () => { this.lastActive = performance.now(); });
+    setInterval(() => this.closeIfIdle(), 2000);
+    // your chats as they are on all your PCs now (her swarm): taken in, unless she's answering
+    host.onChatHistory?.((history) => {
+      if (!this.turn && Array.isArray(history)) this.history = history;
+    });
   }
 
   get t() {
@@ -193,6 +217,7 @@ export class Chat {
   async start() {
     const { capri, host, t } = this;
     if (this.open) {
+      host.focusOverlay(true); // the keyboard back, if you clicked elsewhere since
       this.panel.chatInput.focus();
       return;
     }
@@ -270,9 +295,17 @@ export class Chat {
       return;
     }
     this.open = true;
+    this.lastActive = performance.now();
     setTimeout(() => this.panel.chatInput.focus(), 150); // once the overlay has the keyboard
     capri.perform('hop');
     capri.nextMove = capri.nextGaze = performance.now() + STAY_MS;
+  }
+
+  // You stopped talking a while ago: her chat goes, unless you're halfway through typing something
+  closeIfIdle() {
+    if (!this.open || this.turn || this.panel.chatInput.value.trim() || !this.panel.current?.chat) return;
+    const idle = performance.now() - this.lastActive;
+    if (idle > (this.panel.missed ? IDLE_MISSED_MS : IDLE_MS)) this.panel.hide();
   }
 
   close() {
@@ -290,7 +323,7 @@ export class Chat {
     const id = Date.now();
     this.turn = id;
     this.answer = '';
-    this.history.push({ role: 'user', content: text });
+    this.history.push(note('user', text));
     this.panel.setChatBusy(true);
     this.panel.setActions([]); // a close button she offered before goes with a new message
     this.panel.chatTurn({ quote: text, face: 'aside' });
@@ -302,6 +335,15 @@ export class Chat {
     const asked = this.asked(text);
     if (asked?.kind === 'look') return this.sendLook(text, id);
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
+    // a window she looked for herself: what she found is her whole answer (her AI would only guess)
+    const found = asked?.kind === 'window' && (await early.catch(() => null));
+    if (found && this.turn === id) {
+      this.turn = 0;
+      this.remember({ role: 'assistant', content: found.line });
+      this.panel.setChatBusy(false);
+      this.lastActive = performance.now();
+      return this.after('', '…', asked, early, text);
+    }
     this.bond?.heard(text); // "sorry": she lets it go
     await Promise.race([this.appsReady, new Promise((r) => setTimeout(r, 1500))]);
     // what she greeted you with (angry, sulking…), in the conversation before your message, so her
@@ -310,7 +352,7 @@ export class Chat {
       const at = this.history.length - 1;
       const before = this.history[at - 1];
       if (before?.role === 'assistant') this.history[at - 1] = { ...before, content: `${before.content}\n${this.opening}` };
-      else this.history.splice(at, 0, { role: 'assistant', content: this.opening });
+      else this.history.splice(at, 0, note('assistant', this.opening, (this.history[at]?.at || Date.now()) - 1));
       this.opening = null;
     }
     const messages = this.messages();
@@ -323,7 +365,7 @@ export class Chat {
     let res = await this.host.chatSend({ id, messages });
     // No network, and her brain lives online: a model on this PC answers instead, as her (no agent,
     // no tools of its own), and she says so under her answer.
-    let note = '';
+    let elsewhere = ''; // the line under her answer, when a model on this PC gave it
     if (!res.ok && res.code === 'offline' && res.local && this.turn === id) {
       clearTimeout(slow); // "Claude Code is at work" isn't so
       const agent = this.agent;
@@ -331,12 +373,12 @@ export class Chat {
       const local = this.messages(REMEMBER_LOCAL);
       this.agent = agent;
       res = await this.host.chatSend({ id, messages: local, local: res.local });
-      if (res.ok) note = fmt(this.t.offlineLocal, { model: short(res.local) });
+      if (res.ok) elsewhere = fmt(this.t.offlineLocal, { model: short(res.local) });
     }
     // her header and note follow: the model on this PC while it answers, hers again once it's back
-    if (res.ok && Boolean(note) !== this.elsewhere) {
-      this.elsewhere = Boolean(note);
-      this.panel.setChatInfo(note ? this.brainInfo(res.local, true) : this.brainInfo(this.mind.model, this.mind.local));
+    if (res.ok && Boolean(elsewhere) !== this.elsewhere) {
+      this.elsewhere = Boolean(elsewhere);
+      this.panel.setChatInfo(elsewhere ? this.brainInfo(res.local, true) : this.brainInfo(this.mind.model, this.mind.local));
     }
     clearTimeout(slow);
     if (this.turn !== id) {
@@ -357,10 +399,11 @@ export class Chat {
     const said = clean(res.text) || '…';
     this.warm = true;
     this.remember({ role: 'assistant', content: said });
-    const answer = note ? `${said}\n${note}` : said; // as shown: with the line about her brain offline
+    const answer = elsewhere ? `${said}\n${elsewhere}` : said; // as shown: with the line about her brain offline
     this.panel.stream(answer, { done: true });
     this.panel.setFace(mood(said));
     this.panel.setChatBusy(false);
+    this.lastActive = performance.now();
     if (this.powersOn || asked) this.after(res.text, answer, asked, early, text);
     this.listApps(); // fresh for the next message
   }
@@ -383,7 +426,7 @@ export class Chat {
       messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(${PHONE_NOTE}${this.agent ? ` ${PHONE_AGENT}` : ''})` };
       return messages;
     };
-    this.history.push({ role: 'user', content: text });
+    this.history.push(note('user', text));
     let res = await this.host.chatSend({ id, messages: away(this.messages()) });
     if (!res.ok && res.code === 'offline' && res.local) {
       this.agent = false;
@@ -398,6 +441,48 @@ export class Chat {
     const said = clean(res.text) || '…';
     this.remember({ role: 'assistant', content: said });
     this.onMessage?.();
+    return { ok: true, text: said };
+  }
+
+  // A message typed in Mainframe's HOLO (main.js streams her answer there): the same conversation and
+  // memory, at your PC, so what you ask plainly (a reminder, the music, an app you named) happens and
+  // her line about it follows her answer. What only her AI asked for (a button here) stays undone.
+  async fromDesk(id, text) {
+    while (this.turn) await new Promise((resolve) => setTimeout(resolve, 500)); // what you typed here first
+    const status = await this.host.chatStatus().catch(() => ({ ok: false, error: 'offline' }));
+    if (!status.ok) return { ok: false, error: status.error === 'offline' ? this.t.offline : status.error || '…' };
+    if (!this.open) this.history = await this.host.chatMemory().catch(() => this.history);
+    const { agent, agentName, powersOn } = this;
+    this.agent = Boolean(status.agent);
+    this.agentName = status.provider === 'codex' ? 'Codex' : 'Claude Code';
+    this.powersOn = status.powers !== false;
+    this.history.push(note('user', text));
+    this.capri.pulse();
+    this.onMessage?.();
+    this.bond?.heard(text);
+    const asked = this.asked(text);
+    const early = asked && !['close', 'look'].includes(asked.kind) ? this.doNow(asked).catch(() => null) : null;
+    // a window she looked for herself: what she found is her whole answer (her AI would only guess)
+    const found = asked?.kind === 'window' && (await early);
+    if (found?.line) {
+      Object.assign(this, { agent, agentName, powersOn });
+      this.remember({ role: 'assistant', content: found.line });
+      return { ok: true, text: found.line };
+    }
+    let res = await this.host.chatSend({ id, messages: this.messages() });
+    if (!res.ok && res.code === 'offline' && res.local) {
+      this.agent = false;
+      res = await this.host.chatSend({ id, messages: this.messages(REMEMBER_LOCAL), local: res.local });
+    }
+    Object.assign(this, { agent, agentName, powersOn });
+    if (!res.ok) {
+      if (this.history.at(-1)?.content === text) this.history.pop();
+      return { ok: false, error: res.code === 'offline' ? this.t.offline : res.code === 'busy' ? this.t.swamped : res.error || '…' };
+    }
+    const done = await early;
+    const said = clean(res.text) || '…';
+    this.warm = true;
+    this.remember({ role: 'assistant', content: done?.line ? `${said}\n${done.line}` : said });
     return { ok: true, text: said };
   }
 
@@ -435,7 +520,7 @@ export class Chat {
     const res = await this.host.lookSay({
       id: snap.id,
       persona: this.lookPersona(),
-      history: this.history.slice(-REMEMBER, -1),
+      history: this.history.slice(-REMEMBER, -1).map(said),
       prompt: `${text}\n\n(Note for you, never repeat it: the picture is the user's screen right now; a small figure with a big red mane on it is you. Answer about what you really see, in character. ${this.languageNote()})`,
     });
     if (!res.ok) {
@@ -462,7 +547,7 @@ export class Chat {
   // last thing they read: up in her prompt alone, they forget it (and answer in English after a
   // conversation in English).
   messages(remember = REMEMBER) {
-    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-remember)];
+    const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-remember).map(said)];
     if (!this.agent) {
       const mood = this.bond?.moodLine().replace(/^Right now: /, '');
       const last = messages.at(-1);
@@ -473,7 +558,7 @@ export class Chat {
 
   // an answer of hers, kept with your message before it
   remember(message) {
-    this.history.push(message);
+    this.history.push(message.id ? message : note(message.role, message.content));
     this.history = this.history.slice(-KEEP);
     this.host.chatRemember(this.history);
   }
@@ -510,6 +595,11 @@ export class Chat {
       const then = THEN_FOLDER.test(text) ? 'folder' : THEN_OPEN.test(text) ? 'open' : null;
       if (query || exts.length) return { kind: 'files', query, exts, then };
     }
+    const where = WINDOW_ASK.exec(text.trim());
+    if (where) {
+      const name = where[1].replace(/['’]/g, ' ').replace(WINDOW_FILLER, ' ').replace(/\s+/g, ' ').trim();
+      if (name.length >= 2) return { kind: 'window', name, sure: WINDOW_WORD.test(text) };
+    }
     const media = MEDIA_ASK.find(([, re]) => re.test(text))?.[0];
     if (media && (count <= 5 || MUSIC_WORD.test(text))) return { kind: 'media', action: media };
     const song = SPOTIFY_ASK.exec(text)?.[1];
@@ -534,6 +624,7 @@ export class Chat {
   // Doing it now. Resolves with her line about it ({ line, face }), or null if there was nothing to do.
   async doNow(asked) {
     const { t } = this;
+    if (asked.kind === 'window') return this.findWindow(asked);
     const custom = this.brain.custom;
     if (asked.kind === 'remind') {
       if (!asked.at) {
@@ -617,6 +708,78 @@ export class Chat {
     return this.openNow(item);
   }
 
+  // A window you asked her to find: she points at it (brought up first if it's minimized or covered).
+  // Only close to what you said (a typo, another name): she asks if that's the one. None: she offers to
+  // start it. Without the word "window", a typo counts only in a single word ("notatnk"), and an app
+  // to start only by that name (else: her chat answers).
+  async findWindow({ name, sure }, moved = false) {
+    const { t } = this;
+    const found = await this.host.findWindow(name).catch(() => null);
+    // its button is on another screen's taskbar: she goes there, and looks again from there
+    if (found?.stack?.display != null && !moved && this.goScreen) {
+      await this.goScreen(found.stack.display);
+      return this.findWindow({ name, sure }, true);
+    }
+    if (found?.stack) return this.showStack(found.stack);
+    if (found?.id && !found.similar) return this.showWindow(found);
+    // close to it (a typo, another name): asked about, when it's surely a window, or one long word
+    const word = /^[\p{L}\p{N}-]{5,}$/u.test(name);
+    if (found?.id) return sure || word ? { line: fmt(pick(t.windowSimilar), { asked: name, app: found.name }), face: 'look', window: found } : null;
+    const item = found?.launch;
+    if (item && (sure || simple(item.name).includes(simple(name)))) {
+      return { line: fmt(pick(t.windowNone), { app: this.nameOf(item) }), face: 'aside', launchOffer: item };
+    }
+    return sure ? { line: fmt(pick(t.windowNowhere), { asked: name }), face: 'aside' } : null;
+  }
+
+  async showWindow(found) {
+    const { capri, t } = this;
+    const visible = () => {
+      const win = capri.windows.wins.find((w) => w.id === found.id);
+      return win && capri.canPoint(win) ? win : null;
+    };
+    const wait = async () => {
+      for (let i = 0; i < 15 && !win; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        win = visible();
+      }
+    };
+    let win = visible();
+    if (!win) {
+      // minimized, behind others, or on another screen: brought up, and pointed at once it shows (on
+      // another screen, she goes there first)
+      const up = await this.host.showWindow(found.id).catch(() => null);
+      await wait();
+      if (!win && up?.display != null && this.goScreen) {
+        await this.goScreen(up.display);
+        await wait();
+      }
+      if (!win) return { line: fmt(pick(t.windowUp), { app: found.name }), face: 'smug' };
+    }
+    this.point(win, found.name);
+    return { line: fmt(pick(t.windowHere), { app: found.name }), face: 'smug' };
+  }
+
+  // Several windows of that app (or one she only sees there): its button on the taskbar, where you pick
+  // the one you want, and each one by its title, a button each (`pick`). No button for it on her
+  // screen: she only says so.
+  showStack({ name, count, rect, pick: wins = [] }) {
+    const { t } = this;
+    if (rect) this.point(rect, count >= 2 ? `${name} ×${count}` : name);
+    return { line: fmt(pick(count >= 2 ? t.windowMany : t.windowHere), { app: name, count }), face: 'smug', choose: wins.length >= 2 ? wins : null };
+  }
+
+  // she points at it a while, then lets it go (unless she's pointing at something else by then)
+  point(rect, label) {
+    const { capri } = this;
+    capri.pointAt(rect, { label }).then(() => {
+      const at = capri.pointing;
+      setTimeout(() => {
+        if (at && capri.pointing === at) capri.stopPointing();
+      }, 8000);
+    });
+  }
+
   // An app, a game, a file or a folder: opened, or behind a button when it would run something.
   async openNow(item) {
     if (item.risky) return { offer: item };
@@ -656,6 +819,34 @@ export class Chat {
       return undefined;
     }
     if (done?.offer) return this.launch(done.offer, answer); // it would run something: your click first
+    if (done?.launchOffer) {
+      // no such window open: start it? (on your click)
+      this.addLine(answer, done.line, done.face);
+      return this.launch(done.launchOffer, answer);
+    }
+    if (done?.window) {
+      // only close to what you said: is it that one?
+      this.addLine(answer, done.line, done.face);
+      this.panel.setActions([{ id: 'yes', label: t.windowYes, primary: true }, { id: 'no', label: t.windowNo }], async (id) => {
+        this.panel.setActions([]);
+        if (id !== 'yes') return;
+        const shown = await this.showWindow(done.window);
+        this.addLine(answer, shown.line, shown.face);
+      });
+      return undefined;
+    }
+    if (done?.choose) {
+      // several windows of it: which one, by its title (she brings it up and points at it)
+      this.addLine(answer, done.line, done.face);
+      this.panel.setActions(done.choose.map((w) => ({ id: String(w.id), label: w.title.length > 34 ? `${w.title.slice(0, 33)}…` : w.title })), async (id) => {
+        const win = done.choose.find((w) => String(w.id) === id);
+        this.panel.setActions([]);
+        if (!win) return;
+        const shown = await this.showWindow({ id: win.id, name: win.title });
+        this.addLine(answer, shown.line, shown.face);
+      });
+      return undefined;
+    }
     if (done?.files) {
       // what she found (or the screenshot): a button to open the first, and to see where it is
       this.addLine(answer, done.line, done.face);
@@ -848,6 +1039,47 @@ export class Chat {
     this.panel.setActions(actions, onAction);
     this.remember({ role: 'assistant', content: line });
     return true;
+  }
+
+  // Something she said of her own (talk.js), kept in her chat like an answer of hers, so she knows what
+  // she meant if you ask: after what you sent Claude Code or Codex, when that's what it was about
+  // (`asked`: { text, to, tag })
+  keepAside(line, aside, asked = null) {
+    if (asked) this.history.push({ ...note('user', String(asked.text).slice(0, 300)), to: asked.to, tag: asked.tag || '' });
+    this.remember({ ...note('assistant', line), aside });
+  }
+
+  // The conversation lately, for what she says of her own: who said what, a line each
+  recent(count = 6) {
+    return this.history.slice(-count).map((m) => {
+      const who = m.role === 'user' ? (m.to ? `The user, to ${m.to}` : 'The user') : 'You';
+      return `${who}: ${String(m.content).replace(/\s+/g, ' ').slice(0, 200)}`;
+    }).join('\n');
+  }
+
+  // Who she is when she speaks up on her own (talk.js), written by a model of her own, never Claude Code
+  // or Codex: short, in character, about what just happened
+  asidePersona() {
+    const assistant = ASSISTANT_NAMES[this.brain.assistant] || 'Claude Code';
+    const lang = IN_LANGUAGE[this.brain.lang] || IN_LANGUAGE.en;
+    return [
+      `You are Capri, the personality construct from Project Capricorn (Cyberpunk: Edgerunners, season 2): dozens of minds fused into one digital ghost, living on the user's desktop as a small glitchy figure.`,
+      `You keep an eye on ${assistant}, the user's AI coding assistant, for them. ${assistant} does the work; you never claim you did it, and you never do it or explain how.`,
+      'How you talk: playful, a little mischievous and teasing, warm underneath, never cruel. Night City slang now and then (choom, preem, nova, gonk), not in every line.',
+      'Rules: one short sentence, two at most, plain text, no markdown, no lists, no emoji, no tags, no quotes around it. Talk to the user, in character. Never repeat what you said lately, nor start the same way.',
+      `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
+      ...this.personal(),
+      ...(this.bond ? [this.bond.persona()] : []),
+      ...[this.bond?.moodLine()].filter(Boolean),
+      lang.last,
+      this.asideLanguage(),
+    ].join('\n');
+  }
+
+  // Her language for what she says of her own: what happened is told to her AI in English, so "in the
+  // message's language" would be English
+  asideLanguage() {
+    return `Whatever language the notes you get are in, write your line in ${LANGUAGE_NAMES[this.brain.lang] || 'English'}.`;
   }
 
   // What the user made her (custom.js): their name, how they want her, what to remember.

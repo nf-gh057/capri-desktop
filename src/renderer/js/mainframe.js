@@ -1,9 +1,28 @@
-// Her settings window, "Mainframe": her tray menu's choices on one page, drawn again from what
-// main.js sends (main/main.js mainframeState) each time anything changes, here or elsewhere.
+// Her settings window, "Mainframe": her chat and her tray menu's choices on tabs along the top, like
+// her game's menus, drawn again from what main.js sends (main/main.js mainframeState) each time
+// anything changes, here or elsewhere. Each tab has a name from her world and a plain one; what it's
+// for shows on a hover, and for all of them with "?" (bottom right) or F1.
 
 const host = window.mainframe;
 const sections = document.getElementById('sections');
+const TABS = [
+  ['holo', 'HOLO'], ['netwatch', 'NETWATCH'], ['engrams', 'ENGRAMS'], ['relic', 'RELIC'], ['cyberdeck', 'CYBERDECK'],
+];
 let state = null;
+let tab = remembered() || 'holo';
+let help = false;
+let holoView = 'capri'; // HOLO: her chat ('capri'), or your phone ('phone')
+let stick = true;       // her chat is scrolled to its newest message: it stays there as more come
+
+// the tab you were on, the next time it opens (this window's own storage; none, and it's the first)
+function remembered() {
+  try {
+    const id = localStorage.getItem('mainframe.tab');
+    return TABS.some(([t]) => t === id) ? id : null;
+  } catch {
+    return null;
+  }
+}
 
 // an element, with its properties (on* are listeners) and children (text or elements)
 function el(tag, props = {}, ...children) {
@@ -15,7 +34,7 @@ function el(tag, props = {}, ...children) {
     else if (key in node) node[key] = value;
     else node.setAttribute(key, value);
   }
-  node.append(...children.flat().filter((c) => c !== null && c !== undefined && c !== false));
+  node.append(...children.flat(Infinity).filter((c) => c !== null && c !== undefined && c !== false));
   return node;
 }
 
@@ -38,7 +57,7 @@ const select = (items, picked, name, extra = {}) => el('select', {
   onchange: (e) => act(name, e.target.value === '' ? null : e.target.value),
 }, items.map(({ id, label }) => el('option', { value: id ?? '', selected: id === picked }, label)));
 
-const check = (label, checked, name) => el('label', { class: 'check' },
+const check = (label, checked, name, tip) => el('label', { class: 'check', 'data-tip': tip },
   el('input', { type: 'checkbox', checked, onchange: (e) => act(name, e.target.checked) }),
   el('span'),
   label);
@@ -61,14 +80,23 @@ function field(keep, placeholder, label, name, type = 'text') {
 
 const row = (label, ...children) => el('div', { class: 'row' }, label ? el('span', { class: 'row__label' }, label) : null, ...children);
 
-const section = (name, ...children) => el('section', { class: 'section' }, el('h2', { class: 'section__name' }, name), ...children);
+// one card of a tab: its name in red, like the boxes of her game's menus
+const section = (name, ...children) => el('section', { class: 'card' }, el('h2', { class: 'card__name' }, name), ...children);
+
+// the AI she watches in your terminal, or IDLE when she only keeps you company
+const watched = (s, t) => (s.watch.id === 'none' ? t.statIdle : s.watch.assistants.find((a) => a.id === s.watch.id)?.label || s.watch.id);
+
+// who answers her chat: "Codex · gpt-5.5", for her brain and the top of the window
+function brainName(b) {
+  const provider = b.providers.find((p) => p.id === b.provider);
+  const name = (provider?.label || b.provider).replace(/\s*\(.*\)$/, ''); // "Codex (ChatGPT plan…)" -> "Codex"
+  return b.model && b.model !== name ? `${name} · ${b.model}` : name;
+}
 
 function brain(s, t) {
   const b = s.brain;
-  const provider = b.providers.find((p) => p.id === b.provider);
-  const name = (provider?.label || b.provider).replace(/\s*\(.*\)$/, ''); // "Codex (ChatGPT plan…)" -> "Codex"
   return section(t.secBrain,
-    el('p', { class: 'headline' }, b.model && b.model !== name ? `${name} · ${b.model}` : name),
+    el('p', { class: 'headline' }, brainName(b)),
     el('p', { class: `note ${b.error ? 'is-error' : ''}` }, b.error || b.where),
     row(null, select(b.providers, b.provider, 'provider', { label: t.chatModel })),
     row(null,
@@ -76,42 +104,89 @@ function brain(s, t) {
         { disabled: !b.models.length, label: t.chatModel }),
       button(t.refresh, 'refresh')),
     b.signin && row(null, button(t.cloudSignin, 'cloudSignin', null, { class: 'grow' })),
-    b.agent && [
-      row(t.permissions, select(b.agent.modes, b.agent.mode, 'mode', { label: t.permissions })),
-      b.agent.effort && row(t.effort, choice('trio grow', b.agent.efforts.map(({ id, label }) => [id, label]), b.agent.effort, 'effort')),
-      row(null, button(b.agent.cwd, 'folder', null, { class: 'grow' })),
-      check(t.agentPowers, b.agent.powers, 'agentPowers'),
-    ],
     check(t.chatShowModel, b.showModel, 'chatShowModel'),
     check(t.chatShowNote, b.showNote, 'chatShowNote'),
-    el('div', { class: 'split' }, button(t.aiSetup, 'aiSetup'), button(t.apiKey, 'apiKey')),
-    row(null, button(t.forget, 'forget', null, { class: 'grow' })));
+    el('div', { class: 'split' }, button(t.aiSetup, 'aiSetup'), button(t.apiKey, 'apiKey')));
 }
 
-function capri(s, t) {
+// Claude Code or Codex in her chat: where it works, what it may do, and her own powers with it (the
+// Blackwall Gateway: what it is, on a hover)
+function gateway(s, t) {
+  const a = s.brain.agent;
+  if (!a) return section(t.secAgent, el('p', { class: 'note' }, t.gatewayNone));
+  return section(t.secAgent,
+    el('p', { class: 'headline' }, brainName(s.brain)),
+    row(t.permissions, select(a.modes, a.mode, 'mode', { label: t.permissions })),
+    a.effort && row(t.effort, choice('trio grow', a.efforts.map(({ id, label }) => [id, label]), a.effort, 'effort')),
+    row(null, button(a.cwd, 'folder', null, { class: 'grow' })),
+    check('Blackwall Gateway', a.powers, 'agentPowers', t.agentPowers));
+}
+
+// what she calls you (and your name in HOLO): as it is now, changed in place; empty, she says "choom"
+function userName(c, t) {
+  const input = el('input', {
+    type: 'text', class: 'input grow', value: c.userName, placeholder: t.userNameHint, 'aria-label': t.userName,
+    autocomplete: 'off', spellcheck: false, maxLength: 24, 'data-keep': 'userName',
+  });
+  const go = () => act('userName', input.value);
+  input.addEventListener('keydown', (e) => e.key === 'Enter' && go());
+  return row(t.userName, input, el('button', { type: 'button', class: 'button', onclick: go }, t.userNameSave));
+}
+
+// who she is, what she remembers and the reminders she keeps
+function engrams(s, t) {
   const c = s.capri;
-  return section(t.secCapri,
-    el('p', { class: 'note' }, c.sync),
-    el('div', { class: 'trio' },
-      button(c.visible ? t.hide : t.show, 'visible'),
-      button(t.teleport, 'teleport'),
-      button(t.talk, 'talk')),
-    row(t.size, choice('trio grow', [['small', t.small], ['medium', t.medium], ['large', t.large]], c.size, 'size')),
-    check(t.wander, c.wander, 'wander'),
-    check(t.possess, c.possess, 'possess'),
-    check(t.jealous, c.jealous, 'jealous'),
-    check(t.pcReact, c.pcReact, 'pcReact'),
-    check(t.mute, c.muted, 'muted'),
-    row(t.rest, select([{ id: 'corner', label: t.restCorner }, { id: 'taskbar', label: t.restTaskbar }], c.rest, 'rest', { label: t.rest })),
-    row(t.screen, select(c.screens, c.screen, 'screen', { disabled: c.screens.length < 2, label: t.screen })),
-    c.screens.length > 1 && check(t.follow, c.follow, 'follow'),
-    row(null, button(t.lookNow, 'lookNow', null, { class: 'grow' })),
-    check(t.lookAuto, c.lookAuto, 'lookAuto'),
-    row(t.reminders, c.reminders.length ? null : el('span', { class: 'note grow' }, t.noReminders)),
-    c.reminders.map((r) => row(null, el('span', { class: 'grow reminder' }, r.label),
-      button('✕', 'cancelReminder', r.id, { title: t.cancelReminder }))),
-    row(t.stowKey, select([...c.stowKeys, { id: null, label: t.stowKeyOff }], c.stowKey, 'stowKey', { label: t.stowKey })),
-    el('div', { class: 'split' }, button(t.stowKeyCustom, 'stowKeyCustom'), button(t.custom, 'custom')));
+  return [
+    section(t.secBond,
+      el('p', { class: 'headline' }, s.stats.stage),
+      el('p', { class: 'note' }, c.sync),
+      el('div', { class: 'meter' }, el('span', { style: `width: ${s.stats.percent}%` })),
+      el('p', { class: 'note' }, s.stats.together)),
+    section(t.secPersona,
+      userName(c, t),
+      row(null, button(t.custom, 'custom', null, { class: 'grow' })),
+      row(null, button(t.forget, 'forget', null, { class: 'grow' }))),
+    section(t.reminders,
+      !c.reminders.length && el('p', { class: 'note' }, t.noReminders),
+      c.reminders.map((r) => row(null, el('span', { class: 'grow reminder' }, r.label),
+        button('✕', 'cancelReminder', r.id, { title: t.cancelReminder })))),
+    // what she remembers, and on which of your PCs it was said (her swarm): one by one, to forget
+    section(t.memories,
+      !c.memories.length && el('p', { class: 'note' }, t.noMemories),
+      c.memories.map((m) => row(null, el('span', { class: 'grow reminder' }, m.text, m.from && el('span', { class: 'note' }, ` · ${m.from}`)),
+        button('✕', 'forgetMemory', m.id, { title: t.forgetMemory })))),
+  ];
+}
+
+// her body on your screen, and how she acts
+function cyberware(s, t) {
+  const c = s.capri;
+  return [
+    section(t.secPresence,
+      el('div', { class: 'trio' },
+        button(c.visible ? t.hide : t.show, 'visible'),
+        button(t.teleport, 'teleport'),
+        button(t.talk, 'talk')),
+      row(t.size, choice('trio grow', [['small', t.small], ['medium', t.medium], ['large', t.large]], c.size, 'size')),
+      row(t.rest, select([{ id: 'corner', label: t.restCorner }, { id: 'taskbar', label: t.restTaskbar }], c.rest, 'rest', { label: t.rest })),
+      row(t.screen, select(c.screens, c.screen, 'screen', { disabled: c.screens.length < 2, label: t.screen })),
+      c.screens.length > 1 && check(t.follow, c.follow, 'follow'),
+      row(t.stowKey, select([...c.stowKeys, { id: null, label: t.stowKeyOff }], c.stowKey, 'stowKey', { label: t.stowKey })),
+      row(null, button(t.stowKeyCustom, 'stowKeyCustom', null, { class: 'grow' }))),
+    section(t.secBehaviour,
+      // how often she speaks up on her own (talk.js): what it is, on a hover
+      el('div', { class: 'row', 'data-tip': t.talkTip },
+        el('span', { class: 'row__label' }, t.talkLevel),
+        choice('trio grow', [['quiet', t.talkQuiet], ['normal', t.talkNormal], ['chatty', t.talkChatty]], c.talk, 'talk')),
+      c.talkCloudAsk && c.talk !== 'quiet' && check(t.talkCloud, c.talkCloud, 'talkCloud'),
+      check(t.wander, c.wander, 'wander'),
+      check(t.possess, c.possess, 'possess'),
+      check(t.jealous, c.jealous, 'jealous'),
+      check(t.pcReact, c.pcReact, 'pcReact'),
+      check(t.mute, c.muted, 'muted'),
+      check(t.lookAuto, c.lookAuto, 'lookAuto'),
+      row(null, button(t.lookNow, 'lookNow', null, { class: 'grow' }))),
+  ];
 }
 
 function watch(s, t) {
@@ -127,8 +202,10 @@ function watch(s, t) {
 function phone(s, t) {
   const p = s.phone;
   const error = p.error && el('p', { class: 'note is-error' }, p.error);
+  const elsewhere = p.elsewhere && el('p', { class: 'note' }, p.elsewhere); // held by another of your PCs (her swarm)
   if (!p.bot) {
     return section(t.secPhone,
+      elsewhere,
       el('p', { class: 'note' }, t.phoneHow),
       error,
       row(null, button(t.phoneBotFather, 'phoneBotFather', null, { class: 'grow' })),
@@ -147,24 +224,26 @@ function phone(s, t) {
       ] : row(null, button(t.phonePairAgain, 'phonePair', null, { class: 'grow is-on' })),
       row(null, button(t.phoneForget, 'phoneForget', null, { class: 'grow' })));
   }
-  return section(t.secPhone,
-    el('p', { class: 'headline' }, `@${p.bot} → ${p.linked}`),
-    el('p', { class: `note ${p.error ? 'is-error' : ''}` }, p.error || t.phonePrivacy),
-    check(t.phoneOn, p.on, 'phoneOn'),
-    row(t.phoneWhen, select([['5', t.phoneAway5], ['15', t.phoneAway15], ['0', t.phoneAlways]].map(([id, label]) => ({ id, label })),
-      p.away, 'phoneAway', { label: t.phoneWhen })),
-    row(t.phoneDetail, select([['line', t.phoneLine], ['quote', t.phoneQuote]].map(([id, label]) => ({ id, label })),
-      p.detail, 'phoneDetail', { label: t.phoneDetail })),
-    el('div', { class: 'split' }, button(t.phoneTest, 'phoneTest'), button(t.phoneForget, 'phoneForget')),
-    phoneChat(p, t));
+  return [
+    section(t.secPhone,
+      el('p', { class: 'headline' }, `@${p.bot} → ${p.linked}`),
+      elsewhere,
+      el('p', { class: `note ${p.error ? 'is-error' : ''}` }, p.error || t.phonePrivacy),
+      check(t.phoneOn, p.on, 'phoneOn'),
+      row(t.phoneWhen, select([['5', t.phoneAway5], ['15', t.phoneAway15], ['0', t.phoneAlways]].map(([id, label]) => ({ id, label })),
+        p.away, 'phoneAway', { label: t.phoneWhen })),
+      row(t.phoneDetail, select([['line', t.phoneLine], ['quote', t.phoneQuote]].map(([id, label]) => ({ id, label })),
+        p.detail, 'phoneDetail', { label: t.phoneDetail })),
+      el('div', { class: 'split' }, button(t.phoneTest, 'phoneTest'), button(t.phoneForget, 'phoneForget'))),
+    section(t.phoneChatHead, phoneChat(p, t)),
+  ];
 }
 
 // Her chat on Telegram: the code from your authenticator app first (scanned here, checked once), then
 // on or off, how long `/unlock` opens it for, and locked again from here
 function phoneChat(p, t) {
-  const head = el('h3', { class: 'subhead' }, t.phoneChatHead);
   if (p.draft) {
-    return [head,
+    return [
       el('p', { class: 'note' }, t.phoneTotpScan),
       el('img', { class: 'qr', src: p.draft.qr, alt: t.phoneTotpScan }),
       el('p', { class: 'note' }, `${t.phoneTotpKey} `, el('span', { class: 'code' }, p.draft.key)),
@@ -173,11 +252,11 @@ function phoneChat(p, t) {
       row(null, button(t.phoneTotpCancel, 'phoneTotpCancel', null, { class: 'grow' }))];
   }
   if (!p.totp) {
-    return [head,
+    return [
       el('p', { class: 'note' }, t.phoneChatHow),
       row(null, button(t.phoneTotpSet, 'phoneTotpSet', null, { class: 'grow' }))];
   }
-  return [head,
+  return [
     el('p', { class: `note ${p.lockout ? 'is-error' : ''}` }, p.lockout || t.phoneChatHow),
     check(t.phoneChat, p.chat, 'phoneChat'),
     ...(p.chat ? [
@@ -221,21 +300,33 @@ function swarm(s, t) {
       tailscale,
       check(t.swarmOn, false, 'swarmOn'));
   }
-  return section(t.secSwarm,
-    el('p', { class: 'headline' }, `${w.name}${w.here ? ` · ${t.swarmHere}` : ''}`),
-    tailscale,
-    w.error && el('p', { class: 'note is-error' }, w.error),
-    check(t.swarmOn, true, 'swarmOn'),
-    field('swarmName', t.swarmName, t.phoneSave, 'swarmName'),
-    el('h3', { class: 'subhead' }, t.swarmPcs),
-    !w.peers.length && el('p', { class: 'note' }, t.swarmNone),
-    w.peers.map((p) => row(null, el('span', { class: 'grow reminder' }, `${p.name} · ${p.status}`),
-      button('✕', 'swarmRemove', p.id, { title: t.swarmRemove }))),
-    w.invite
-      ? [el('p', { class: 'note' }, t.swarmInviteHow), el('p', { class: 'note' }, el('span', { class: 'code' }, w.invite)),
-        row(null, button(t.phoneTotpCancel, 'swarmInviteCancel', null, { class: 'grow' }))]
-      : row(null, button(t.swarmInvite, 'swarmInvite', null, { class: 'grow' })),
-    field('swarmJoin', t.swarmJoinCode, t.swarmJoin, 'swarmJoin'));
+  return [
+    section(t.secSwarm,
+      el('p', { class: 'headline' }, `${w.name}${w.here ? ` · ${t.swarmHere}` : ''}`),
+      tailscale,
+      w.error && el('p', { class: 'note is-error' }, w.error),
+      check(t.swarmOn, true, 'swarmOn'),
+      field('swarmName', t.swarmName, t.phoneSave, 'swarmName')),
+    section(t.swarmPcs,
+      !w.peers.length && el('p', { class: 'note' }, t.swarmNone),
+      w.peers.map((p) => row(null, el('span', { class: 'grow reminder' }, `${p.name} · ${p.status}`),
+        button('✕', 'swarmRemove', p.id, { title: t.swarmRemove }))),
+      check(t.swarmUpdate, w.update, 'swarmUpdate')),
+    // your other devices with Capri on Tailscale: one click (Tailscale vouches that they're yours)
+    section(t.swarmFound,
+      w.found.length
+        ? w.found.map((f) => row(null, el('span', { class: 'grow reminder' }, `${f.name}${f.version ? ` · v${f.version}` : ''}`),
+          button(t.swarmJoin, 'swarmJoinTailnet', f.id)))
+        : el('p', { class: 'note' }, t.swarmNoneFound),
+      row(null, button(t.swarmLook, 'swarmLook', null, { class: 'grow' }))),
+    // or with a code (a device on another Tailscale account)
+    section(t.swarmByCode,
+      w.invite
+        ? [el('p', { class: 'note' }, t.swarmInviteHow), el('p', { class: 'note' }, el('span', { class: 'code' }, w.invite)),
+          row(null, button(t.phoneTotpCancel, 'swarmInviteCancel', null, { class: 'grow' }))]
+        : row(null, button(t.swarmInvite, 'swarmInvite', null, { class: 'grow' })),
+      field('swarmJoin', t.swarmJoinCode, t.swarmJoin, 'swarmJoin')),
+  ];
 }
 
 function system(s, t) {
@@ -251,14 +342,149 @@ function system(s, t) {
     el('div', { class: 'footer' }, button(t.help, 'help'), button(t.quit, 'quit', null, { class: 'is-danger' })));
 }
 
+// HOLO, like her game's messages: who's there down the left (her, your phone), the conversation on the
+// right: her chat and everything else she said, her in yellow on the left, you in cyan on the right
+const unTagged = (text) => String(text).replace(/\[\[[^\]]*\]\]/g, '').trim(); // [[open: …]], as her chat hides them
+
+function when(at) {
+  const d = new Date(at);
+  const today = d.toDateString() === new Date().toDateString();
+  return new Intl.DateTimeFormat(state.lang, today ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
+}
+
+// who it's from on top: "> CAPRI" what she said, "< YOU" (your name, as she calls you) what you sent,
+// "→ CODEX" if not to her
+function head(you, to, ...more) {
+  return el('p', { class: 'msg__head' },
+    el('span', { class: 'msg__who' }, you ? `< ${state.capri.userName || state.t.holoYou}` : '> CAPRI'),
+    to ? ` → ${to}` : '',
+    more.filter(Boolean).map((part) => ` · ${part}`).join(''));
+}
+
+function message(m) {
+  const at = m.at ? el('span', { class: 'msg__at' }, when(m.at)) : null;
+  // in her chat too: what you sent Claude Code or Codex (`to`), when she said something of her own about it
+  if (m.role === 'user') return el('div', { class: `msg msg--you ${m.to ? 'msg--line' : ''}` }, head(true, m.to, m.tag), el('p', { class: 'msg__text' }, m.content), at);
+  if (m.role === 'assistant') return el('div', { class: 'msg msg--her' }, head(false), el('p', { class: 'msg__text' }, unTagged(m.content)), at);
+  // your prompt to Claude Code or Codex first, then what she said about it (from before 0.4.4-31: her
+  // line about your prompt, with it clipped under it)
+  const asked = m.asked || (m.kind === 'work' && m.tag && m.quote) || '';
+  return [
+    asked && el('div', { class: 'msg msg--you msg--line' }, head(true, m.to, m.tag), el('p', { class: 'msg__text' }, asked), at),
+    m.line && el('div', { class: `msg msg--her msg--line is-${m.kind || 'info'}` },
+      head(false, null, m.badge, !asked && m.tag),
+      el('p', { class: 'msg__text' }, m.line),
+      m.quote && !asked && el('p', { class: 'msg__quote' }, m.quote),
+      asked ? '' : at),
+  ];
+}
+
+function holo(s, t) {
+  const h = s.holo;
+  const contact = (id, name, plain) => el('button', {
+    type: 'button', class: `contact ${holoView === id ? 'is-on' : ''}`, onclick: () => { holoView = id; stick = true; draw(state); },
+  }, el('span', { class: 'contact__name' }, name), el('span', { class: 'contact__plain' }, plain));
+  const list = el('div', { class: 'holo__list' },
+    contact('capri', 'CAPRI', t.holoCapri),
+    contact('phone', 'TELEGRAM', t.holoPhone));
+  if (holoView === 'phone') return el('div', { class: 'holo' }, list, el('div', { class: 'holo__cards' }, [phone(s, t)].flat()));
+  // your message being answered, until it's in her chat with her answer
+  const last = h.chat.at(-2);
+  const pending = h.turn && !(last?.role === 'user' && last.content === h.turn.text && h.chat.at(-1)?.role === 'assistant');
+  const all = [...h.chat, ...h.lines].sort((a, b) => a.at - b.at);
+  const log = el('div', { class: 'log', id: 'log' },
+    !all.length && !pending && el('p', { class: 'note log__empty' }, t.holoEmpty),
+    all.map(message),
+    pending && [
+      el('div', { class: 'msg msg--you' }, head(true), el('p', { class: 'msg__text' }, h.turn.text)),
+      el('div', { class: 'msg msg--her is-streaming' }, head(false), el('p', { class: 'msg__text' }, unTagged(h.turn.answer) || '…')),
+    ]);
+  log.addEventListener('scroll', () => { stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30; });
+  const input = el('input', {
+    type: 'text', class: 'input grow', placeholder: t.holoPlaceholder, 'aria-label': t.holoPlaceholder,
+    autocomplete: 'off', spellcheck: true, 'data-keep': 'holo', disabled: Boolean(h.turn),
+  });
+  const go = () => {
+    const text = input.value.trim();
+    if (!text || state.holo.turn) return;
+    input.value = '';
+    stick = true;
+    act('holoSend', text);
+  };
+  input.addEventListener('keydown', (e) => e.key === 'Enter' && go());
+  return el('div', { class: 'holo' }, list,
+    el('div', { class: 'holo__talk' },
+      log,
+      el('p', { class: 'reply__label' }, t.holoReply),
+      el('div', { class: 'reply' }, input, el('button', { type: 'button', class: 'button is-on', disabled: Boolean(h.turn), onclick: go }, t.holoSend))));
+}
+
+const PAGES = {
+  holo,
+  netwatch: (s, t) => [brain(s, t), watch(s, t), gateway(s, t)],
+  engrams,
+  relic: (s, t) => [cyberware(s, t), swarm(s, t)].flat(),
+  cyberdeck: (s, t) => [system(s, t), updates(s, t)],
+};
+
+// her level, her sync and your days together, like a game's level and street cred
+function stats(s, t) {
+  const stat = (value, label) => el('div', { class: 'stat', title: label }, el('span', { class: 'stat__value' }, value), el('span', { class: 'stat__label' }, label));
+  return [
+    el('div', { class: 'stat', title: s.stats.stage }, el('span', { class: 'stat__ring' }, String(s.stats.level)), el('span', { class: 'stat__label' }, t.statLevel)),
+    stat(`${s.stats.percent}%`, t.statSync),
+    stat(String(s.stats.days), t.statDays),
+  ];
+}
+
+// the tabs along the top, like her game's menus: a name from her world (its plain name, and what it's
+// for, on a hover)
+function tabs(s) {
+  return TABS.map(([id, name]) => el('button', {
+    type: 'button', class: `tab ${id === tab ? 'is-on' : ''}`, 'data-tab': id, 'data-tip': `${s.tabs[id][0]}: ${s.tabs[id][1]}`,
+    onclick: () => show(id),
+  }, el('span', { class: 'tab__mark' }), name));
+}
+
+// "?": every tab and what it's for, to go to one
+function legend(s) {
+  return el('div', { class: 'legend' }, TABS.map(([id, name]) => el('button', {
+    type: 'button', class: 'legend__item', onclick: () => { help = false; tab === id ? draw(state) : show(id); },
+  }, el('span', { class: 'legend__name' }, `${name} · ${s.tabs[id][0]}`), el('span', { class: 'legend__tip' }, s.tabs[id][1]))));
+}
+
+function show(id) {
+  if (id === tab) return;
+  tab = id;
+  try {
+    localStorage.setItem('mainframe.tab', id);
+  } catch { /* remembered for this time only */ }
+  sections.scrollTop = 0;
+  draw(state);
+}
+
 function draw(next) {
   state = next;
   const t = state.t;
   document.documentElement.lang = state.lang;
+  document.body.classList.toggle('is-help', help);
+  document.getElementById('stats').replaceChildren(...stats(state, t));
+  document.getElementById('build').replaceChildren(
+    // the model alone ("gemma3:4b"), the provider too on a hover
+    el('span', { class: 'build__brain', title: brainName(state.brain) }, state.brain.model || brainName(state.brain)),
+    el('span', { class: 'build__watch' }, `/ ${watched(state, t)}`));
   document.getElementById('version').textContent = `v${state.version}`;
+  document.getElementById('tabs').replaceChildren(...tabs(state));
+  document.getElementById('head').replaceChildren(
+    el('h2', { class: 'pane__name' }, TABS.find(([id]) => id === tab)[1]),
+    el('span', { class: 'pane__plain' }, state.tabs[tab][0]),
+    help ? legend(state) : '');
+  document.getElementById('helpLabel').textContent = t.helpTips;
   const top = sections.scrollTop; // drawn again in place, not back at the top
+  const logTop = document.getElementById('log')?.scrollTop ?? 0;
   const typed = [...sections.querySelectorAll('[data-keep]')].map((input) => [input.dataset.keep, input.value, input === document.activeElement]);
-  sections.replaceChildren(brain(state, t), capri(state, t), watch(state, t), phone(state, t), swarm(state, t), updates(state, t), system(state, t));
+  sections.classList.toggle('is-holo', tab === 'holo');
+  sections.replaceChildren(...[PAGES[tab](state, t)].flat());
   for (const [keep, value, focused] of typed) {
     const input = sections.querySelector(`[data-keep="${keep}"]`);
     if (!input) continue;
@@ -266,9 +492,50 @@ function draw(next) {
     if (focused) input.focus();
   }
   sections.scrollTop = top;
+  const log = document.getElementById('log');
+  if (log) log.scrollTop = stick ? log.scrollHeight : logTop;
+  if (log && !state.holo.turn && document.activeElement === document.body) sections.querySelector('[data-keep="holo"]')?.focus();
 }
 
-document.getElementById('minimize').addEventListener('click', () => host.minimize());
-document.getElementById('close').addEventListener('click', () => host.close());
+// her answer to what you typed in HOLO, as it comes
+host.onStream(({ answer }) => {
+  if (!state?.holo?.turn) return;
+  state.holo.turn.answer = answer;
+  const text = document.querySelector('.msg.is-streaming .msg__text');
+  if (!text) return;
+  text.textContent = unTagged(answer) || '…';
+  const log = document.getElementById('log');
+  if (stick) log.scrollTop = log.scrollHeight;
+});
+
+// what a tab (or the Blackwall Gateway) is for: by the pointer, while it's on it
+const tip = document.getElementById('tip');
+let tipFor = null;
+document.addEventListener('mouseover', (e) => {
+  const target = e.target.closest('[data-tip]');
+  if (target === tipFor) return;
+  tipFor = target;
+  if (!target || help) {
+    tip.hidden = true;
+    return;
+  }
+  tip.textContent = target.dataset.tip;
+  tip.hidden = false;
+  // under it, in the window
+  const box = target.getBoundingClientRect();
+  tip.style.left = `${Math.round(Math.max(8, Math.min(box.left, innerWidth - tip.offsetWidth - 8)))}px`;
+  tip.style.top = `${Math.round(box.bottom + 8)}px`;
+});
+
+function toggleHelp() {
+  help = !help;
+  tip.hidden = true;
+  if (state) draw(state);
+}
+document.getElementById('help').addEventListener('click', toggleHelp);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F1') toggleHelp();
+  else if (e.key === 'Escape' && help) toggleHelp();
+});
 host.onState(draw);
 host.state().then((s) => s && draw(s));

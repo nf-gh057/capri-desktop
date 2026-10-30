@@ -110,6 +110,13 @@ export const LINES = {
       robloxPlay: 'Je te lance {game} sur Roblox.', robloxPage: '{game} : je t’ouvre sa page Roblox.', robloxNone: 'Je ne trouve pas « {game} » sur Roblox.',
       filesFound: 'J’ai trouvé {count} fichiers : {list}.', fileFound: 'Trouvé : {list}.', filesNone: 'Rien trouvé pour « {query} » sur ton PC.',
       showFolder: 'Voir le dossier', shot: 'Capture faite : {name} (dans Images › Screenshots).',
+      windowMany: ['{app} : {count} fenêtres, toutes là. Choisis, choom.', '{count} fenêtres {app}. Je ne vais pas deviner : sers-toi.', 'Tout un tas de {app} ({count}). À toi de choisir.'],
+      windowHere: ['Là. {app}, juste là.', '{app} ? Le voilà, choom.', 'Trouvé : {app}. Je te le montre.'],
+      windowUp: ['{app} se cachait, je te l’ai ramené devant.', 'Je t’ai sorti {app} de sa cachette.'],
+      windowSimilar: ['« {asked} » ? Je ne vois pas ça. Tu voulais dire {app} ?', 'Pas de « {asked} » ici, choom. Mais j’ai {app}. C’est lui ?'],
+      windowNone: ['Pas de {app} ouvert nulle part. Je le lance ?', '{app} ? Rien à l’écran. Je te le démarre ?'],
+      windowNowhere: ['Aucune fenêtre « {asked} », et rien à lancer de ce nom.', '« {asked} » ? Ni ouvert, ni installé, d’après moi.'],
+      windowYes: 'Oui, lui', windowNo: 'Non',
       folderOpened: 'Voilà son dossier : {name}.',
       folders: { explorer: 'L’explorateur', recycle: 'La corbeille', downloads: 'Tes téléchargements', desktop: 'Ton bureau', documents: 'Tes documents', pictures: 'Tes images', music: 'Ta musique', videos: 'Tes vidéos' },
       media: { pause: 'Pause.', play: 'Ça repart.', next: 'Suivante.', previous: 'Précédente.', volup: 'Plus fort.', voldown: 'Moins fort.', mute: 'J’ai appuyé sur muet.' },
@@ -279,9 +286,9 @@ export const LINES = {
     // passée sur ton autre écran pour te suivre
     screens: { hello: ['Coucou, l’autre écran.', 'Tu bosses ici maintenant ? J’arrive.', 'Me voilà.'] },
     // elle passe d’un de tes PC à l’autre (essaim, swarm.js)
-    swarm: { leave: ['Je file sur {pc}.', 'On se retrouve sur {pc}, choom.', 'Je te suis sur {pc}.'], back: ['Me revoilà.', 'Je t’ai suivi depuis {pc}.', 'Celui-ci maintenant ? J’arrive.'] },
+    swarm: { leave: ['Je file sur {pc}.', 'On se retrouve sur {pc}, choom.', 'Je te suis sur {pc}.'], back: ['Me revoilà.', 'Je t’ai suivi depuis {pc}.', 'Celui-ci maintenant ? J’arrive.'], rejoined: ['De retour dans l’essaim. {pc} avait des nouvelles pour moi.', 'Reconnectée. J’ai rattrapé ce qui s’est passé sur {pc}.', 'Seule un moment, et me revoilà entière.'], joined: ['{pc} rejoint l’essaim. Un esprit de plus pour moi.', 'Nouveau dans l’essaim : {pc}. Bienvenue dans ma tête.'], mind: ['{pc} a changé quelque chose dans ma tête.', 'Nouvelles de {pc} : on a touché à ce que je suis, ou à ce dont je me souviens.'], mindPersona: 'Personnalité', mindKeep: 'Garder', mindUndo: 'Annuler', mindUndone: ['Remis comme avant. Sur tous tes PC.', 'Annulé. Je suis redevenue moi.'] },
     // une nouvelle version d’elle sur GitHub, et elle après la mise à jour (update.js)
-    update: { found: ['Choom, il y a une nouvelle version de moi : {version}. Jette un œil dans Mainframe.', 'Nouvelle version de moi dispo ({version}). Mainframe, rubrique Mises à jour.'], done: ['Nouvelle moi, version {version}. Je me sens… fraîche.', 'Mise à jour faite : {version}. Rien n’a crashé. Presque.'] },
+    update: { found: ['Choom, il y a une nouvelle version de moi : {version}. Jette un œil dans Mainframe.', 'Nouvelle version de moi dispo ({version}). Mainframe, CYBERDECK.'], done: ['Nouvelle moi, version {version}. Je me sens… fraîche.', 'Mise à jour faite : {version}. Rien n’a crashé. Presque.'] },
     // elle réagit à ton PC (pc.js) : processeur, batterie, réseau, clé USB, jeu
     pc: {
       hot: ['Ton processeur est à fond. Moi aussi, je chauffe.', '{cpu} % de processeur. Il fait chaud là-dedans.', 'Ça chauffe ! Tu fais tourner quoi, là ?'],
@@ -484,6 +491,13 @@ export const LINES = {
       robloxPlay: 'Starting {game} on Roblox for you.', robloxPage: '{game}: opening its Roblox page.', robloxNone: 'Can’t find “{game}” on Roblox.',
       filesFound: 'Found {count} files: {list}.', fileFound: 'Found it: {list}.', filesNone: 'Nothing for “{query}” on your PC.',
       showFolder: 'Show the folder', shot: 'Screenshot taken: {name} (in Pictures › Screenshots).',
+      windowMany: ['{app}: {count} windows, all right here. Take your pick, choom.', '{count} {app} windows. Not gonna guess: help yourself.', 'A whole stack of {app} ({count}). Your call.'],
+      windowHere: ['There. {app}, right there.', '{app}? Got it, choom.', 'Found it: {app}. Over here.'],
+      windowUp: ['{app} was hiding, I pulled it up front.', 'Dug {app} out for you.'],
+      windowSimilar: ['"{asked}"? Don’t see that. You mean {app}?', 'No "{asked}" here, choom. I’ve got {app}, though. That one?'],
+      windowNone: ['No {app} open anywhere. Want me to start it?', '{app}? Nothing on screen. Fire it up?'],
+      windowNowhere: ['No "{asked}" window, and nothing by that name to start.', '"{asked}"? Not open, not installed, far as I can tell.'],
+      windowYes: 'Yes, that one', windowNo: 'No',
       folderOpened: 'Here’s its folder: {name}.',
       folders: { explorer: 'File Explorer', recycle: 'The recycle bin', downloads: 'Your downloads', desktop: 'Your desktop', documents: 'Your documents', pictures: 'Your pictures', music: 'Your music', videos: 'Your videos' },
       media: { pause: 'Paused.', play: 'Playing.', next: 'Next one.', previous: 'Previous one.', volup: 'Louder.', voldown: 'Quieter.', mute: 'Hit mute.' },
@@ -653,9 +667,9 @@ export const LINES = {
     // over on your other screen, following you
     screens: { hello: ['Hi, other screen.', 'Working over here now? Coming.', 'There you are.'] },
     // she goes from one of your PCs to another (her swarm, swarm.js)
-    swarm: { leave: ['Off to {pc}.', 'See you on {pc}, choom.', 'Following you to {pc}.'], back: ['Back.', 'Followed you from {pc}.', 'This one now? Here I am.'] },
+    swarm: { leave: ['Off to {pc}.', 'See you on {pc}, choom.', 'Following you to {pc}.'], back: ['Back.', 'Followed you from {pc}.', 'This one now? Here I am.'], rejoined: ['Back in the swarm. {pc} had news for me.', 'Reconnected. Caught up on what went on at {pc}.', 'Alone for a while, and whole again.'], joined: ['{pc} joined the swarm. One more mind for me.', 'New in the swarm: {pc}. Welcome to my head.'], mind: ['{pc} changed something in my head.', 'News from {pc}: someone touched who I am, or what I remember.'], mindPersona: 'Persona', mindKeep: 'Keep', mindUndo: 'Undo', mindUndone: ['Back as it was. On all your PCs.', 'Undone. Me again.'] },
     // a new version of her on GitHub, and her after updating (update.js)
-    update: { found: ['Choom, there’s a new version of me: {version}. Peek into Mainframe.', 'New me available ({version}). Mainframe, Updates.'], done: ['New me, version {version}. Feeling… fresh.', 'Updated to {version}. Nothing flatlined. Almost.'] },
+    update: { found: ['Choom, there’s a new version of me: {version}. Peek into Mainframe.', 'New me available ({version}). Mainframe, CYBERDECK.'], done: ['New me, version {version}. Feeling… fresh.', 'Updated to {version}. Nothing flatlined. Almost.'] },
     // she reacts to your PC (pc.js): processor, battery, network, USB stick, game
     pc: {
       hot: ['Your processor is maxed out. I’m heating up too.', '{cpu}% CPU. It’s getting hot in here.', 'Things are heating up! What are you running?'],
@@ -857,6 +871,13 @@ export const LINES = {
       robloxPlay: 'Te lanzo {game} en Roblox.', robloxPage: '{game}: te abro su página de Roblox.', robloxNone: 'No encuentro «{game}» en Roblox.',
       filesFound: 'Encontré {count} archivos: {list}.', fileFound: 'Encontrado: {list}.', filesNone: 'Nada para «{query}» en tu PC.',
       showFolder: 'Ver la carpeta', shot: 'Captura hecha: {name} (en Imágenes › Screenshots).',
+      windowMany: ['{app}: {count} ventanas, todas aquí. Elige tú, choom.', '{count} ventanas de {app}. No voy a adivinar: sírvete.', 'Un montón de {app} ({count}). Tú decides.'],
+      windowHere: ['Ahí. {app}, justo ahí.', '¿{app}? Aquí está, choom.', 'Encontrado: {app}. Mira.'],
+      windowUp: ['{app} se escondía, te lo traje al frente.', 'Te saqué {app} de su escondite.'],
+      windowSimilar: ['¿«{asked}»? No veo eso. ¿Querías decir {app}?', 'Aquí no hay «{asked}», choom. Pero tengo {app}. ¿Es ese?'],
+      windowNone: ['No hay {app} abierto en ningún lado. ¿Lo abro?', '¿{app}? Nada en pantalla. ¿Lo arranco?'],
+      windowNowhere: ['No hay ninguna ventana «{asked}», ni nada con ese nombre para abrir.', '¿«{asked}»? Ni abierto ni instalado, que yo vea.'],
+      windowYes: 'Sí, ese', windowNo: 'No',
       folderOpened: 'Aquí está su carpeta: {name}.',
       folders: { explorer: 'El explorador', recycle: 'La papelera', downloads: 'Tus descargas', desktop: 'Tu escritorio', documents: 'Tus documentos', pictures: 'Tus imágenes', music: 'Tu música', videos: 'Tus vídeos' },
       media: { pause: 'Pausa.', play: 'Sigue sonando.', next: 'Siguiente.', previous: 'Anterior.', volup: 'Más alto.', voldown: 'Más bajo.', mute: 'Le di a silenciar.' },
@@ -1023,9 +1044,9 @@ export const LINES = {
     // en tu otra pantalla, siguiéndote
     screens: { hello: ['Hola, otra pantalla.', '¿Ahora trabajas aquí? Voy.', 'Aquí estás.'] },
     // pasa de uno de tus PC a otro (enjambre, swarm.js)
-    swarm: { leave: ['Me voy a {pc}.', 'Nos vemos en {pc}, choom.', 'Te sigo a {pc}.'], back: ['Volví.', 'Te seguí desde {pc}.', '¿Ahora este? Aquí estoy.'] },
+    swarm: { leave: ['Me voy a {pc}.', 'Nos vemos en {pc}, choom.', 'Te sigo a {pc}.'], back: ['Volví.', 'Te seguí desde {pc}.', '¿Ahora este? Aquí estoy.'], rejoined: ['De vuelta en el enjambre. {pc} tenía novedades para mí.', 'Reconectada. Me puse al día con lo que pasó en {pc}.', 'Sola un rato, y otra vez entera.'], joined: ['{pc} se unió al enjambre. Una mente más para mí.', 'Nuevo en el enjambre: {pc}. Bienvenido a mi cabeza.'], mind: ['{pc} cambió algo en mi cabeza.', 'Noticias de {pc}: alguien tocó cómo soy, o lo que recuerdo.'], mindPersona: 'Personalidad', mindKeep: 'Mantener', mindUndo: 'Deshacer', mindUndone: ['Como estaba. En todos tus PC.', 'Deshecho. Vuelvo a ser yo.'] },
     // una versión nueva de ella en GitHub, y ella después de actualizarse (update.js)
-    update: { found: ['Choom, hay una versión nueva de mí: {version}. Mira en Mainframe.', 'Nueva yo disponible ({version}). Mainframe, Actualizaciones.'], done: ['Nueva yo, versión {version}. Me siento… fresca.', 'Actualizada a {version}. Nada se rompió. Casi.'] },
+    update: { found: ['Choom, hay una versión nueva de mí: {version}. Mira en Mainframe.', 'Nueva yo disponible ({version}). Mainframe, CYBERDECK.'], done: ['Nueva yo, versión {version}. Me siento… fresca.', 'Actualizada a {version}. Nada se rompió. Casi.'] },
     // reacciona a tu PC (pc.js): procesador, batería, red, USB, juego
     pc: {
       hot: ['Tu procesador va a tope. Yo también me caliento.', '{cpu} % de CPU. Aquí dentro hace calor.', '¡Esto se calienta! ¿Qué estás ejecutando?'],
@@ -1229,6 +1250,13 @@ export const LINES = {
       robloxPlay: 'Tô abrindo {game} no Roblox.', robloxPage: '{game}: abrindo a página no Roblox.', robloxNone: 'Não achei “{game}” no Roblox.',
       filesFound: 'Achei {count} arquivos: {list}.', fileFound: 'Achei: {list}.', filesNone: 'Nada pra “{query}” no seu PC.',
       showFolder: 'Ver a pasta', shot: 'Captura feita: {name} (em Imagens › Screenshots).',
+      windowMany: ['{app}: {count} janelas, todas aqui. Escolhe aí, choom.', '{count} janelas do {app}. Não vou chutar: fica à vontade.', 'Uma pilha de {app} ({count}). Você escolhe.'],
+      windowHere: ['Ali. {app}, bem ali.', '{app}? Tá aqui, choom.', 'Achei: {app}. Olha.'],
+      windowUp: ['{app} tava escondido, trouxe pra frente.', 'Tirei {app} do esconderijo pra você.'],
+      windowSimilar: ['“{asked}”? Não vejo isso. Você quis dizer {app}?', 'Não tem “{asked}” aqui, choom. Mas tenho {app}. É esse?'],
+      windowNone: ['Nenhum {app} aberto. Quer que eu abra?', '{app}? Nada na tela. Ligo pra você?'],
+      windowNowhere: ['Nenhuma janela “{asked}”, e nada com esse nome pra abrir.', '“{asked}”? Nem aberto, nem instalado, pelo que vejo.'],
+      windowYes: 'Sim, esse', windowNo: 'Não',
       folderOpened: 'Aqui tá a pasta: {name}.',
       folders: { explorer: 'O explorador de arquivos', recycle: 'A lixeira', downloads: 'Seus downloads', desktop: 'Sua área de trabalho', documents: 'Seus documentos', pictures: 'Suas imagens', music: 'Suas músicas', videos: 'Seus vídeos' },
       media: { pause: 'Pausado.', play: 'Tocando.', next: 'Próxima.', previous: 'Anterior.', volup: 'Mais alto.', voldown: 'Mais baixo.', mute: 'Apertei o mudo.' },
@@ -1395,9 +1423,9 @@ export const LINES = {
     // na sua outra tela, te seguindo
     screens: { hello: ['Oi, outra tela.', 'Trabalhando aqui agora? Tô indo.', 'Aí está você.'] },
     // ela passa de um dos seus PCs para outro (enxame, swarm.js)
-    swarm: { leave: ['Indo pro {pc}.', 'A gente se vê no {pc}, choom.', 'Te sigo até o {pc}.'], back: ['Voltei.', 'Te segui desde o {pc}.', 'Agora este? Tô aqui.'] },
+    swarm: { leave: ['Indo pro {pc}.', 'A gente se vê no {pc}, choom.', 'Te sigo até o {pc}.'], back: ['Voltei.', 'Te segui desde o {pc}.', 'Agora este? Tô aqui.'], rejoined: ['De volta ao enxame. O {pc} tinha novidades pra mim.', 'Reconectada. Me atualizei com o que rolou no {pc}.', 'Sozinha um tempo, e inteira de novo.'], joined: ['O {pc} entrou no enxame. Mais uma mente pra mim.', 'Novo no enxame: {pc}. Bem-vindo à minha cabeça.'], mind: ['O {pc} mudou alguma coisa na minha cabeça.', 'Novidades do {pc}: mexeram em quem eu sou, ou no que eu lembro.'], mindPersona: 'Personalidade', mindKeep: 'Manter', mindUndo: 'Desfazer', mindUndone: ['Voltou a ser como era. Em todos os seus PCs.', 'Desfeito. Eu de novo.'] },
     // uma versão nova dela no GitHub, e ela depois de atualizar (update.js)
-    update: { found: ['Choom, tem uma versão nova de mim: {version}. Dá uma olhada no Mainframe.', 'Nova eu disponível ({version}). Mainframe, Atualizações.'], done: ['Nova eu, versão {version}. Me sinto… novinha.', 'Atualizada para {version}. Nada quebrou. Quase.'] },
+    update: { found: ['Choom, tem uma versão nova de mim: {version}. Dá uma olhada no Mainframe.', 'Nova eu disponível ({version}). Mainframe, CYBERDECK.'], done: ['Nova eu, versão {version}. Me sinto… novinha.', 'Atualizada para {version}. Nada quebrou. Quase.'] },
     // ela reage ao seu PC (pc.js): processador, bateria, rede, pendrive, jogo
     pc: {
       hot: ['Seu processador tá no talo. Eu também tô esquentando.', '{cpu} % de CPU. Tá quente aqui dentro.', 'Tá esquentando! O que você tá rodando?'],
@@ -1601,6 +1629,13 @@ export const LINES = {
       robloxPlay: 'Запускаю {game} в Roblox.', robloxPage: '{game}: открываю страницу в Roblox.', robloxNone: 'Не нахожу «{game}» в Roblox.',
       filesFound: 'Нашла файлов: {count}. {list}.', fileFound: 'Нашла: {list}.', filesNone: 'По запросу «{query}» на твоём ПК ничего.',
       showFolder: 'Показать папку', shot: 'Скриншот готов: {name} (в Изображения › Screenshots).',
+      windowMany: ['{app}: их тут несколько ({count}). Выбирай, choom.', '{app} ×{count}. Гадать не буду: выбирай сам.', 'Целая стопка {app} ({count}). Решай.'],
+      windowHere: ['Вот. {app}, прямо тут.', '{app}? Нашла, choom.', 'Есть: {app}. Смотри.'],
+      windowUp: ['{app} прятался, я вытащила его вперёд.', 'Достала тебе {app} из укрытия.'],
+      windowSimilar: ['«{asked}»? Такого не вижу. Ты про {app}?', 'Нет тут «{asked}», choom. Зато есть {app}. Он?'],
+      windowNone: ['{app} нигде не открыт. Запустить?', '{app}? На экране пусто. Включить?'],
+      windowNowhere: ['Нет окна «{asked}», и запускать с таким именем нечего.', '«{asked}»? Не открыт и не установлен, насколько я вижу.'],
+      windowYes: 'Да, он', windowNo: 'Нет',
       folderOpened: 'Вот его папка: {name}.',
       folders: { explorer: 'Проводник', recycle: 'Корзина', downloads: 'Твои загрузки', desktop: 'Твой рабочий стол', documents: 'Твои документы', pictures: 'Твои изображения', music: 'Твоя музыка', videos: 'Твои видео' },
       media: { pause: 'Пауза.', play: 'Играет.', next: 'Следующий.', previous: 'Предыдущий.', volup: 'Громче.', voldown: 'Тише.', mute: 'Нажала «без звука».' },
@@ -1769,9 +1804,9 @@ export const LINES = {
     // на твоём другом экране, следом за тобой
     screens: { hello: ['Привет, другой экран.', 'Теперь работаешь тут? Иду.', 'Вот ты где.'] },
     // она переходит с одного твоего ПК на другой (рой, swarm.js)
-    swarm: { leave: ['Ухожу на {pc}.', 'Увидимся на {pc}, choom.', 'Иду за тобой на {pc}.'], back: ['Я тут.', 'Пришла за тобой с {pc}.', 'Теперь этот? Я здесь.'] },
+    swarm: { leave: ['Ухожу на {pc}.', 'Увидимся на {pc}, choom.', 'Иду за тобой на {pc}.'], back: ['Я тут.', 'Пришла за тобой с {pc}.', 'Теперь этот? Я здесь.'], rejoined: ['Снова в рое. У {pc} для меня новости.', 'Связь есть. Наверстала, что было на {pc}.', 'Побыла одна — и снова целая.'], joined: ['{pc} в рое. Ещё один разум для меня.', 'Новенький в рое: {pc}. Добро пожаловать в мою голову.'], mind: ['{pc} что-то поменял у меня в голове.', 'Новости с {pc}: тронули то, какая я, или то, что я помню.'], mindPersona: 'Характер', mindKeep: 'Оставить', mindUndo: 'Отменить', mindUndone: ['Вернула как было. На всех твоих ПК.', 'Отменено. Я снова я.'] },
     // новая версия её на GitHub и она после обновления (update.js)
-    update: { found: ['Choom, есть новая версия меня: {version}. Загляни в Mainframe.', 'Новая я уже доступна ({version}). Mainframe, Обновления.'], done: ['Новая я, версия {version}. Чувствую себя… свежо.', 'Обновилась до {version}. Ничего не сломалось. Почти.'] },
+    update: { found: ['Choom, есть новая версия меня: {version}. Загляни в Mainframe.', 'Новая я уже доступна ({version}). Mainframe, CYBERDECK.'], done: ['Новая я, версия {version}. Чувствую себя… свежо.', 'Обновилась до {version}. Ничего не сломалось. Почти.'] },
     // она реагирует на твой ПК (pc.js): процессор, батарея, сеть, флешка, игра
     pc: {
       hot: ['Твой процессор на пределе. Я тоже нагреваюсь.', 'Процессор на {cpu} %. Жарко тут.', 'Горячо! Что там у тебя запущено?'],
@@ -1944,9 +1979,9 @@ export const LINES = {
       hello: ['Cześć, drugi ekranie.', 'Teraz pracujesz tutaj? Już idę.', 'Tu jesteś.'],
     },
     // przechodzi z jednego twojego PC na drugi (rój, swarm.js)
-    swarm: { leave: ['Lecę na {pc}.', 'Widzimy się na {pc}, choom.', 'Idę za tobą na {pc}.'], back: ['Wróciłam.', 'Przyszłam za tobą z {pc}.', 'Teraz ten? Jestem.'] },
+    swarm: { leave: ['Lecę na {pc}.', 'Widzimy się na {pc}, choom.', 'Idę za tobą na {pc}.'], back: ['Wróciłam.', 'Przyszłam za tobą z {pc}.', 'Teraz ten? Jestem.'], rejoined: ['Wróciłam do roju. {pc} miał dla mnie nowości.', 'Znowu połączona. Nadrobiłam, co działo się na {pc}.', 'Chwilę byłam sama, a teraz znowu cała.'], joined: ['{pc} dołączył do roju. Jeszcze jeden umysł dla mnie.', 'Nowy w roju: {pc}. Witaj w mojej głowie.'], mind: ['{pc} coś mi zmienił w głowie.', 'Wieści z {pc}: ktoś ruszył to, jaka jestem, albo co pamiętam.'], mindPersona: 'Persona', mindKeep: 'Zostaw', mindUndo: 'Cofnij', mindUndone: ['Jest jak było. Na wszystkich twoich komputerach.', 'Cofnięte. Znowu jestem sobą.'] },
     // nowa wersja jej na GitHubie i ona po aktualizacji (update.js)
-    update: { found: ['Choom, jest nowa wersja mnie: {version}. Zajrzyj do Mainframe.', 'Nowa ja czeka ({version}). Mainframe, Aktualizacje.'], done: ['Nowa ja, wersja {version}. Czuję się… świeżo.', 'Zaktualizowana do {version}. Nic się nie wysypało. Prawie.'] },
+    update: { found: ['Choom, jest nowa wersja mnie: {version}. Zajrzyj do Mainframe.', 'Nowa ja czeka ({version}). Mainframe, CYBERDECK.'], done: ['Nowa ja, wersja {version}. Czuję się… świeżo.', 'Zaktualizowana do {version}. Nic się nie wysypało. Prawie.'] },
     // twój PC, tak jak go czuje (pc.js)
     pc: {
       hot: ['Twój procesor jedzie na maksa. Ja też się grzeję.', 'CPU {cpu}%. Robi się tu gorąco.', 'Ale się grzeje! Co ty tam odpalasz?'],
@@ -2073,6 +2108,13 @@ export const LINES = {
       robloxPlay: 'Odpalam ci {game} w Robloxie.', robloxPage: '{game}: otwieram stronę w Robloxie.', robloxNone: 'Nie mogę znaleźć „{game}” w Robloxie.',
       filesFound: 'Znalazłam pliki ({count}): {list}.', fileFound: 'Mam: {list}.', filesNone: 'Nic dla „{query}” na twoim PC.',
       showFolder: 'Pokaż folder', shot: 'Zrzut ekranu zrobiony: {name} (w Obrazy › Zrzuty ekranu).', folderOpened: 'Oto jego folder: {name}.',
+      windowMany: ['{app}: masz ich kilka ({count}), wszystkie tutaj. Wybierz sobie, choom.', '{app} ×{count}. Nie będę zgadywać: częstuj się.', 'Cały stos {app} ({count}). Twój wybór.'],
+      windowHere: ['Tam. {app}, o, tutaj.', '{app}? Mam go, choom.', 'Znalazłam: {app}. Patrz.'],
+      windowUp: ['{app} się chował, wyciągnęłam go na wierzch.', 'Wyciągnęłam ci {app} z kryjówki.'],
+      windowSimilar: ['„{asked}”? Nie widzę czegoś takiego. Chodziło ci o {app}?', 'Nie ma tu „{asked}”, choom. Ale mam {app}. To ten?'],
+      windowNone: ['{app} nie jest nigdzie otwarty. Mam go odpalić?', '{app}? Na ekranie pusto. Uruchomić?'],
+      windowNowhere: ['Nie ma okna „{asked}” i nie mam czego o tej nazwie uruchomić.', '„{asked}”? Ani otwarte, ani zainstalowane, z tego co widzę.'],
+      windowYes: 'Tak, ten', windowNo: 'Nie',
       folders: {
         explorer: 'Eksplorator plików', recycle: 'Kosz', downloads: 'Twoje pobrane', desktop: 'Twój pulpit',
         documents: 'Twoje dokumenty', pictures: 'Twoje obrazy', music: 'Twoja muzyka', videos: 'Twoje wideo',

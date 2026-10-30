@@ -8,7 +8,7 @@ const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, protocol, net, shell, globalShortcut, nativeImage,
   clipboard, ClipboardItem, dialog, powerMonitor, desktopCapturer,
 } = require('electron');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 
 const config = require('./config');
 const { TRAY, LANGS } = require('./labels');
@@ -27,6 +27,7 @@ const phone = require('./phone');
 const totp = require('./totp');
 const swarm = require('./swarm');
 const update = require('./update');
+const { createMind } = require('./mind');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -57,6 +58,13 @@ let hiveError = null;
 let hiveInvite = null;    // { text, until }: a code for another PC, shown in Mainframe
 let screenLocked = false;
 let hiveFake = null;      // --dev: { locked, idle } instead of this PC's (two Capris on one PC)
+let hiveIsland = false;   // --dev: as if this PC had no network (her swarm down, her mind kept)
+let hiveFound = [];       // Capris on your other devices on Tailscale, not in her swarm yet: [{ host, port, name, version }]
+// her shared mind (mind.js), while her swarm is on: what one Capri knows on all your PCs
+let mind = null;
+let mindSaveTimer = null;
+let mindApplying = false; // a change that came from another PC: not written back as ours
+let hiveAlone = null;     // since when no other PC answers (an island), then { from, at } once one does
 // her own updates (update.js): what GitHub has, and what she's doing about it
 let updateInfo = null;
 let updateBusy = null;    // 'checking' or 'applying'
@@ -87,6 +95,20 @@ const phoneReplies = phone.limiter(20);
 
 const userSoundsDir = () => path.join(app.getPath('userData'), 'sounds');
 
+// What went wrong, in capri.log next to her settings: the last ~200 KB, the same error once a minute
+const logFile = () => path.join(app.getPath('userData'), 'capri.log');
+const logged = new Map(); // line -> when it was last written
+function logError(line) {
+  const now = Date.now();
+  if (now - (logged.get(line) || 0) < 60000) return;
+  logged.set(line, now);
+  if (logged.size > 200) logged.delete(logged.keys().next().value);
+  try {
+    if ((fs.statSync(logFile(), { throwIfNoEntry: false })?.size || 0) > 200 * 1024) fs.renameSync(logFile(), `${logFile()}.old`);
+    fs.appendFileSync(logFile(), `${new Date().toISOString()} ${line}\n`);
+  } catch {} // a log that can't be written stops nothing
+}
+
 // Her memory of your chats, across restarts: { history: [{ role, content }], claude: Claude Code's session }
 const memoryFile = () => path.join(app.getPath('userData'), 'memory.json');
 function readMemory() {
@@ -103,9 +125,54 @@ function saveMemory(patch) {
     console.error('[capri] could not save her memory:', err.message);
   }
 }
+// What she said to you on this PC (her panel: Claude, Codex, reminders, your PC…; not her little lines
+// from her animations, app.js leaves those out), for Mainframe's HOLO next to her chat: the newest ones,
+// across restarts. [{ kind, badge, line, tag, quote, at }]
+const HOLO_KEEP = 300;
+const holoFile = () => path.join(app.getPath('userData'), 'holo.json');
+let holoFeed = null;
+let holoSaving = 0;
+function holoLines() {
+  if (!holoFeed) {
+    try {
+      holoFeed = JSON.parse(fs.readFileSync(holoFile(), 'utf8'));
+      if (!Array.isArray(holoFeed)) holoFeed = [];
+    } catch {
+      holoFeed = [];
+    }
+  }
+  return holoFeed;
+}
+function holoAdd(entry) {
+  holoFeed = [...holoLines(), entry].slice(-HOLO_KEEP);
+  clearTimeout(holoSaving);
+  holoSaving = setTimeout(() => {
+    try {
+      fs.writeFileSync(holoFile(), JSON.stringify(holoFeed));
+    } catch {} // kept for this run only
+  }, 2000);
+  mainframe?.refresh();
+}
+// Your message typed in Mainframe's HOLO, being answered (chat.js fromDesk): { id, text, answer }
+let deskTurn = null;
+const DESK_ANSWER_MS = 6 * 60 * 1000;
+function deskSend(text) {
+  if (deskTurn || !overlay || typeof text !== 'string' || !text.trim()) return;
+  const id = `desk-${randomUUID()}`;
+  deskTurn = { id, text: text.trim().slice(0, 4000), answer: '' };
+  overlay.webContents.send('desk:chat', { id, text: deskTurn.text });
+  setTimeout(() => {
+    if (deskTurn?.id !== id) return;
+    chats.get(id)?.abort();
+    deskTurn = null;
+    mainframe?.refresh();
+  }, DESK_ANSWER_MS);
+}
+
 function forgetChats() {
   llm.resetAgents();
   saveMemory({ history: [], claude: null, codex: null });
+  if (mind?.write('forgot', Date.now())) mindSave(); // on all your PCs
   sendCommand('forget');
 }
 
@@ -276,14 +343,20 @@ function createOverlay() {
   });
   overlay.webContents.on('render-process-gone', (_e, details) => {
     console.error('[capri] renderer gone:', details.reason);
+    logError(`[renderer gone] ${details.reason}`);
   });
-  if (DEV) {
-    overlay.webContents.on('console-message', (e) => {
-      const { level, message, lineNumber, sourceId } = e;
-      console.log(`[renderer:${level}] ${message} (${String(sourceId).split('/').pop()}:${lineNumber})`);
-    });
-    if (process.env.CAPRI_DEVTOOLS) overlay.webContents.openDevTools({ mode: 'detach' });
-  }
+  // what her overlay says: on the console in dev, and its errors in capri.log too (an installed
+  // Capri has no console: that's where to look when something of hers does nothing)
+  overlay.webContents.on('console-message', (e) => {
+    const { level, message, lineNumber, sourceId } = e;
+    const line = `[renderer:${level}] ${message} (${String(sourceId).split('/').pop()}:${lineNumber})`;
+    if (DEV) console.log(line);
+    if (level === 'error') logError(line);
+  });
+  // her page stays her page: no new windows, no going elsewhere (links go out through shell.openExternal)
+  overlay.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  overlay.webContents.on('will-navigate', (event) => event.preventDefault());
+  if (DEV && process.env.CAPRI_DEVTOOLS) overlay.webContents.openDevTools({ mode: 'detach' });
 }
 
 function sendCommand(name, payload = {}) {
@@ -353,12 +426,13 @@ function rendererConfig() {
   const { apiKeys, telegram, swarm: hiveKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
   return {
     ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang,
-    floorGap: overlayArea().gap, screens: displays().length,
+    floorGap: overlayArea().gap, screens: displays().length, hiveAway: hiveAway !== null,
   };
 }
 
 function updateConfig(patch) {
   config.save(patch);
+  if (!mindApplying && MIND_KEYS.some((key) => key in patch)) mindCapture();
   if ('rest' in patch) {
     fitOverlay(); // the taskbar in her window or not
     windowWatch?.refresh();
@@ -370,10 +444,11 @@ function updateConfig(patch) {
 }
 
 // Her menu's words in her language, with the assistant she watches named for Claude Code.
+// (what names both of them, as her chat's agents, stays as it is)
 function trayLabels(cfg = config.load()) {
   const watched = activeAssistant();
   return Object.fromEntries(Object.entries(TRAY[resolveLang(cfg.lang)]).map(([key, value]) =>
-    [key, typeof value === 'string' && watched.id !== 'claude' ? value.replaceAll('Claude Code', watched.name) : value]));
+    [key, typeof value === 'string' && watched.id !== 'claude' && key !== 'gatewayNone' ? value.replaceAll('Claude Code', watched.name) : value]));
 }
 
 // a screen picked in Mainframe: she goes there herself, as from her menu
@@ -408,6 +483,13 @@ function syncLabel(cfg, t) {
   const xp = cfg.bond?.xp || 0;
   const stage = [0, 100, 300, 550, 850].filter((at) => xp >= at).length - 1;
   return t.sync(Math.min(100, Math.floor(xp / 10)), t.stages[stage]);
+}
+
+// The same, for the top of Mainframe: her level (stage), her sync and your days together
+function bondStats(cfg, t) {
+  const { xp = 0, days = 1, streak = 1 } = cfg.bond || {};
+  const stage = [0, 100, 300, 550, 850].filter((at) => xp >= at).length - 1;
+  return { level: stage + 1, stage: t.stages[stage], percent: Math.min(100, Math.floor(xp / 10)), days, together: t.bondDays(days, streak) };
 }
 
 // The reminders she keeps (reminders.js), soonest first: { id, label } with when, as she'd say it
@@ -449,183 +531,184 @@ function rebuildTray() {
       { label: t.follow, type: 'checkbox', checked: cfg.follow !== false, click: (item) => updateConfig({ follow: item.checked }) },
     ],
   };
-  // what she does: first in both menus
-  const actions = [
+  const check = (label, checked, click) => ({ label, type: 'checkbox', checked, click: (item) => click(item.checked) });
+  const radios = (items, picked, click) => items.map(([value, label]) => ({ label, type: 'radio', checked: picked === value, click: () => click(value) }));
+  // a part of her menu, as Mainframe's tab: its name from her world, and its plain one
+  const part = (id, name, submenu) => ({ label: `${name} — ${t.tabs[id][0]}`, submenu });
+
+  const remindersItem = {
+    label: t.reminders,
+    submenu: reminders.length
+      ? reminders.map((r) => ({ label: r.label, submenu: [{ label: t.cancelReminder, click: () => cancelReminder(r.id) }] }))
+      : [{ label: t.noReminders, enabled: false }],
+  };
+  // she asks first (what she'll send where), then turns it on herself
+  const lookAuto = check(t.lookAuto, Boolean(cfg.watchScreen), (on) => {
+    sendCommand('watchScreen', { on });
+    rebuildTray(); // as it is until she's asked
+  });
+
+  // on top, what you reach for: where you two stand, talking to her, putting her away, Mainframe
+  const top = [
     { label: t.online(PORT), enabled: false },
     { label: syncLabel(cfg, t), enabled: false },
     { type: 'separator' },
-    { label: t.teleport, click: () => sendCommand('teleport') },
-    { label: t.satellite, click: () => sendCommand('satellite') },
-    { label: t.demo, click: playDemo },
-    { label: t.help, click: () => sendCommand('welcome') },
-    ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
     { label: t.talk, click: () => sendCommand('chat') },
-    { label: t.lookNow, click: () => sendCommand('look') },
-    {
-      label: t.reminders,
-      submenu: reminders.length
-        ? reminders.map((r) => ({ label: r.label, submenu: [{ label: t.cancelReminder, click: () => cancelReminder(r.id) }] }))
-        : [{ label: t.noReminders, enabled: false }],
-    },
-    { label: t.custom, click: () => sendCommand('customize') },
     { label: cfg.visible ? t.hide : t.show, ...(stowKey && { accelerator: stowKey }), click: () => toggleVisible() },
+    { label: 'Mainframe', click: () => mainframe.open() },
     { type: 'separator' },
   ];
-  // the short one: that, her screen, her settings window for all the rest, and quitting
+  const quit = [{ type: 'separator' }, { label: t.quit, click: () => app.quit() }];
+
+  // the short one: that, what she does, her screen, and quitting (Mainframe for all the rest)
   const menu = Menu.buildFromTemplate(cfg.menu === 'compact' ? [
-    ...actions,
+    ...top,
+    { label: t.teleport, click: () => sendCommand('teleport') },
+    { label: t.satellite, click: () => sendCommand('satellite') },
+    ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
+    { label: t.lookNow, click: () => sendCommand('look') },
+    remindersItem,
+    { label: t.custom, click: () => sendCommand('customize') },
     screenItem,
-    { label: t.settings, click: () => mainframe.open() },
     { type: 'separator' },
-    { label: t.quit, click: () => app.quit() },
+    { label: t.demo, click: playDemo },
+    { label: t.help, click: () => sendCommand('welcome') },
+    ...quit,
   ] : [
-    ...actions,
-    { label: t.settings, click: () => mainframe.open() },
-    {
-      label: t.size,
-      submenu: SIZES.map(([size, scale]) => [t[size], scale]).map(([label, scale]) => ({
-        label, type: 'radio', checked: Math.abs(cfg.scale - scale) < 0.01, click: () => updateConfig({ scale }),
-      })),
-    },
-    {
-      label: t.sound,
-      submenu: [
-        { label: t.mute, type: 'checkbox', checked: cfg.muted, click: (item) => updateConfig({ muted: item.checked }) },
-        { type: 'separator' },
-        {
-          label: t.soundsDir,
-          click: () => {
-            fs.mkdirSync(userSoundsDir(), { recursive: true });
-            shell.openPath(userSoundsDir());
-          },
-        },
-      ],
-    },
-    screenItem,
-    // the key that puts her away and brings her back: one of these, one you press in her panel, or none
-    {
-      label: t.stowKey,
-      submenu: [
-        ...[...new Set([...STOW_KEYS, ...(cfg.stowKey ? [cfg.stowKey] : [])])].map((key) => ({
-          label: keyLabel(key), type: 'radio', checked: cfg.stowKey === key, click: () => setStowKey(key),
-        })),
-        { label: t.stowKeyOff, type: 'radio', checked: !cfg.stowKey, click: () => setStowKey(null) },
-        { type: 'separator' },
-        { label: t.stowKeyCustom, click: () => sendCommand('stowKey') },
-      ],
-    },
-    {
-      label: t.chatModel,
-      submenu: [
-        { label: t.aiSetup, click: () => sendCommand('setupChat') },
-        { type: 'separator' },
-        ...Object.entries(llm.PROVIDERS).map(([provider, p]) => ({
-          label: p.label, type: 'radio', checked: cfg.provider === provider, click: () => pickProvider(provider),
-        })),
-        { type: 'separator' },
-        ...(chatModels?.length
-          ? chatModels.map((name) => ({
-            label: cloud.free.includes(name) ? `${name} · ${t.cloudFree}` : name,
-            type: 'radio', checked: name === pickModel(cfg), click: () => updateConfig({ chatModel: name }),
-          }))
-          : [{ label: (chatError || t.noOllama).slice(0, 80), enabled: false }]),
-        // Ollama's free cloud models when you're signed in to it, fetched on the click (it takes a second)
-        ...(cfg.provider === 'ollama' && chatModels ? [
-          ...cloud.free.filter((name) => !chatModels.includes(name)).map((name) => ({
-            label: `${name} · ${t.cloudFree}`, type: 'radio', checked: false, click: () => fetchModel(name).catch(() => rebuildTray()),
-          })),
-          ...(cloud.account?.signin ? [{ label: t.cloudSignin, click: signInToOllama }] : []),
-        ] : []),
-        { type: 'separator' },
-        ...(llm.isAgent(cfg.provider) ? [
-          { label: `${agentName(cfg)}: ${cfg.claudeCwd || app.getPath('home')}`, click: pickClaudeFolder },
-          {
-            label: `${agentName(cfg)} permissions`,
-            submenu: llm.CLAUDE_MODES.map((mode) => ({
-              label: cfg.provider === 'codex' ? llm.CODEX_SANDBOX[mode] : mode,
-              type: 'radio', checked: cfg.claudeMode === mode, click: () => updateConfig({ claudeMode: mode }),
-            })),
-          },
-          ...(cfg.provider === 'codex' ? [{
-            label: t.effort,
-            submenu: llm.CODEX_EFFORTS.map((effort) => ({
-              label: effort, type: 'radio', checked: cfg.codexEffort === effort, click: () => updateConfig({ codexEffort: effort }),
-            })),
-          }] : []),
-          { label: t.agentPowers, type: 'checkbox', checked: Boolean(cfg.agentPowers), click: (item) => updateConfig({ agentPowers: item.checked }) },
-        ] : []),
-        { label: t.forget, click: forgetChats },
-        // the key (or the address) of the one picked, pasted in her panel
-        { label: t.apiKey, click: () => sendCommand('setupKey') },
-      ],
-    },
-    { label: t.wander, type: 'checkbox', checked: cfg.wander, click: (item) => updateConfig({ wander: item.checked }) },
-    { label: t.possess, type: 'checkbox', checked: cfg.possess, click: (item) => updateConfig({ possess: item.checked }) },
-    { label: t.jealous, type: 'checkbox', checked: cfg.jealous !== false, click: (item) => updateConfig({ jealous: item.checked }) },
-    { label: t.pcReact, type: 'checkbox', checked: cfg.pcReact !== false, click: (item) => updateConfig({ pcReact: item.checked }) },
-    {
-      // she asks first (what she'll send where), then turns it on herself
-      label: t.lookAuto, type: 'checkbox', checked: Boolean(cfg.watchScreen),
-      click: (item) => {
-        sendCommand('watchScreen', { on: item.checked });
-        rebuildTray(); // as it is until she's asked
-      },
-    },
-    {
-      label: t.rest,
-      submenu: [['corner', t.restCorner], ['taskbar', t.restTaskbar]].map(([rest, label]) => ({
-        label, type: 'radio', checked: cfg.rest === rest, click: () => updateConfig({ rest }),
-      })),
-    },
-    {
-      label: t.watch,
-      submenu: [
-        ...Object.entries(ASSISTANTS).map(([id, { name }]) => ({
-          label: name, type: 'radio', checked: cfg.claude && watched.id === id, click: () => pickWatch(id),
-        })),
-        { label: t.watchNone, type: 'radio', checked: !cfg.claude, click: () => pickWatch('none') },
-      ],
-    },
-    {
-      label: t.motion,
-      submenu: [['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]].map(([motion, label]) => ({
-        label, type: 'radio', checked: cfg.motion === motion, click: () => updateConfig({ motion, motionAsked: true }),
-      })),
-    },
-    {
-      label: t.display,
-      submenu: [['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]].map(([render, label]) => ({
-        label, type: 'radio', checked: cfg.render === render, click: () => pickRender(render),
-      })),
-    },
-    {
-      label: t.lang,
-      submenu: [[t.auto, 'auto'], ...LANGS.map((lang) => [TRAY[lang].name, lang])].map(([label, lang]) => ({
-        label, type: 'radio', checked: cfg.lang === lang, click: () => updateConfig({ lang }),
-      })),
-    },
-    {
-      label: t.startup,
-      type: 'checkbox',
-      checked: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
-      click: (item) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: item.checked }),
-    },
-    {
-      label: t.menuMode,
-      submenu: [['full', t.menuFull], ['compact', t.menuCompact]].map(([mode, label]) => ({
-        label, type: 'radio', checked: (cfg.menu || 'full') === mode, click: () => updateConfig({ menu: mode }),
-      })),
-    },
-    // her hooks, while she watches Claude Code
-    ...(cfg.claude ? [
+    ...top,
+    // what she said and says: her report, her reminders, your screen
+    part('holo', 'HOLO', [
+      ...(cfg.claude ? [{ label: t.report, click: () => sendCommand('report') }] : []),
+      remindersItem,
       { type: 'separator' },
-      hookState.installed
-        ? { label: t.hooksOn, enabled: false }
-        : { label: t.hooksOff, click: () => runHooks('install') },
-      ...(hookState.installed ? [{ label: t.hooksRemove, click: () => runHooks('uninstall') }] : []),
-    ] : []),
-    { type: 'separator' },
-    { label: t.quit, click: () => app.quit() },
+      { label: t.lookNow, click: () => sendCommand('look') },
+      lookAuto,
+    ]),
+    // who answers her chat, the AI she watches, and her hooks in it
+    part('netwatch', 'NETWATCH', [
+      {
+        label: t.chatModel,
+        submenu: [
+          { label: t.aiSetup, click: () => sendCommand('setupChat') },
+          { type: 'separator' },
+          ...Object.entries(llm.PROVIDERS).map(([provider, p]) => ({
+            label: p.label, type: 'radio', checked: cfg.provider === provider, click: () => pickProvider(provider),
+          })),
+          { type: 'separator' },
+          ...(chatModels?.length
+            ? chatModels.map((name) => ({
+              label: cloud.free.includes(name) ? `${name} · ${t.cloudFree}` : name,
+              type: 'radio', checked: name === pickModel(cfg), click: () => updateConfig({ chatModel: name }),
+            }))
+            : [{ label: (chatError || t.noOllama).slice(0, 80), enabled: false }]),
+          // Ollama's free cloud models when you're signed in to it, fetched on the click (it takes a second)
+          ...(cfg.provider === 'ollama' && chatModels ? [
+            ...cloud.free.filter((name) => !chatModels.includes(name)).map((name) => ({
+              label: `${name} · ${t.cloudFree}`, type: 'radio', checked: false, click: () => fetchModel(name).catch(() => rebuildTray()),
+            })),
+            ...(cloud.account?.signin ? [{ label: t.cloudSignin, click: signInToOllama }] : []),
+          ] : []),
+          { type: 'separator' },
+          // the key (or the address) of the one picked, pasted in her panel
+          { label: t.apiKey, click: () => sendCommand('setupKey') },
+        ],
+      },
+      // Claude Code or Codex in her chat: its folder, what it may do, and her powers with it (Blackwall Gateway)
+      ...(llm.isAgent(cfg.provider) ? [
+        { label: `${agentName(cfg)}: ${cfg.claudeCwd || app.getPath('home')}`, click: pickClaudeFolder },
+        {
+          label: `${agentName(cfg)}: ${t.permissions}`,
+          submenu: llm.CLAUDE_MODES.map((mode) => ({
+            label: cfg.provider === 'codex' ? llm.CODEX_SANDBOX[mode] : mode,
+            type: 'radio', checked: cfg.claudeMode === mode, click: () => updateConfig({ claudeMode: mode }),
+          })),
+        },
+        ...(cfg.provider === 'codex' ? [{
+          label: t.effort,
+          submenu: radios(llm.CODEX_EFFORTS.map((effort) => [effort, effort]), cfg.codexEffort, (codexEffort) => updateConfig({ codexEffort })),
+        }] : []),
+        check(`Blackwall Gateway: ${t.agentPowers}`, Boolean(cfg.agentPowers), (agentPowers) => updateConfig({ agentPowers })),
+      ] : []),
+      { type: 'separator' },
+      {
+        label: t.watch,
+        submenu: [
+          ...Object.entries(ASSISTANTS).map(([id, { name }]) => ({
+            label: name, type: 'radio', checked: cfg.claude && watched.id === id, click: () => pickWatch(id),
+          })),
+          { label: t.watchNone, type: 'radio', checked: !cfg.claude, click: () => pickWatch('none') },
+        ],
+      },
+      // her hooks, while she watches Claude Code
+      ...(cfg.claude ? [
+        hookState.installed
+          ? { label: t.hooksOn, enabled: false }
+          : { label: t.hooksOff, click: () => runHooks('install') },
+        ...(hookState.installed ? [{ label: t.hooksRemove, click: () => runHooks('uninstall') }] : []),
+      ] : []),
+    ]),
+    // who she is and what she remembers
+    part('engrams', 'ENGRAMS', [
+      { label: t.custom, click: () => sendCommand('customize') },
+      remindersItem,
+      { type: 'separator' },
+      { label: t.forget, click: forgetChats },
+    ]),
+    // her body on your screen, and how she acts
+    part('relic', 'RELIC', [
+      { label: t.teleport, click: () => sendCommand('teleport') },
+      { label: t.satellite, click: () => sendCommand('satellite') },
+      { type: 'separator' },
+      { label: t.size, submenu: radios(SIZES.map(([size, scale]) => [scale, t[size]]), SIZES.find(([, scale]) => Math.abs(cfg.scale - scale) < 0.01)?.[1], (scale) => updateConfig({ scale })) },
+      screenItem,
+      { label: t.rest, submenu: radios([['corner', t.restCorner], ['taskbar', t.restTaskbar]], cfg.rest, (rest) => updateConfig({ rest })) },
+      // the key that puts her away and brings her back: one of these, one you press in her panel, or none
+      {
+        label: t.stowKey,
+        submenu: [
+          ...[...new Set([...STOW_KEYS, ...(cfg.stowKey ? [cfg.stowKey] : [])])].map((key) => ({
+            label: keyLabel(key), type: 'radio', checked: cfg.stowKey === key, click: () => setStowKey(key),
+          })),
+          { label: t.stowKeyOff, type: 'radio', checked: !cfg.stowKey, click: () => setStowKey(null) },
+          { type: 'separator' },
+          { label: t.stowKeyCustom, click: () => sendCommand('stowKey') },
+        ],
+      },
+      {
+        label: t.sound,
+        submenu: [
+          check(t.mute, cfg.muted, (muted) => updateConfig({ muted })),
+          { type: 'separator' },
+          {
+            label: t.soundsDir,
+            click: () => {
+              fs.mkdirSync(userSoundsDir(), { recursive: true });
+              shell.openPath(userSoundsDir());
+            },
+          },
+        ],
+      },
+      { type: 'separator' },
+      check(t.wander, cfg.wander, (wander) => updateConfig({ wander })),
+      check(t.possess, cfg.possess, (possess) => updateConfig({ possess })),
+      check(t.jealous, cfg.jealous !== false, (jealous) => updateConfig({ jealous })),
+      check(t.pcReact, cfg.pcReact !== false, (pcReact) => updateConfig({ pcReact })),
+    ]),
+    // her system: language, how she's drawn, her menu, starting with Windows, and showing what she does
+    part('cyberdeck', 'CYBERDECK', [
+      {
+        label: t.lang,
+        submenu: radios([['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])], cfg.lang, (lang) => updateConfig({ lang })),
+      },
+      { label: t.motion, submenu: radios([['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]], cfg.motion, (motion) => updateConfig({ motion, motionAsked: true })) },
+      { label: t.display, submenu: radios([['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]], cfg.render, pickRender) },
+      { label: t.menuMode, submenu: radios([['full', t.menuFull], ['compact', t.menuCompact]], cfg.menu || 'full', (menu) => updateConfig({ menu })) },
+      check(t.startup, app.getLoginItemSettings(loginItemOptions()).openAtLogin, (openAtLogin) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin })),
+      { type: 'separator' },
+      { label: t.demo, click: playDemo },
+      { label: t.help, click: () => sendCommand('welcome') },
+    ]),
+    ...quit,
   ]);
   tray.setContextMenu(menu);
   trayMenu = menu;
@@ -641,6 +724,8 @@ function mainframeState() {
     version: app.getVersion(),
     lang: resolveLang(cfg.lang),
     t: Object.fromEntries(Object.entries(t).filter(([, v]) => typeof v === 'string')),
+    tabs: t.tabs,
+    stats: bondStats(cfg, t),
     brain: {
       provider: cfg.provider,
       providers: Object.entries(llm.PROVIDERS).map(([id, p]) => ({ id, label: p.label })),
@@ -680,6 +765,12 @@ function mainframeState() {
       lookAuto: Boolean(cfg.watchScreen),
       sync: syncLabel(cfg, t),
       reminders: reminderList(cfg),
+      memories: memoryList(cfg, t),
+      userName: cfg.userName || '', // what she calls you, and your name in HOLO
+      talk: ['quiet', 'normal', 'chatty'].includes(cfg.talk) ? cfg.talk : 'normal',
+      talkCloud: Boolean(cfg.talkCloud),
+      // her chat's AI is online and not an agent: whether it may write her remarks is yours to say
+      talkCloudAsk: !llm.isAgent(cfg.provider) && !llm.isLocal(cfg.provider, cfg, pickModel(cfg) || cfg.chatModel),
     },
     watch: {
       id: cfg.claude ? activeAssistant().id : 'none',
@@ -687,6 +778,11 @@ function mainframeState() {
       hooks: cfg.claude ? activeHooks().status().installed : null,
     },
     phone: {
+      // held by another of your PCs (her swarm): your messages go out from there
+      elsewhere: (() => {
+        const holder = phoneHolder(cfg);
+        return holder && holder !== 'here' ? t.phoneElsewhere(holder.name) : null;
+      })(),
       bot: cfg.telegram?.bot || null,
       linked: cfg.telegram?.chat ? cfg.telegram.name : null,
       pairing: phonePair?.code || null,
@@ -704,6 +800,13 @@ function mainframeState() {
       open: phoneOpen ? t.phoneOpenUntil(phoneTime(phoneOpen.until, cfg)) : null,
     },
     update: updateState(cfg, t),
+    // HOLO: her chat (as on all your PCs) and what she said on this one, and your message being answered
+    holo: {
+      // (what you sent Claude Code or Codex, `to`, and what she said of her own about it, are in it too)
+      chat: (readMemory().history || []).slice(-150).map(({ role, content, at, to, tag, aside }) => ({ role, content: String(content), at: at || 0, to, tag, aside })),
+      lines: holoLines().slice(-150),
+      turn: deskTurn && { text: deskTurn.text, answer: deskTurn.answer },
+    },
     swarm: {
       on: Boolean(cfg.swarmOn),
       name: hiveName(cfg),
@@ -717,6 +820,8 @@ function mainframeState() {
           p.version && p.version !== app.getVersion() ? `v${p.version}` : ''].filter(Boolean).join(' · '), // another version: shown
       })) : (cfg.swarm?.peers || []).map((p) => ({ id: p.id, name: p.name, status: t.swarmOff })),
       here: hive ? hive.state().here : true,
+      found: hiveFound.map(({ host, port, name, version }) => ({ id: `${host}:${port}`, name, version })),
+      update: cfg.swarmUpdate !== false,
     },
     system: {
       lang: cfg.lang,
@@ -752,12 +857,17 @@ async function mainframeAct(name, value) {
     case 'teleport': sendCommand('teleport'); break;
     case 'talk': sendCommand('chat'); break;
     case 'custom': sendCommand('customize'); break;
+    // as custom.js saves it ("" is no name: she says "choom")
+    case 'userName': if (typeof value === 'string') updateConfig({ userName: value.trim().slice(0, 24) }); break;
     case 'help': sendCommand('welcome'); break;
     case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
-    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'pcReact': updateConfig({ [name]: Boolean(value) }); break;
+    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'pcReact': case 'talkCloud': updateConfig({ [name]: Boolean(value) }); break;
+    case 'talk': if (one(['quiet', 'normal', 'chatty'])) updateConfig({ talk: value }); break;
     case 'lookNow': sendCommand('look'); break;
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
     case 'cancelReminder': cancelReminder(value); break;
+    case 'forgetMemory': forgetMemory(value); break;
+    case 'holoSend': deskSend(value); break;
     case 'rest': if (one(['corner', 'taskbar'])) updateConfig({ rest: value }); break;
     case 'stowKey': if (value === null || STOW_KEYS.includes(value) || value === config.load().stowKey) setStowKey(value); break;
     case 'stowKeyCustom': sendCommand('stowKey'); break;
@@ -802,11 +912,14 @@ async function mainframeAct(name, value) {
     case 'updateCheckNow': await checkUpdate(); break;
     case 'updateApply': applyUpdate(); break; // she restarts when it's done
     case 'updateCheck': case 'updateAuto': updateConfig({ [name]: Boolean(value) }); break;
-    case 'swarmOn': updateConfig({ swarmOn: Boolean(value) }); await syncHive(); break;
+    case 'swarmOn': updateConfig({ swarmOn: Boolean(value) }); await syncHive(); await hiveLook(); break;
     case 'swarmName': if (typeof value === 'string' && value.trim()) { updateConfig({ swarmName: value.trim().slice(0, 40) }); await syncHive(true); } break;
     case 'swarmInvite': hiveInviteNew(); break;
     case 'swarmInviteCancel': hive?.stopPairing(); hiveInvite = null; break;
     case 'swarmJoin': if (typeof value === 'string') await hiveJoin(value); break;
+    case 'swarmLook': await hiveLook(); break;
+    case 'swarmJoinTailnet': if (typeof value === 'string') await hiveJoinTailnet(value); break;
+    case 'swarmUpdate': updateConfig({ swarmUpdate: Boolean(value) }); break;
     case 'swarmRemove': if (typeof value === 'string') await hive?.remove(value); break;
     case 'tailscaleGet': shell.openExternal('https://tailscale.com/download/windows'); break;
     case 'tailscaleCheck': await syncHive(); break;
@@ -878,9 +991,43 @@ function startPairing() {
 }
 
 // You're away from this PC: its screen locked, or no key or mouse for `phoneAway` minutes (0: always)
+// You're away: from this PC (its screen locked, or no key or mouse for `phoneAway` minutes; 0: always),
+// and from every other one of yours in her swarm, as they last said
 function phoneAway(cfg = config.load()) {
   const minutes = Number(cfg.phoneAway ?? 5);
-  return !minutes || ['idle', 'locked'].includes(powerMonitor.getSystemIdleState(minutes * 60));
+  if (!minutes) return true;
+  return lastUse() >= minutes * 60;
+}
+
+// Seconds since you last used any of your PCs (a locked one isn't in use): this one, and the others in
+// her swarm that answer
+function lastUse() {
+  const mine = hiveHere();
+  const all = [mine.locked ? Infinity : mine.idle];
+  for (const p of hive?.state().peers || []) if (p.online && !p.locked && Number.isFinite(p.idle)) all.push(p.idle);
+  return Math.min(...all);
+}
+
+// Your phone in her swarm: the PC that holds it (its Telegram bot paired there), 'here', or null (none).
+// Two PCs paired with the same bot: the one with the lower id holds it while it answers (the bot can be
+// read from one place only), the other takes over when it's gone. A PC without one sends to it.
+function phoneHolder(cfg = config.load()) {
+  const mine = cfg.telegram?.chat ? cfg.telegram.bot : null;
+  const state = hive?.state();
+  const others = (state?.peers || []).filter((p) => p.online && p.phone).sort((a, b) => (a.id < b.id ? -1 : 1));
+  if (mine) return others.find((p) => p.phone === mine && p.id < state?.me.id) || 'here';
+  return others[0] || null;
+}
+
+// For your phone: sent from here (if this PC holds it, and you're away from all of them), else handed to
+// the PC that does (`from`: the PC it came from, for its name next to the project)
+async function phoneNote(note, from = null) {
+  const cfg = config.load();
+  const holder = phoneHolder(cfg);
+  if (holder && holder !== 'here') return from ? false : hive.phone(holder.id, note);
+  if (!holder || !cfg.phoneOn || !phoneAway(cfg) || Date.now() < phoneMuted) return false;
+  const project = [note.project, from && !String(note.project || '').includes(from.name) ? from.name : ''].filter(Boolean).join(' · ');
+  return phoneSend(phone.compose({ line: note.line, project, quote: note.quote }, cfg.phoneDetail), { buttons: true });
 }
 
 // To your phone, if it's paired and her messages are on (`always`: Mainframe's own, on or off), a few
@@ -922,7 +1069,7 @@ const phoneTime = (at, cfg = config.load()) => new Date(at).toLocaleTimeString(r
 // listening to the bot while her chat there is on (and not while a new pairing waits for its code)
 function syncPhoneChat() {
   const cfg = config.load();
-  const want = Boolean(cfg.phoneChat && cfg.telegram?.chat && cfg.telegram?.totp) && !phonePair;
+  const want = Boolean(cfg.phoneChat && cfg.telegram?.chat && cfg.telegram?.totp) && !phonePair && phoneHolder(cfg) === 'here';
   if (want && !phoneListener) {
     const listener = new AbortController();
     phoneListener = listener;
@@ -970,8 +1117,8 @@ function watchPhone() {
     const now = Date.now();
     if (now > phoneOpen.until) return phoneLock('phoneBotExpired');
     if (now - phoneOpen.last > PHONE_QUIET_MS) return phoneLock('phoneBotQuiet');
-    const idle = powerMonitor.getSystemIdleTime();
-    if (idle >= 120 || powerMonitor.getSystemIdleState(120) === 'locked') phoneAwaySeen = true;
+    const idle = lastUse(); // any of your PCs
+    if (idle >= 120) phoneAwaySeen = true;
     else if (phoneAwaySeen && idle < 10) phoneLock('phoneBotBack');
   }, 5000);
 }
@@ -1177,6 +1324,20 @@ async function localModel() {
   return list?.find((m) => !ollama.isCloud(m)) || null;
 }
 
+// Who writes what she says of her own (talk.js): her chat's model if it's on this PC, else a model of
+// Ollama's on this PC, else her chat's model online only if you allowed it (what you send Claude or
+// Codex goes there). Never Claude Code or Codex: a second agent for every remark, spending your limits,
+// in your project. null: her usual lines.
+const TALK_MS = 15000;
+async function talkBrain(cfg = config.load()) {
+  const model = pickModel(cfg) || cfg.chatModel;
+  if (!llm.isAgent(cfg.provider) && llm.isLocal(cfg.provider, cfg, model) && !brainCut(cfg)) return { provider: cfg.provider, model };
+  const local = await localModel().catch(() => null);
+  if (local) return { provider: 'ollama', model: local };
+  if (!llm.isAgent(cfg.provider) && cfg.talkCloud && !brainCut(cfg) && model) return { provider: cfg.provider, model };
+  return null;
+}
+
 // The network gone with her brain online: the model on this PC loaded right away, so her first answer
 // doesn't wait for it (a few seconds' look; Electron says nothing when the network goes).
 let wasCut = false;
@@ -1329,7 +1490,7 @@ function registerIpc() {
     if (!models) return { ok: false, error: chatError || 'offline', code: chatErrorCode, provider };
     if (!models.length) return { ok: false, error: 'nomodel', provider };
     const model = pickModel();
-    llm.warm(provider, model); // loading while you type your first message
+    llm.warm(provider, model, llmConfig(cfg)); // loading while you type your first message
     const local = llm.isLocal(provider, cfg, model);
     return { ok: true, provider, model, agent: llm.isAgent(provider), powers: !llm.isAgent(provider) || Boolean(cfg.agentPowers), local, warmup: provider === 'ollama' && local };
   });
@@ -1345,6 +1506,7 @@ function registerIpc() {
       const send = (text) => {
         streamed = true;
         overlay?.webContents.send('chat:delta', { id, text });
+        if (deskTurn?.id === id) mainframe?.stream({ answer: (deskTurn.answer += text) }); // typed in Mainframe: shown there as it comes
       };
       if (local) {
         if (local !== (await localModel())) return { ok: false, error: 'no local model', code: 'offline' };
@@ -1363,6 +1525,20 @@ function registerIpc() {
     }
   });
   ipcMain.on('chat:stop', (_e, id) => chats.get(id)?.abort());
+  // how long since a key or the mouse anywhere (talk.js: not while you're typing), in seconds
+  ipcMain.handle('pc:idle', () => powerMonitor.getSystemIdleTime());
+  // something she says of her own (talk.js), written by an AI: { ok, text } or { ok: false }
+  ipcMain.handle('talk:line', async (_e, { messages } = {}) => {
+    if (!Array.isArray(messages) || !messages.length) return { ok: false };
+    const brain = await talkBrain();
+    if (!brain) return { ok: false, code: 'nomodel' };
+    try {
+      const text = await llm.chat(brain.provider, llmConfig(), { model: brain.model, messages }, () => {}, AbortSignal.timeout(TALK_MS));
+      return { ok: true, text };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
   // she looks at your screen (look.js): the picture first, then what her AI says about it
   // her teleports tear the screen open where she leaves and where she lands (fx.js tear): pictures
   // of just those bits of it (rects in her window's px; screengrab.js), for her window to draw for
@@ -1406,16 +1582,42 @@ function registerIpc() {
     return { local: llm.isLocal(cfg.provider, cfg, model), provider, model };
   });
   ipcMain.handle('chat:memory', () => readMemory().history || []);
-  ipcMain.on('chat:remember', (_e, history) => Array.isArray(history) && saveMemory({ history }));
+  // what another PC changed in her head (mindTell): "Undo", or told and kept
+  ipcMain.handle('mind:undo', (_e, id) => mindUndo(String(id)));
+  ipcMain.on('mind:seen', (_e, id) => {
+    if (config.load().mindNews?.id === String(id)) config.save({ mindNews: null });
+  });
+  ipcMain.on('chat:remember', (_e, history) => {
+    if (!Array.isArray(history)) return;
+    saveMemory({ history });
+    mindCapture();
+    mainframe?.refresh(); // HOLO shows her chat too
+  });
   ipcMain.on('chat:ollama', () => shell.openExternal(OLLAMA_SITE));
   // something worth telling you about (brain.js), sent to your phone only while you're away
   ipcMain.handle('phone:notify', (_e, note) => {
-    const cfg = config.load();
-    if (!cfg.phoneOn || !cfg.telegram?.chat || !phoneAway(cfg) || Date.now() < phoneMuted) return false;
     const text = (key) => (typeof note?.[key] === 'string' ? note[key] : '');
-    return phoneSend(phone.compose({ line: text('line'), project: text('project'), quote: text('quote') }, cfg.phoneDetail), { buttons: true });
+    return phoneNote({ line: text('line'), project: text('project'), quote: text('quote') });
   });
   // her answer to a message from your phone (chat.js fromPhone)
+  // her answer to what you typed in Mainframe (chat.js fromDesk): her conversation already has it
+  ipcMain.on('desk:answer', (_e, answer) => {
+    if (deskTurn?.id !== answer?.id) return;
+    deskTurn = null;
+    if (!answer.ok) holoAdd({ kind: 'error', badge: '', line: String(answer.error || '…').slice(0, 500), tag: '', quote: '', at: Date.now() });
+    else mainframe?.refresh();
+  });
+  // something she said in her panel (app.js), for HOLO
+  ipcMain.on('holo:line', (_e, said) => {
+    const text = (key, max) => (typeof said?.[key] === 'string' ? said[key].slice(0, max) : '');
+    if (!text('line', 2000) && !text('asked', 4000)) return;
+    holoAdd({
+      kind: text('kind', 20), badge: text('badge', 30), line: text('line', 2000), tag: text('tag', 80), quote: text('quote', 600),
+      // your prompt to Claude Code or Codex, and to which: shown as yours, before what she said about it
+      ...(text('asked', 4000) && { asked: text('asked', 4000), to: text('to', 40) }),
+      at: Date.now(),
+    });
+  });
   ipcMain.on('phone:answer', (_e, answer) => {
     const done = phoneTurns.get(answer?.id);
     if (done) done({ ok: Boolean(answer.ok), text: String(answer.text || ''), error: String(answer.error || '') });
@@ -1476,6 +1678,52 @@ function registerIpc() {
   ipcMain.handle('apps:findLaunch', async (_e, text) => {
     const item = await launch.find(String(text || '')).catch(() => null);
     return item && { ...item, risky: launch.risky(item) }; // a program or a script: behind a button
+  });
+  // a window by its name ("where's Notepad?", her chat): { id, name, similar } of the one open (similar: only
+  // close to what you said); { stack: { name, count, rect } } when that app has several windows (or one she
+  // only sees on the taskbar): its button there, where she points (rect: null when it isn't on her screen);
+  // else { launch } with the app to start, if there's one by that name; else null
+  ipcMain.handle('windows:find', async (_e, wanted) => {
+    wanted = String(wanted || '');
+    const [wins, buttons] = await Promise.all([apps.windows().catch(() => []), apps.taskbar().catch(() => [])]);
+    const found = apps.findWindow(wanted, wins);
+    const here = targetDisplay().id;
+    const dip = (r) => screen.screenToDipRect(null, { x: r.x, y: r.y, width: r.w, height: r.h });
+    const displayOf = (r) => screen.getDisplayMatching(dip(r)).id;
+    // a Store app's window belongs to its frame's process: its title names it
+    const nameOf = (win) => (/^applicationframehost$/i.test(win.process) ? win.title : win.label || win.process);
+    // its app named (not one window's title): all its windows, to pick one from
+    const group = found?.named ? apps.appWindows(found.win, wins) : [];
+    const pick = group.length >= 2 ? group.slice(0, 4).map((w) => ({ id: w.id, title: apps.shortTitle(w).slice(0, 60) })) : [];
+    // its button on a taskbar: the one on her screen, else another screen's (she goes there)
+    const candidates = !found || !found.similar ? apps.findButtons(wanted, buttons, found?.win) : [];
+    const button = candidates.find((b) => displayOf(b) === here) || candidates[0] || null;
+    const count = Math.max(group.length, button?.count || 0);
+    if (button && (count >= 2 || (!found && button.count === 1))) {
+      const display = displayOf(button);
+      const o = overlay.getBounds();
+      const r = dip(button);
+      const rect = display === here ? { x: r.x - o.x, y: r.y - o.y, w: r.width, h: r.height } : null;
+      return { stack: { name: button.name, count, rect, display: display === here ? null : display, pick } };
+    }
+    // several windows and no button for them (taskbar buttons not grouped, or a name Windows garbled):
+    // which one, by its title
+    if (pick.length) return { stack: { name: nameOf(found.win), count: group.length, rect: null, display: null, pick } };
+    if (found) {
+      const { win } = found;
+      return { id: win.id, name: nameOf(win), similar: found.similar, display: win.min ? null : displayOf(win.rect) };
+    }
+    for (const name of apps.variants(wanted)) {
+      const item = await launch.find(name).catch(() => null);
+      if (item && item.kind !== 'site') return { launch: { ...item, risky: launch.risky(item) } };
+    }
+    return null;
+  });
+  // brought up: { ok, display } with the screen it's on then (she goes there if it isn't hers)
+  ipcMain.handle('windows:show', async (_e, id) => {
+    const { ok, rect } = await apps.showWindow(id);
+    const display = rect ? screen.getDisplayMatching(screen.screenToDipRect(null, { x: rect.x, y: rect.y, width: rect.w, height: rect.h })).id : null;
+    return { ok, display };
   });
   ipcMain.handle('apps:youtube', (_e, query) => launch.youtube(query).catch(() => null));
   ipcMain.handle('apps:roblox', (_e, query) => launch.roblox(query).catch(() => null));
@@ -1597,6 +1845,18 @@ async function applyUpdate() {
   }
 }
 
+// Another of your PCs (her swarm) runs a newer her: this one looks on GitHub, and updates as soon as
+// you're not at it (or not using it for a minute), nothing of hers in the middle of an answer
+async function hiveUpgrade() {
+  if (!hive || config.load().swarmUpdate === false || app.isPackaged || updateBusy || updateLocked()) return;
+  const ahead = hive.state().peers.find((p) => p.online && p.version && update.newer(p.version, app.getVersion()));
+  if (!ahead) return;
+  if (updateInfo?.state !== 'behind' && Date.now() - updateAt > 10 * 60 * 1000) await checkUpdate();
+  if (updateInfo?.state !== 'behind' || update.blocked(updateInfo)) return;
+  const quiet = hiveAway !== null || powerMonitor.getSystemIdleTime() >= 60;
+  if (quiet && !chats.size && !phoneTurns.size) applyUpdate();
+}
+
 // every 10 minutes: time to look again, and (if you said so) to update while you're away
 function watchUpdates() {
   const cfg = config.load();
@@ -1651,8 +1911,10 @@ const HIVE_PORT = (DEV && Number(process.env.CAPRI_SWARM_PORT)) || swarm.PORT;
 
 // this PC now, for the others: locked, and seconds since a key or the mouse
 function hiveHere() {
-  if (hiveFake) return hiveFake;
-  return { locked: screenLocked || powerMonitor.getSystemIdleState(1) === 'locked', idle: powerMonitor.getSystemIdleTime() };
+  const cfg = config.load();
+  const phoneHere = cfg.telegram?.chat ? cfg.telegram.bot : null; // your phone paired here (for the others to send to)
+  if (hiveFake) return { ...hiveFake, phone: phoneHere };
+  return { locked: screenLocked || powerMonitor.getSystemIdleState(1) === 'locked', idle: powerMonitor.getSystemIdleTime(), phone: phoneHere };
 }
 
 // her own key, made the first time (sealed like the others)
@@ -1669,7 +1931,7 @@ async function syncHive(fresh = false) {
   const cfg = config.load();
   hiveTailscale = await swarm.tailscale().catch(() => null);
   const hosts = ['127.0.0.1', ...(hiveTailscale?.ip ? [hiveTailscale.ip] : [])];
-  const want = Boolean(cfg.swarmOn);
+  const want = Boolean(cfg.swarmOn) && !hiveIsland;
   if (hive && (!want || fresh || hive.hosts.join() !== hosts.join())) {
     hive.stop();
     hive = null;
@@ -1686,18 +1948,39 @@ async function syncHive(fresh = false) {
       onPeers: (peers) => updateConfig({ swarm: { ...config.load().swarm, peers } }),
       // what an agent did on the PC you're not at: told here, with that PC's name
       onEvent: (peer, evt) => overlay?.webContents.send('claude:event', { ...evt, remote: true, pc: peer.name }),
+      mind: mindOpen(id.id),
+      onMind: (keys, peer) => mindApply(keys, peer),
+      trust: hiveTrust,
+      // a message for your phone from a PC without one: taken if this one holds it
+      onPhone: (peer, note) => {
+        if (phoneHolder() !== 'here') return false;
+        phoneNote(note, peer);
+        return true;
+      },
+      onJoined: (peer) => {
+        hiveFound = hiveFound.filter((f) => f.id !== peer.id);
+        sendCommand('swarmJoined', { pc: peer.name });
+        mainframe?.refresh();
+      },
     });
     link.hosts = hosts;
     hive = link;
     if (!(await link.start())) hiveError = 'port';
     else if (hiveError === 'port') hiveError = null;
   }
-  if (!want) hiveBack();
+  if (!want) {
+    hiveBack();
+    if (!cfg.swarmOn) mindClose();
+  }
   mainframe?.refresh();
 }
 
 // She went to the PC you're at, or came back here
 function hiveMoved(state) {
+  const online = state.peers.some((p) => p.online);
+  if (!online && !hiveAlone) hiveAlone = { since: Date.now() };
+  else if (online && hiveAlone?.since) hiveAlone = { from: hiveAlone.since, at: Date.now() };
+  overlay?.webContents.send('capri:config', rendererConfig()); // whether reminders go off here
   if (!state.here && hiveAway === null) {
     const to = state.peers.find((p) => p.active)?.name || '';
     hiveAway = to;
@@ -1713,6 +1996,7 @@ function hiveBack() {
   const from = hiveAway;
   hiveAway = null;
   if (config.load().visible) sendCommand('swarmBack', { from });
+  setTimeout(mindTell, 4000); // after her hello
 }
 
 // An event of Claude Code or Codex on this PC. You're at another of your PCs: it goes there (only the
@@ -1728,6 +2012,277 @@ async function hiveEvent(evt) {
   overlay?.webContents.send('claude:event', here); // here, or the other PC couldn't be reached
 }
 
+// --- Her shared mind ---------------------------------------------------------------------------------
+// What one Capri knows on all your PCs (mind.js), while her swarm is on: your chats with her, "forget
+// our conversations", your name, how you want her, what you asked her to remember, her reminders and
+// how close she is to you. What changes here is written into it; what comes from another PC is put
+// back here (her config, her chat's memory) and told to the overlay.
+
+const MIND_KEYS = ['userName', 'persona', 'memories', 'reminders', 'bond'];
+const MIND_CHAT = 60; // the messages kept, as her chat keeps them (chat.js KEEP)
+const mindFile = () => path.join(app.getPath('userData'), 'mind.json');
+const memoKey = (text) => `memo:${createHash('sha1').update(String(text)).digest('hex').slice(0, 16)}`;
+
+function mindOpen(id) {
+  if (mind) return mind;
+  let state = null;
+  try {
+    state = JSON.parse(fs.readFileSync(mindFile(), 'utf8'));
+  } catch {
+    // a first time: what's here is what she knows
+  }
+  mind = createMind({ me: id, state });
+  mindCapture();
+  return mind;
+}
+
+function mindClose() {
+  if (!mind) return;
+  clearTimeout(mindSaveTimer);
+  mindWrite();
+  mind = null;
+}
+
+function mindWrite() {
+  try {
+    fs.writeFileSync(mindFile(), JSON.stringify(mind.state()));
+  } catch (err) {
+    console.error('[capri] could not save her shared mind:', err.message);
+  }
+}
+
+function mindSave() {
+  clearTimeout(mindSaveTimer);
+  mindSaveTimer = setTimeout(() => mind && mindWrite(), 1000);
+}
+
+// What a message of her chat may carry besides (talk.js): your prompt to Claude Code or Codex (`to`
+// which, `tag` its project), or a remark of her own (`aside`: what about)
+function chatExtra(m) {
+  const text = (key, max) => (typeof m?.[key] === 'string' && m[key] ? { [key]: m[key].slice(0, max) } : {});
+  return { ...text('to', 40), ...text('tag', 80), ...text('aside', 20) };
+}
+
+// Her chat's messages, each with an id and a time (older ones, from before: made up once, in their
+// order, from when they were saved)
+function stampedHistory() {
+  const history = Array.isArray(readMemory().history) ? readMemory().history : [];
+  if (history.every((m) => m.id && m.at)) return history;
+  let saved = Date.now();
+  try {
+    saved = fs.statSync(memoryFile()).mtimeMs;
+  } catch {
+    // never saved: now
+  }
+  const stamped = history.map((m, i) => (m.id && m.at ? m : {
+    ...m,
+    id: createHash('sha1').update(`${m.role}\n${m.content}`).digest('hex').slice(0, 16),
+    at: Math.round(saved - (history.length - i) * 1000),
+  }));
+  saveMemory({ history: stamped });
+  overlay?.webContents.send('chat:history', stamped);
+  return stamped;
+}
+
+// how close she is to you, from two PCs: the closer, the longer known, the latest day (bond.js has the same)
+function bondJoin(a, b) {
+  if (!a || !b) return a || b || null;
+  const later = (b.last || '') > (a.last || '') ? b : a;
+  const ca = a.caps || {};
+  const cb = b.caps || {};
+  const caps = ca.date === cb.date
+    ? Object.fromEntries([...new Set([...Object.keys(ca), ...Object.keys(cb)])].map((k) => [k, k === 'date' ? ca.date : Math.max(ca[k] || 0, cb[k] || 0)]))
+    : ((ca.date || '') > (cb.date || '') ? ca : cb);
+  return {
+    ...a, ...b,
+    xp: Math.max(a.xp || 0, b.xp || 0),
+    first: [a.first, b.first].filter(Boolean).sort()[0],
+    last: later.last,
+    days: Math.max(a.days || 0, b.days || 0),
+    streak: a.last === b.last ? Math.max(a.streak || 0, b.streak || 0) : later.streak,
+    caps,
+  };
+}
+
+// What's here, into her mind
+function mindCapture() {
+  if (!mind) return;
+  const cfg = config.load();
+  let wrote = false;
+  const put = (key, value, opts) => { if (mind.write(key, value, opts)) wrote = true; };
+  // her chat: each message, unless "forget" came after it, or it's older than the ones she keeps
+  const cleared = Number(mind.get('forgot')) || 0;
+  const kept = mind.list('chat:').map((e) => e.v?.at || 0).sort((a, b) => b - a);
+  const floor = kept.length >= MIND_CHAT ? kept[MIND_CHAT - 1] : 0;
+  for (const m of stampedHistory()) {
+    if (m.at > cleared && m.at >= floor) put(`chat:${m.id}`, { role: m.role, content: String(m.content).slice(0, 6000), at: m.at, ...chatExtra(m) });
+  }
+  // your name and how you want her: empty is a change only once one was set (on any PC)
+  if (cfg.userName || mind.get('name') !== undefined) put('name', cfg.userName || '');
+  if (cfg.persona || mind.get('persona') !== undefined) put('persona', cfg.persona || '');
+  const memos = new Map((cfg.memories || []).map((text) => [memoKey(text), text]));
+  for (const [key, text] of memos) put(key, text);
+  for (const e of mind.list('memo:')) if (!memos.has(e.key)) put(e.key, null, { del: true });
+  const reminders = new Map((cfg.reminders || []).filter((r) => r?.id).map((r) => [`rem:${r.id}`, r]));
+  for (const [key, r] of reminders) put(key, r);
+  for (const e of mind.list('rem:')) if (!reminders.has(e.key)) put(e.key, null, { del: true });
+  if (cfg.bond) put('bond', bondJoin(mind.get('bond'), cfg.bond));
+  mind.prune('chat:', MIND_CHAT, (e) => e.v?.at || 0); // the newest messages
+  if (wrote) mindSave();
+}
+
+// What came from another PC (`keys` of her mind), put back here
+function mindApply(keys, peer) {
+  if (!mind) return;
+  const cfg = config.load();
+  const patch = {};
+  // what another PC sends is taken only in the shape this one writes it: text where it's text, and
+  // your chat's messages as yours or hers, never anything said to her AI as an instruction
+  const text = (v) => (typeof v === 'string' ? v : '');
+  const object = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+  if (keys.includes('name')) patch.userName = text(mind.get('name'));
+  if (keys.includes('persona')) patch.persona = text(mind.get('persona'));
+  if (keys.some((k) => k.startsWith('memo:'))) patch.memories = mind.list('memo:').sort((a, b) => a.at - b.at).map((e) => e.v).filter((v) => typeof v === 'string');
+  if (keys.some((k) => k.startsWith('rem:'))) {
+    patch.reminders = mind.list('rem:').map((e) => e.v)
+      .filter((r) => object(r) && typeof r.id === 'string' && typeof r.text === 'string' && Number.isFinite(r.at))
+      .sort((a, b) => a.at - b.at);
+  }
+  if (keys.includes('bond') && object(mind.get('bond'))) {
+    const joined = bondJoin(cfg.bond, mind.get('bond'));
+    if (JSON.stringify(joined) !== JSON.stringify(cfg.bond)) patch.bond = joined;
+    mind.write('bond', joined); // what this PC adds to it goes back
+  }
+  if (keys.some((k) => k.startsWith('chat:') || k === 'forgot')) {
+    const cleared = Number(mind.get('forgot')) || 0;
+    const history = mind.list('chat:')
+      .filter((e) => object(e.v) && ['user', 'assistant'].includes(e.v.role) && typeof e.v.content === 'string' && Number.isFinite(e.v.at) && e.v.at > cleared)
+      .sort((a, b) => a.v.at - b.v.at || (a.key < b.key ? -1 : 1)).slice(-MIND_CHAT)
+      .map((e) => ({ id: e.key.slice(5), role: e.v.role, content: e.v.content, at: e.v.at, ...chatExtra(e.v) }));
+    if (keys.includes('forgot')) llm.resetAgents(); // "forget" on another PC: the agents' conversations too
+    saveMemory({ history });
+    overlay?.webContents.send('chat:history', history);
+    mainframe?.refresh();
+  }
+  mindNoteNews(cfg, patch);
+  if (Object.keys(patch).length) {
+    mindApplying = true;
+    try {
+      updateConfig(patch);
+    } finally {
+      mindApplying = false;
+    }
+    if (patch.bond) sendCommand('bondSync', { bond: patch.bond });
+  }
+  mindSave();
+  mindTell();
+  // back from being an island a while (still marked alone, or just back): she says she's caught up
+  // (once), where you are
+  const alone = !hiveAlone ? 0 : hiveAlone.since ? Date.now() - hiveAlone.since
+    : Date.now() - hiveAlone.at < 60000 ? hiveAlone.at - hiveAlone.from : 0;
+  if (alone > 60000) {
+    hiveAlone = null;
+    if (hiveAway === null) sendCommand('hiveRejoined', { pc: peer.name, n: keys.length });
+  }
+}
+
+// A PC of her swarm by its id: its name (this one's own, or as the others last said it), null if unknown
+function pcName(id) {
+  const cfg = config.load();
+  if (!id) return null;
+  if (id === cfg.swarm?.id) return hiveName(cfg);
+  return hive?.state().peers.find((p) => p.id === id)?.name || cfg.swarm?.peers?.find((p) => p.id === id)?.name || null;
+}
+
+// What another PC of her swarm changed in her persona or in what she remembers, kept (config.mindNews)
+// until she's told you, where you are, with a way back: { id, pcs, persona: { before, after } | null,
+// added, removed }. Changes on top of ones not told yet go together (the persona as it was before all of them).
+function mindNoteNews(cfg, patch) {
+  const news = mindNewsNow(cfg) || { persona: null, added: [], removed: [], pcs: [] };
+  const pcs = new Set(news.pcs);
+  let changed = false;
+  if ('persona' in patch && patch.persona !== (cfg.persona || '')) {
+    const before = news.persona ? news.persona.before : cfg.persona || '';
+    news.persona = before === patch.persona ? null : { before, after: patch.persona };
+    pcs.add(pcName(mind.entry('persona')?.by));
+    changed = true;
+  }
+  if ('memories' in patch) {
+    const before = new Set(cfg.memories || []);
+    const after = new Set(patch.memories);
+    const moved = (text, from, to) => {
+      if (news[from].includes(text)) news[from] = news[from].filter((t) => t !== text); // back as it was: nothing to tell
+      else if (!news[to].includes(text)) news[to].push(text);
+      pcs.add(pcName(mind.entry(memoKey(text))?.by));
+      changed = true;
+    };
+    for (const text of after) if (!before.has(text)) moved(text, 'removed', 'added');
+    for (const text of before) if (!after.has(text)) moved(text, 'added', 'removed');
+  }
+  if (!changed) return;
+  pcs.delete(null);
+  const empty = !news.persona && !news.added.length && !news.removed.length;
+  config.save({ mindNews: empty ? null : { ...news, pcs: [...pcs], id: randomUUID().slice(0, 8) } });
+}
+
+// The news not told yet, as it still stands: what you changed here since (yourself) taken out of it,
+// null if nothing's left
+function mindNewsNow(cfg = config.load()) {
+  const news = cfg.mindNews;
+  if (!news) return null;
+  const had = new Set(cfg.memories || []);
+  const now = {
+    ...news,
+    persona: news.persona && news.persona.after === (cfg.persona || '') ? news.persona : null,
+    added: (news.added || []).filter((t) => had.has(t)),
+    removed: (news.removed || []).filter((t) => !had.has(t)),
+    pcs: news.pcs || [],
+  };
+  return now.persona || now.added.length || now.removed.length ? now : null;
+}
+
+// She tells you what another PC changed in her head: only on the PC you're at (the others keep it
+// for when you're back at one of them)
+function mindTell() {
+  const news = mindNewsNow();
+  if (!news || hiveAway !== null || !overlay) return;
+  sendCommand('mindNews', {
+    id: news.id,
+    pcs: news.pcs,
+    persona: news.persona ? news.persona.after.slice(0, 300) : null,
+    added: news.added.map((t) => t.slice(0, 200)),
+    removed: news.removed.map((t) => t.slice(0, 200)),
+  });
+}
+
+// "Undo": her persona and memories back as they were before those changes, on all your PCs
+function mindUndo(id) {
+  const cfg = config.load();
+  const news = mindNewsNow(cfg);
+  if (!news || news.id !== id) return false;
+  const patch = { mindNews: null };
+  if (news.persona) patch.persona = news.persona.before;
+  if (news.added.length || news.removed.length) {
+    const now = (cfg.memories || []).filter((t) => !news.added.includes(t));
+    patch.memories = [...now, ...news.removed.filter((t) => !now.includes(t))];
+  }
+  updateConfig(patch); // written into her mind as this PC's: it goes to the others
+  return true;
+}
+
+// What she remembers, for Mainframe: each with where it came from (her swarm on), to remove one by one
+function memoryList(cfg, t) {
+  const me = cfg.swarm?.id;
+  return (cfg.memories || []).map((text) => {
+    const key = memoKey(text);
+    const by = mind?.entry(key)?.by;
+    const from = !by ? null : by === me ? t.memoryHere : t.memoryFrom(pcName(by) || '?');
+    return { id: key.slice(5), text: text.length > 90 ? `${text.slice(0, 89)}…` : text, from };
+  });
+}
+
+const forgetMemory = (id) => updateConfig({ memories: (config.load().memories || []).filter((t) => memoKey(t).slice(5) !== id) });
+
 function hiveInviteNew() {
   if (!hive) return;
   const address = hiveTailscale?.ip || (DEV ? '127.0.0.1' : null);
@@ -1737,6 +2292,46 @@ function hiveInviteNew() {
   }
   hiveError = null;
   hiveInvite = hive.startPairing(address);
+}
+
+// A device at `address` on Tailscale is yours: signed in with the same account as this one (this
+// device itself only in --dev, where two Capris share it)
+async function hiveTrust(address) {
+  const ts = await swarm.tailscale().catch(() => null);
+  if (!ts?.ip || ts.user === null || ts.user === undefined) return false;
+  if (address === ts.ip) return DEV;
+  return ts.peers.some((p) => p.ip === address && p.user === ts.user);
+}
+
+// Capris on your other devices on Tailscale (online, same account), not in her swarm yet
+async function hiveLook() {
+  if (!hive) {
+    hiveFound = [];
+    return;
+  }
+  const ts = hiveTailscale?.ip ? await swarm.tailscale().catch(() => null) : null;
+  const targets = (ts?.peers || []).filter((p) => p.online && p.ip && p.user === ts.user).map((p) => ({ host: p.ip, port: swarm.PORT }));
+  // --dev: other Capris on this PC to look at, "address:port,..."
+  if (DEV && process.env.CAPRI_SWARM_LOOK) {
+    for (const spot of process.env.CAPRI_SWARM_LOOK.split(',')) {
+      const [host, port] = spot.trim().split(/:(?=\d+$)/);
+      if (host && Number(port)) targets.push({ host, port: Number(port) });
+    }
+  }
+  hiveFound = await hive.look(targets).catch(() => []);
+  mainframe?.refresh();
+}
+
+async function hiveJoinTailnet(spot) {
+  const found = hiveFound.find((f) => `${f.host}:${f.port}` === spot);
+  if (!hive || !found) return;
+  hiveError = null;
+  try {
+    await hive.joinTailnet(found.host, found.port);
+    hiveFound = hiveFound.filter((f) => f !== found);
+  } catch (err) {
+    hiveError = err.message;
+  }
 }
 
 async function hiveJoin(text) {
@@ -1819,6 +2414,15 @@ async function debugHandler(route, body) {
     if (body.real) hiveFake = null;
     else if ('locked' in body || 'idle' in body) hiveFake = { locked: Boolean(body.locked), idle: Number(body.idle) || 0 };
     if (body.tick) await hive?.tick();
+    // no network for this one (an island): her swarm stopped, her mind still kept; and back
+    if (body.island === true) {
+      hiveIsland = true;
+      hiveAlone = { since: Date.now() };
+      await syncHive();
+    } else if (body.island === false) {
+      hiveIsland = false;
+      await syncHive();
+    }
     return { ok: true, fake: hiveFake, state: hive?.state() || null, away: hiveAway };
   }
   if (route === 'eval') {
@@ -1925,13 +2529,18 @@ function main() {
   }
   app.on('second-instance', () => sendCommand('status'));
   if (process.platform === 'win32') app.setAppUserModelId('capri.desktop');
+  process.on('unhandledRejection', (err) => logError(`[main] ${err?.stack || err}`));
 
   app.whenReady().then(() => {
     if (!['codex', 'claude'].includes(config.load().assistant)) config.save({ assistant: activeAssistant().id });
     serveProtocol();
     registerIpc();
     createOverlay();
-    mainframe = createMainframe({ root: ROOT, display: targetDisplay, state: mainframeState, act: mainframeAct });
+    mainframe = createMainframe({
+      root: ROOT, display: targetDisplay, state: mainframeState, act: mainframeAct,
+      // where you left it, its size and maximized or not: on this PC only
+      bounds: { get: () => config.load().mainframeBounds, set: (mainframeBounds) => config.save({ mainframeBounds }) },
+    });
     createTray();
     screenGrab = startScreenGrab();
     windowWatch = startWindowWatch({
@@ -1955,8 +2564,17 @@ function main() {
     watchPhone();
     syncPhoneChat();
     syncHive();
-    setInterval(() => config.load().swarmOn && syncHive(), 60000);
-    watchUpdates(); // Tailscale installed, signed in, or its address changed
+    // Tailscale installed, signed in, or its address changed; your other PCs' Capris on it; a newer her on one of them
+    setInterval(async () => {
+      if (!config.load().swarmOn) return;
+      await syncHive();
+      await hiveLook();
+      hiveUpgrade();
+      syncPhoneChat(); // the PC that holds your phone may have changed
+      mindTell(); // not said yet (her chat was open, or she was away)
+    }, 60000);
+    setTimeout(mindTell, 15000); // what came before a restart, not said yet
+    watchUpdates();
     refreshModels(); // for her menu's model list
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     // a screen plugged in, unplugged, or rearranged: her window fitted again, and she learns of it

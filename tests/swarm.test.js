@@ -49,9 +49,9 @@ test('an invite is one line: address, port and code; anything else is no invite'
 });
 
 test('pairing: a wrong code is refused, the right one links both, and a third learns of the second', async (t) => {
-  const a = node(t, 'desk', 47911);
-  const b = node(t, 'laptop', 47912);
-  const c = node(t, 'tablet', 47913);
+  const a = node(t, 'desk', 49211);
+  const b = node(t, 'laptop', 49212);
+  const c = node(t, 'tablet', 49213);
   await Promise.all([a.s.start(), b.s.start(), c.s.start()]);
   const inv = a.s.startPairing('127.0.0.1');
   const wrong = inv.text.replace(/\/.*$/, '/AAAAA-AAAAA');
@@ -69,8 +69,8 @@ test('pairing: a wrong code is refused, the right one links both, and a third le
 });
 
 test('too many wrong codes and the invite stops working', async (t) => {
-  const a = node(t, 'desk', 47921);
-  const b = node(t, 'laptop', 47922);
+  const a = node(t, 'desk', 49221);
+  const b = node(t, 'laptop', 49222);
   await Promise.all([a.s.start(), b.s.start()]);
   const inv = a.s.startPairing('127.0.0.1');
   for (let i = 0; i < 5; i++) await assert.rejects(b.s.join(inv.text.replace(/\/.*$/, '/AAAAA-AAAAA')), { message: 'badCode' });
@@ -78,8 +78,8 @@ test('too many wrong codes and the invite stops working', async (t) => {
 });
 
 test('she is on the PC you use: unlocked, freshest; a locked or unreachable one is not it', async (t) => {
-  const a = node(t, 'desk', 47931);
-  const b = node(t, 'laptop', 47932);
+  const a = node(t, 'desk', 49231);
+  const b = node(t, 'laptop', 49232);
   await Promise.all([a.s.start(), b.s.start()]);
   await b.s.join(a.s.startPairing('127.0.0.1').text);
   a.pc.idle = 2;
@@ -116,12 +116,12 @@ test('she is on the PC you use: unlocked, freshest; a locked or unreachable one 
 });
 
 test('only a paired PC is listened to; a removed one is told and forgotten', async (t) => {
-  const a = node(t, 'desk', 47941);
-  const b = node(t, 'laptop', 47942);
+  const a = node(t, 'desk', 49241);
+  const b = node(t, 'laptop', 49242);
   await Promise.all([a.s.start(), b.s.start()]);
   // a stranger with its own key: refused
   const stranger = swarm.identity();
-  const res = await fetch('http://127.0.0.1:47941/swarm', {
+  const res = await fetch('http://127.0.0.1:49241/swarm', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify(swarm.seal(swarm.pairKey(stranger.key, a.me.pub), stranger.id, a.me.id, 'here', {})),
   });
@@ -135,8 +135,8 @@ test('only a paired PC is listened to; a removed one is told and forgotten', asy
 
 test('what an agent does on the PC you are not at reaches the one you are at, cut down to what she reads', async (t) => {
   const heard = [];
-  const a = node(t, 'desk', 47951, { onEvent: (peer, evt) => heard.push({ from: peer.name, evt }) });
-  const b = node(t, 'laptop', 47952);
+  const a = node(t, 'desk', 49251, { onEvent: (peer, evt) => heard.push({ from: peer.name, evt }) });
+  const b = node(t, 'laptop', 49252);
   await Promise.all([a.s.start(), b.s.start()]);
   await b.s.join(a.s.startPairing('127.0.0.1').text);
   a.pc.idle = 1;
@@ -165,4 +165,88 @@ test('what an agent does on the PC you are not at reaches the one you are at, cu
   // the PC you're at keeps its own events
   assert.equal(await a.s.forward({ hook_event_name: 'Stop' }), false);
   assert.equal(heard.length, 1);
+});
+
+test('her mind goes along the swarm: an island catches up when it is back, and the others with it', async (t) => {
+  const { createMind } = require('../src/main/mind');
+  const ida = swarm.identity();
+  const idb = swarm.identity();
+  const minds = { a: createMind({ me: ida.id }), b: createMind({ me: idb.id }) };
+  const told = [];
+  const make = (id, name, port, m) => swarm.createSwarm({
+    me: { ...id, name }, port, hosts: ['127.0.0.1'], here: () => ({ locked: false, idle: 5 }), every: 100, gone: 600,
+    mind: m, onMind: (keys, peer) => told.push([name, peer.name, keys]), onPeers: (p) => { peersOf[name] = p; },
+  });
+  const peersOf = {};
+  const a = make(ida, 'desk', 49261, minds.a);
+  let b = make(idb, 'laptop', 49262, minds.b);
+  t.after(() => { a.stop(); b.stop(); });
+  await Promise.all([a.start(), b.start()]);
+  await b.join(a.startPairing('127.0.0.1').text);
+  minds.a.write('name', 'Sam');
+  await new Promise((r) => setTimeout(r, 400));
+  assert.equal(minds.b.get('name'), 'Sam');
+  // the laptop drops off the network; both go on
+  b.stop();
+  minds.b.write('memo:tea', 'likes tea');
+  minds.a.write('persona', 'calm');
+  // back, with the pairing it saved: nothing to pair again
+  const saved = peersOf.laptop;
+  b = swarm.createSwarm({
+    me: { ...idb, name: 'laptop' }, peers: saved, port: 49262, hosts: ['127.0.0.1'], here: () => ({ locked: false, idle: 5 }),
+    every: 100, gone: 600, mind: minds.b, onMind: (keys, peer) => told.push(['laptop', peer.name, keys]),
+  });
+  await b.start();
+  await new Promise((r) => setTimeout(r, 500));
+  assert.equal(minds.a.get('memo:tea'), 'likes tea');
+  assert.equal(minds.b.get('persona'), 'calm');
+  assert.ok(told.some(([who, from, keys]) => who === 'laptop' && from === 'desk' && keys.includes('persona')));
+});
+
+test('on Tailscale, a device of yours joins with a click; one that is not yours does not', async (t) => {
+  const yours = new Set(['127.0.0.1']); // stands for "the same Tailscale account"
+  const joined = [];
+  const a = node(t, 'desk', 49271, { trust: async (address) => yours.has(address), onJoined: (p) => joined.push(p.name) });
+  const b = node(t, 'laptop', 49272, { trust: async (address) => yours.has(address) });
+  const c = node(t, 'tablet', 49273, { trust: async (address) => yours.has(address) });
+  await Promise.all([a.s.start(), b.s.start(), c.s.start()]);
+  // found: the Capris on the addresses looked at, not already in her swarm, not itself
+  const found = await b.s.look([{ host: '127.0.0.1', port: 49271 }, { host: '127.0.0.1', port: 49272 }, { host: '127.0.0.1', port: 49299 }]);
+  assert.deepEqual(found.map((f) => f.name), ['desk']);
+  assert.deepEqual(await b.s.joinTailnet('127.0.0.1', 49271), { name: 'desk' });
+  assert.deepEqual(joined, ['laptop']);
+  assert.deepEqual(a.peers().map((p) => p.name), ['laptop']);
+  assert.deepEqual(await b.s.look([{ host: '127.0.0.1', port: 49271 }]), []); // already in it
+  // the tablet joins the desk: the laptop learns of it
+  await c.s.joinTailnet('127.0.0.1', 49271);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.deepEqual(b.peers().map((p) => p.name).sort(), ['desk', 'tablet']);
+  // not yours: refused on both sides
+  yours.clear();
+  const d = node(t, 'stranger', 49274, { trust: async () => true });
+  await d.s.start();
+  await assert.rejects(d.s.joinTailnet('127.0.0.1', 49271), { message: 'notYours' }); // the desk says no
+  await assert.rejects(b.s.joinTailnet('127.0.0.1', 49274), { message: 'notYours' }); // the laptop won't even ask
+  assert.equal(a.peers().length, 2);
+});
+
+test('your phone in the swarm: who holds it and how long each PC has been idle go around; a note reaches the holder', async (t) => {
+  const notes = [];
+  const a = node(t, 'desk', 49281, { onPhone: (peer, note) => { notes.push([peer.name, note]); return true; } });
+  const b = node(t, 'laptop', 49282);
+  a.pc.phone = 'capri_bot';
+  a.pc.idle = 400;
+  b.pc.idle = 3;
+  await Promise.all([a.s.start(), b.s.start()]);
+  await b.s.join(a.s.startPairing('127.0.0.1').text);
+  await wait(300);
+  const desk = b.s.state().peers[0];
+  assert.equal(desk.phone, 'capri_bot');
+  assert.ok(desk.idle >= 400 && desk.idle < 410);
+  assert.equal(a.s.state().peers[0].phone, null);
+  assert.equal(await b.s.phone(desk.id, { line: 'Codex is done', project: 'capri', quote: 'x'.repeat(5000), extra: 1 }), true);
+  assert.deepEqual(notes.map(([from]) => from), ['laptop']);
+  assert.deepEqual(Object.keys(notes[0][1]), ['line', 'project', 'quote']);
+  assert.equal(notes[0][1].quote.length, 2000);
+  assert.equal(await b.s.phone('0000000000000000', { line: 'x' }), false); // no such PC
 });

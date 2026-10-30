@@ -96,6 +96,7 @@ export class Panel {
   // actions: buttons, [{ id, label, primary }]; clicking one calls the message's onAction(id),
   //          or the panel's
   // guide: the quote is an explanation, shown whole
+  // asked: the quote is what you asked Claude Code or Codex, shown above her line
   // badge: the word in the corner, instead of the one for its kind
   // face: her expression (a key of FACES), instead of the one for its kind
   // report: her report card, { date, hero: { value, label }, stats: [{ value, label, hot }],
@@ -139,6 +140,7 @@ export class Panel {
     this.el.classList.toggle('has-reply', Boolean(msg.reply));
     this.el.classList.toggle('has-report', Boolean(msg.report));
     this.el.classList.toggle('is-guide', Boolean(msg.guide));
+    this.el.classList.toggle('is-asked', Boolean(msg.asked)); // the quote is your prompt: above her line
     this.renderReport(msg.report);
     this.renderActions(msg.actions, msg.onAction);
     this.renderChat(msg.chat);

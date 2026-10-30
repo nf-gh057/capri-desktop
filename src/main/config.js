@@ -44,6 +44,7 @@ const DEFAULTS = {
   swarm: null,       // her swarm (swarm.js): { id, pub, key (sealed), peers: [{ id, name, pub, host, port }] }
   swarmOn: false,    // she's one Capri on all your PCs, on the one you're at (through Tailscale)
   swarmName: '',     // this PC's name in her swarm ('': its Windows name)
+  swarmUpdate: true, // another of your PCs runs a newer her: this one updates too (main.js hiveUpgrade)
   updateCheck: true, // she looks for a new version of herself on GitHub (her git clone's origin)
   updateAuto: false, // and updates herself once you've been away a while (else: on your click)
   updateTold: null,  // the new version she last told you about (its commit), so she says it once
@@ -57,7 +58,10 @@ const DEFAULTS = {
   bond: null,        // how close she is to you: { xp, first, last, days, streak, caps } (bond.js)
   pcReact: true,     // she reacts to your PC: the processor at full tilt, the battery, the network, a USB stick, a game (pc.js)
   watchScreen: false, // she looks at your screen now and then and says something about it (look.js)
+  mainframeBounds: null, // her settings window as you left it: { x, y, width, height, maximized } (mainframe.js)
   lookAsked: false,  // she told you what looking means (where the picture goes) and you said yes
+  talk: 'normal',    // how often she says things of her own, in her words (talk.js): 'quiet', 'normal' or 'chatty'
+  talkCloud: false,  // and she may write them with an AI online (what you send Claude or Codex goes there too)
 };
 
 let cache = null;

@@ -37,8 +37,11 @@ contextBridge.exposeInMainWorld('host', {
   copyImage: (rect) => ipcRenderer.invoke('panel:copy', rect),
   chatStatus: () => ipcRenderer.invoke('chat:status'),
   chatSend: (request) => ipcRenderer.invoke('chat:send', request),
+  talkLine: (request) => ipcRenderer.invoke('talk:line', request),
+  idleSeconds: () => ipcRenderer.invoke('pc:idle'),
   chatStop: (id) => ipcRenderer.send('chat:stop', id),
   chatMemory: () => ipcRenderer.invoke('chat:memory'),
+  onChatHistory: on('chat:history'),
   chatRemember: (history) => ipcRenderer.send('chat:remember', history),
   onChatDelta: on('chat:delta'),
   lookSnap: () => ipcRenderer.invoke('look:snap'),
@@ -61,6 +64,8 @@ contextBridge.exposeInMainWorld('host', {
   findApp: (wanted) => ipcRenderer.invoke('apps:find', wanted),
   closeApp: (name, force) => ipcRenderer.invoke('apps:close', { name, force: Boolean(force) }),
   findLaunch: (text) => ipcRenderer.invoke('apps:findLaunch', text),
+  findWindow: (name) => ipcRenderer.invoke('windows:find', name),
+  showWindow: (id) => ipcRenderer.invoke('windows:show', id),
   launch: (item) => ipcRenderer.invoke('apps:launch', item),
   media: (action) => ipcRenderer.invoke('apps:media', action),
   music: (query) => ipcRenderer.invoke('apps:music', query),
@@ -76,4 +81,10 @@ contextBridge.exposeInMainWorld('host', {
   // your messages from her chat on Telegram, and her answers back
   onPhoneChat: on('phone:chat'),
   phoneAnswer: (answer) => ipcRenderer.send('phone:answer', answer),
+  // what you type in Mainframe's HOLO, her answer back, and what she says for it to show
+  onDeskChat: on('desk:chat'),
+  deskAnswer: (answer) => ipcRenderer.send('desk:answer', answer),
+  holoLine: (said) => ipcRenderer.send('holo:line', said),
+  mindUndo: (id) => ipcRenderer.invoke('mind:undo', id),
+  mindSeen: (id) => ipcRenderer.send('mind:seen', id),
 });

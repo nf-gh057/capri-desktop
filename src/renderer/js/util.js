@@ -1,6 +1,16 @@
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export const rand = (a, b) => a + Math.random() * (b - a);
 export const pick = (list) => list[Math.floor(Math.random() * list.length)];
+// One of `list`, but none of the last few picked from it: her lines, said less alike
+const lately = new Map(); // a list's first line -> the ones said lately
+export function pickFresh(list) {
+  if (!Array.isArray(list) || list.length < 2 || typeof list[0] !== 'string') return pick(list);
+  const said = lately.get(list[0]) || [];
+  const left = list.filter((line) => !said.includes(line));
+  const line = pick(left.length ? left : list);
+  lately.set(list[0], [...said, line].slice(-Math.min(4, list.length - 1)));
+  return line;
+}
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 export const lerp = (a, b, t) => a + (b - a) * t;
 

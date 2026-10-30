@@ -15,6 +15,7 @@ import { Bond, Jealousy } from './bond.js';
 import { Reminders, clock } from './reminders.js';
 import { Look } from './look.js';
 import { Pc } from './pc.js';
+import { Talk } from './talk.js';
 import { linesFor } from './lines.js';
 import { pick, fmt, reducedMotion, sleep } from './util.js';
 
@@ -35,6 +36,7 @@ const WATCH_MS = 2000; // how often she checks the pointer still reaches her
 const FOLLOW_AFTER = 2; // checks in a row with the pointer on another screen before she follows it there
 const AWAY_MS = 15 * 60 * 1000; // the pointer still this long: you were away from your PC
 const SNOOZE_MS = 10 * 60 * 1000;
+const DOUBLE_CLICK_MS = 320; // a second click on her within this: her chat
 
 // what you made her, from the config (custom.js)
 const mine = (cfg) => ({ userName: cfg.userName || '', persona: cfg.persona || '', myLines: cfg.myLines || [], memories: cfg.memories || [] });
@@ -87,6 +89,24 @@ async function boot() {
     ticker: document.getElementById('ticker'),
     labels: linesFor(config.lang, config.assistant, config.stowKey),
   });
+  // What she says in her panel also goes to Mainframe's HOLO, next to her chat: all of it but her chat
+  // itself (HOLO has it whole) and her little lines from her animations (idle, or `spont`: the
+  // satellite, being thrown around, her showcase). Your prompt to Claude (`asked`) goes there even
+  // when something more important kept her from saying anything about it. What she said of her own
+  // (talk.js, `inChat`) is in her chat already.
+  const sayHere = panel.say.bind(panel);
+  panel.say = (msg) => {
+    const shown = sayHere(msg);
+    const said = shown && msg.line && !msg.chat && !msg.spont && msg.kind !== 'idle';
+    if ((said || msg.asked) && !msg.inChat) {
+      host.holoLine({
+        kind: msg.kind, badge: msg.badge || panel.labels.state?.[msg.kind] || '', line: said ? msg.line : '',
+        tag: typeof msg.tag === 'string' ? msg.tag : '', quote: typeof msg.quote === 'string' ? msg.quote : '',
+        asked: msg.asked || '', to: msg.to || '',
+      });
+    }
+    return shown;
+  };
 
   const capri = new Capri({
     root: document.getElementById('capri'),
@@ -228,7 +248,7 @@ async function boot() {
   // the red light has gone up (never during, nothing should cover that)
   capri.onGaze = (when) => {
     const lines = when === 'end' ? brain.t.uplink : brain.t.gaze;
-    if (!panel.visible && Math.random() < (when === 'end' ? 0.6 : 0.4)) panel.say({ kind: 'info', line: pick(lines), hold: 3800 });
+    if (!panel.visible && Math.random() < (when === 'end' ? 0.6 : 0.4)) panel.say({ kind: 'info', line: pick(lines), hold: 3800, spont: true });
   };
   panel.onChar = (kind) => voice.play('blip', { mood: kind });
   panel.onTalk = (talking) => talking && capri.perform('talk');
@@ -245,6 +265,11 @@ async function boot() {
     const answer = await chat.fromPhone(id, String(text)).catch((err) => ({ ok: false, error: err.message }));
     host.phoneAnswer({ id, ...answer });
   });
+  // what you type in Mainframe's HOLO: the same conversation, answered there
+  host.onDeskChat(async ({ id, text }) => {
+    const answer = await chat.fromDesk(id, String(text)).catch((err) => ({ ok: false, error: err.message }));
+    host.deskAnswer({ id, ...answer });
+  });
   // Getting her chat going with buttons (setup.js): Ollama and a model, a key, or an address
   const setup = new Setup({ guide, panel, host, brain, capri, voice });
   guide.setup = setup;
@@ -258,6 +283,45 @@ async function boot() {
   };
   chatShows(config);
   setup.onReady = () => chat.start();
+  // What another PC of her swarm changed in her head (main.js mindTell): she says so, with "Undo". Not
+  // shown yet (put away, her chat open…), or pushed off within moments by something more important: it
+  // comes again with main.js's next try. Seen and closed: kept, like "Keep".
+  let mindTold = null; // the change she's saying
+  const tellMind = (news) => {
+    if (mindTold === news.id || capri.stowed) return;
+    const t = brain.t.swarm;
+    const what = [
+      news.persona !== null && `${t.mindPersona}: ${news.persona || '…'}`,
+      ...news.added.map((m) => `+ ${m}`),
+      ...news.removed.map((m) => `− ${m}`),
+    ].filter(Boolean);
+    let answered = false;
+    let at = 0;
+    const shown = panel.say({
+      kind: 'info',
+      face: 'look',
+      guide: true,
+      line: fmt(pick(t.mind), { pc: news.pcs.join(', ') || '…' }),
+      quote: what.join('\n'),
+      actions: [{ id: 'keep', label: t.mindKeep, primary: true }, { id: 'undo', label: t.mindUndo }],
+      onAction: async (id) => {
+        answered = true;
+        panel.hide();
+        if (id === 'undo' && (await host.mindUndo(news.id))) panel.say({ kind: 'info', face: 'smug', line: pick(t.mindUndone), hold: 3500 });
+        else host.mindSeen(news.id);
+      },
+      onLeave: () => {
+        if (answered) return;
+        if (performance.now() - at < 3000) mindTold = null;
+        else host.mindSeen(news.id);
+      },
+      hold: null,
+    });
+    if (shown) {
+      mindTold = news.id;
+      at = performance.now();
+    }
+  };
   // What she calls you, how she is, your lines, what she remembers (custom.js)
   const custom = new Custom({ guide, host, brain, capri, voice });
   const stowKey = new StowKey({ guide, panel, host, brain });
@@ -285,14 +349,31 @@ async function boot() {
   pc.enabled = config.pcReact !== false;
   let wantsOut = config.visible !== false; // not put away in your settings (Ctrl+Alt+C, her menu)
   pc.wantsOut = () => wantsOut;
+  // What she says of her own, in her words (talk.js): never over her chat, her guide, a game you're
+  // playing, or from her biochip
+  const talk = new Talk({ host, chat, brain });
+  talk.configure(config);
+  talk.hush = () => chat.open || Boolean(chat.turn) || guide.running || Boolean(pc.game) || capri.stowed;
+  brain.talk = talk;
 
   // Clicking her: what's going on, or she offers to talk. Sulking, she turns her back on you.
+  // Double-clicking her: her chat, the cursor already in it (a click waits a moment for the second one).
+  let clickWait = 0;
   capri.onClick = () => {
-    if (panel.visible) panel.hide();
-    else if (!jealousy.onClick()) {
-      brain.status();
-      bond.add('click', 1);
+    if (clickWait) {
+      clearTimeout(clickWait);
+      clickWait = 0;
+      chat.start();
+      return;
     }
+    clickWait = setTimeout(() => {
+      clickWait = 0;
+      if (panel.visible) panel.hide();
+      else if (!jealousy.onClick()) {
+        brain.status();
+        bond.add('click', 1);
+      }
+    }, DOUBLE_CLICK_MS);
   };
 
   // Thrown around (capri.js throwHer): she says how it was. The first time she's shaken (or she
@@ -302,7 +383,7 @@ async function boot() {
   capri.onThrown = ({ how, hard = 0 }) => {
     const t = brain.t.thrown;
     if (how === 'leap') {
-      if (Math.random() < 0.4) panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.screens.hello), hold: 3000 });
+      if (Math.random() < 0.4) panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.screens.hello), hold: 3000, spont: true });
       return;
     }
     const now = performance.now();
@@ -338,14 +419,14 @@ async function boot() {
       feel = 'thrown';
     }
     if (feel && bond.feeling !== 'angry') bond.feel(feel);
-    panel.say({ kind: 'info', face, line, hold: 3800 });
+    panel.say({ kind: 'info', face, line, hold: 3800, spont: true });
   };
   // you said sorry in her chat: she lets it go (and lets you pick her up again)
   bond.onCalm = () => {
     jealousy.forgive();
     capri.refuseUntil = 0;
   };
-  capri.onDodge = () => panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.thrown.dodge), hold: 2500 });
+  capri.onDodge = () => panel.say({ kind: 'info', face: 'smug', line: pick(brain.t.thrown.dodge), hold: 2500, spont: true });
 
   // A new stage with you: her minds come out to look at you, and she says so, the sync bar under it.
   // At a quiet moment, so it isn't missed.
@@ -374,16 +455,33 @@ async function boot() {
   setInterval(() => {
     if (performance.now() - lastMove < 10 * 60 * 1000 && !capri.stowed) bond.add('time', 1);
   }, 10 * 60 * 1000);
-  // back at your PC after a while: once she's attached to you, she's glad to see you
-  onBack = () => {
-    if (bond.stage < 2 || capri.stowed) return;
+  // back at your PC after a while: she may welcome you her way (talk.js), picking up where you two left
+  // off; else, once she's attached to you, she's glad to see you
+  onBack = async (away) => {
+    if (capri.stowed) return;
+    const own = talk.line('back', { away });
+    if (!own && bond.stage < 2) return;
     capri.wake();
+    const line = own && (await own);
+    if (!line && bond.stage < 2) return;
     setTimeout(() => {
       if (!quiet()) return;
       capri.perform('hop');
-      panel.say({ kind: 'idle', face: 'look', line: pick(brain.t.bond.back), hold: 3500 });
+      panel.say(line
+        ? { kind: 'info', face: 'look', line, hold: 6000, inChat: true }
+        : { kind: 'idle', face: 'look', line: pick(brain.t.bond.back), hold: 3500 });
     }, 700);
   };
+  // now and then, nothing going on and you at your PC but not busy typing: she starts a conversation
+  setInterval(async () => {
+    if (!quiet() || brain.busySessions.length || !talk.idleDue()) return;
+    const idle = await host.idleSeconds().catch(() => 0);
+    if (idle < 90 || idle * 1000 > AWAY_MS) return; // typing away, or not there
+    const line = await talk.line('idle', {});
+    if (!line || !quiet()) return;
+    capri.perform('hop');
+    panel.say({ kind: 'info', face: 'look', line, hold: 9000, inChat: true });
+  }, 60 * 1000);
 
   // A reminder due: she comes and finds you (on whichever screen you're on), and holds it up until
   // you say it's done or ask for ten more minutes. One that came due while she was off, she brings
@@ -464,7 +562,7 @@ async function boot() {
   const free = () => !capri.busy && !capri.act && capri.stance !== 'fall';
   brain.onShowcase = async () => {
     const t = brain.t.showcase;
-    const caption = (line) => panel.say({ kind: 'info', line, hold: 2200 });
+    const caption = (line) => panel.say({ kind: 'info', line, hold: 2200, spont: true });
     capri.nextMove = capri.nextGaze = performance.now() + 120000; // nothing of her own in between
     if (capri.stowed) await capri.unstow();
     if (capri.dormant) capri.wake();
@@ -526,7 +624,7 @@ async function boot() {
     await wait(3500);
     await capri.unstow();
     await wait(600);
-    panel.say({ kind: 'info', line: t.end, hold: 5000 });
+    panel.say({ kind: 'info', line: t.end, hold: 5000, spont: true });
   };
 
   // what's in here, for --dev scripts (debug route `eval`)
@@ -609,6 +707,7 @@ async function boot() {
       return host.cursor();
     });
   };
+  chat.goScreen = goToScreen; // a window you asked for (or its taskbar button) on another screen
   // The pointer on another of your screens for a few seconds: she follows you there, when she's
   // free to (not in the middle of something, not asleep, not put away).
   let followOn = config.follow !== false;
@@ -632,6 +731,7 @@ async function boot() {
 
   host.onConfig((cfg) => {
     chatShows(cfg);
+    talk.configure(cfg);
     voice.configure(cfg);
     jealousy.enabled = cfg.jealous !== false;
     followOn = cfg.follow !== false;
@@ -639,7 +739,8 @@ async function boot() {
     look.configure(cfg);
     pc.enabled = cfg.pcReact !== false;
     wantsOut = cfg.visible !== false;
-    reminders.sync(cfg.reminders); // one may have been cancelled from her menu
+    reminders.sync(cfg.reminders); // one may have been cancelled from her menu, or on another PC
+    reminders.elsewhere = Boolean(cfg.hiveAway);
     capri.wander = cfg.wander;
     capri.possessWindows = cfg.possess;
     capri.restOn = cfg.rest || 'corner';
@@ -720,6 +821,18 @@ async function boot() {
         await capri.unstow();
         capri.wake();
         panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.back), { pc: cmd.from || '…' }), hold: 3000 });
+        break;
+      case 'bondSync': // how close she is to you, as your other PCs have it (her swarm)
+        bond.sync(cmd.bond);
+        break;
+      case 'swarmJoined': // another of your devices joined her swarm
+        if (!capri.stowed) panel.say({ kind: 'info', face: 'laugh', line: fmt(pick(brain.t.swarm.joined), { pc: cmd.pc || '…' }), hold: 4500 });
+        break;
+      case 'mindNews': // another PC changed her persona or what she remembers
+        tellMind(cmd);
+        break;
+      case 'hiveRejoined': // back on the network after being on her own: she's caught up with the others
+        if (!capri.stowed) panel.say({ kind: 'info', face: 'smug', line: fmt(pick(brain.t.swarm.rejoined), { pc: cmd.pc || '…' }), hold: 5000 });
         break;
       case 'updateFound': // a new version of her on GitHub (said once per version)
         if (!capri.stowed) panel.say({ kind: 'info', face: 'look', line: fmt(pick(brain.t.update.found), { version: cmd.version || '…' }), hold: 7000 });

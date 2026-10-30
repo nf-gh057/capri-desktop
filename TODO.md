@@ -16,29 +16,6 @@ Wspólne dla wszystkich etapów:
 - Limit wiadomości na minutę; długie teksty przycinane, wiersze wyglądające na klucze zamazywane.
 - Bez zatwierdzania zgód Claude/Codex z telefonu: przejęty Telegram nie może oznaczać wykonania kodu na PC.
 
-### Etap 1: powiadomienia w jedną stronę (zrobione: `src/main/phone.js`, sekcja TELEFON w Mainframe)
-
-- Kiedy jestem z dala od komputera (kilka minut bez ruchu albo zablokowany ekran; do wyboru w Mainframe,
-  albo zawsze): Claude/Codex czeka na zgodę lub odpowiedź, zadanie się skończyło, błąd, wieczorny raport.
-- Wiadomości w jej stylu (`lines.js`, wszystkie języki), np. „Choom, zerknij na Codex, chyba ogarnął
-  ostatni gig i się nudzi”.
-- Bot niczego nie przyjmuje poza kodem parowania: bez kodu TOTP, bo nic nie wchodzi.
-- Mainframe: link do @BotFather, pole na token, parowanie, włącz/wyłącz, kiedy, ile treści, test, odłącz.
-
-### Etap 2: rozmowa z Capri na Telegramie (zrobione: `src/main/totp.js`, nasłuch w `phone.js` i `main.js`)
-
-Zrobione tak: odblokowanie na 1, 4 albo 8 h (wybór w Mainframe); każdy kod działa raz, wiadomość z kodem jest kasowana;
-Claude Code z telefonu ma tylko Read, Grep i Glob, bez serwerów MCP; Codex w piaskownicy tylko do odczytu, bez sieci.
-Przyciski: „przypomnij za 30 min” (wysyła to samo jeszcze raz) i „cisza na godzinę”.
-
-- Ta sama rozmowa i pamięć co czat na pulpicie, bez jej „mocy” (żadnych aplikacji, stron, muzyki).
-- Odblokowanie kodem TOTP z aplikacji uwierzytelniającej (`/unlock 123456`) na dłużej, np. 8 h;
-  wygasa po powrocie do komputera albo po godzinie ciszy. Sekret TOTP zaszyfrowany, kod QR tylko w Mainframe.
-  Po 3 błędnych kodach zdalne sterowanie wyłączone do ponownego włączenia przy komputerze.
-- Codex w trybie „tylko odczyt” dalej czyta cały dysk, dlatego rozmowa też wymaga kodu.
-- Przyciski pod powiadomieniami (np. „przypomnij za 30 min”) bez kodu: niczego nie wykonują.
-- Long polling `getUpdates` tylko wtedy, gdy etap jest włączony; `/lock` od razu blokuje.
-
 ### Etap 3: zadania przez Codex z narzędziami
 
 - Świeży kod TOTP, odblokowanie na krótko (np. 30 min).
@@ -64,27 +41,8 @@ Wspólne dla wszystkich etapów:
   z którym się sparował.
 - Nasłuch tylko na adresie Tailscale (i 127.0.0.1), nigdy na LAN-ie ani w internecie.
 - Inne komputery przysyłają tylko stan, obecność, zdarzenia i pamięć: nigdy poleceń do wykonania. Przejęty laptop
-  nie uruchomi niczego na pozostałych.
-
-### Etap 1: obecność i przeskok (zrobione: `src/main/swarm.js`, Mainframe › RÓJ, `install.ps1 -Tailscale`)
-- Co kilka sekund każdy komputer mówi pozostałym: czy ekran jest zablokowany i ile sekund minęło od klawiatury
-  lub myszy. Aktywny: odblokowany, z najświeższym ruchem (z zapasem, żeby nie skakała tam i z powrotem).
-  Zablokowany ekran albo brak odpowiedzi przez kilkanaście sekund: nie ma cię tam.
-- Capri jest widoczna tylko na aktywnym; gdzie indziej chowa się do biochipa. Bez sieci: wyspa, jest u siebie,
-  myśli przez Ollamę.
-- Mainframe › RÓJ: ten komputer, Tailscale (jest / zainstaluj), lista komputerów z ich stanem, dodaj, dołącz, usuń.
-
-### Etap 2: zdarzenia agentów z całego roju (zrobione: `forward` w `swarm.js`, `hiveEvent` w `main.js`, `brain.js`)
-- Claude Code / Codex na laptopie skończył: Capri przy biurku mówi o tym; raport z misji z wszystkich komputerów.
-
-### Etap 3: świadomość zbiorowa
-- Wspólne: rozmowy i pamięć (imię, „zapamiętaj”, jej opis), więź i nastrój, przypomnienia. Lokalne: ekran, rozmiar,
-  hooki, model AI.
-- Zmiany ze znacznikiem czasu i komputera; po powrocie wyspy do sieci scalanie bez gubienia: rozmowy po czasie,
-  wspomnienia i przypomnienia jako suma (z usunięciami), więź jako suma przyrostów. Capri komentuje powrót.
-
-### Etap 4: telefon w roju
-- Bota Telegrama czyta tylko jeden komputer naraz (lider roju); „nie ma cię” = przy żadnym komputerze.
+  nie uruchomi niczego na pozostałych bezpośrednio; wspólna persona i wspomnienia trafiają jednak do agentów na każdym
+  komputerze, więc ich zmianę z innego komputera Capri pokazuje tam, gdzie jesteś, z „Cofnij” (zrobione w 0.4.4-22).
 
 ### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama)
 - Telefon z aplikacją Tailscale otwiera stronę czatu Capri (PWA) na jej adresie w sieci Tailscale (HTTPS z certyfikatem
@@ -95,40 +53,25 @@ Wspólne dla wszystkich etapów:
   konta, które da się przejąć zdalnie. Do zadań z narzędziami (jak etap 3 Telegrama): potwierdzenie odciskiem palca
   (passkey, WebAuthn) zamiast kodu.
 
-## Aktualizacje: Capri sama sprawdza, czy na GitHubie jest nowa wersja (zrobione: `src/main/update.js`, Mainframe › AKTUALIZACJE)
-
-Zrobione tak: `git fetch` gałęzi z `origin` (bez osobnego czytania `package.json` przez HTTP); pakiety od nowa tylko
-gdy zmieniły się zależności (sam numer wersji w `package-lock.json` się nie liczy), przez `scripts/update-finish.js`
-uruchamiany Node.js z systemu po zamknięciu Capri; tryb automatyczny po 15 min nieobecności. Zostało: zmiana
-repozytorium z Mainframe (dziś: `origin` klonu, ustawiany przez `install.ps1 -Repo`).
-
-Capri zainstalowana skryptem `install.ps1` to klon gita (`%LOCALAPPDATA%\Capri\capri-desktop`), więc może się
-zaktualizować tak jak ponowne uruchomienie instalatora: `git pull` i pakiety.
-
-- Skąd: repozytorium i gałąź z `origin` jej klonu (u nas `nf-gh057/capri-desktop`, `main`), do zmiany w Mainframe;
-  nic na sztywno w kodzie.
-- Sprawdzanie: przy starcie i co kilka godzin. Najtańsze: `package.json` z GitHuba (raw) i porównanie wersji `x.y.z-n`
-  z `app.getVersion()`; dokładniej: `git fetch` i porównanie commitów (`HEAD` i `origin/main`). Bez sieci: ciche
-  pominięcie, następna próba później.
-- Gdy jest nowa: Capri mówi o tym raz (w swoim stylu), Mainframe pokazuje wersję i listę zmian (tytuły commitów od
-  obecnej) oraz przycisk „Zaktualizuj”. Do wyboru w Mainframe: tylko powiadamiaj (domyślnie) / aktualizuj sama, kiedy nie
-  ma cię przy komputerze.
-- Aktualizacja: `git pull --ff-only`, `npm ci` tylko gdy zmienił się `package-lock.json` (i Electron, gdy brakuje
-  binarki), potem `app.relaunch()`. Odmowa (z powodem w Mainframe), gdy klon ma lokalne zmiany, jest na innej gałęzi albo
-  się rozjechał z GitHubem; nigdy `reset --hard`. W trybie `--dev` (klon programisty) tylko informacja, bez aktualizacji.
-- Gdy coś pójdzie nie tak: powrót do poprzedniego commita (`git reset --keep` na zapamiętany) i ponowne `npm ci`.
-- Bezpieczeństwo: tylko HTTPS z GitHuba i tylko po kliknięciu (albo po świadomym włączeniu trybu automatycznego);
-  aktualizacja uruchamia kod z repozytorium (tak jak instalator), więc nigdy z adresu podanego przez stronę, Telegram
-  czy inny komputer roju.
-- Rój: komputery mówią sobie swoją wersję; Mainframe pokazuje, który jest starszy, a różne wersje protokołu roju nie
-  psują połączenia (komputer ze starszą wersją dostaje informację, że trzeba go zaktualizować).
-- Capri z instalatora oryginalnego projektu (`Capri-Setup-x.y.z.exe`, nie klon) tylko informuje o nowej wersji i odsyła do Releases.
-
 ## Do zrobienia
 
-- Fix: po kliknięciu jednej Capri okno Mainframe robi się ciemne i nic w nim nie widać.
-- Okno czatu na pulpicie, zsynchronizowane z czatem Capri (ta sama rozmowa w obu miejscach).
-- Przerobienie okna Mainframe.
-- Ograniczenie menu pod prawym przyciskiem myszy.
 - Głos klonowany z postaci z anime albo z własnego nagrania.
-- Zróżnicowane komentarze Capri do podejmowanych akcji (mniej powtórzeń tych samych tekstów).
+- Równoległe monitorowanie różnych AI naraz.
+- Komunikacja z Hermesem.
+- Animacja (gałąź `anim/poses`): przy kilku oknach jednej aplikacji Capri pokazuje ich stos na pasku zadań gestem
+  „wybierz sobie” (np. rozkłada ręce nad przyciskiem albo rozsuwa wachlarz okien), zamiast zwykłego wskazania palcem;
+  dziś tylko wskazuje go jak okno, z etykietą „Firefox ×3”.
+- [x] Szukanie okien: stos na pasku zadań drugiego ekranu (dziś tylko główny pasek, przy zegarze); kilka okien jednej
+  aplikacji widzianych osobno (dziś jej główne okno albo jej stos na pasku) (zrobione w 0.4.4-36: paski wszystkich
+  ekranów, przycisk dla każdego okna; drugi ekran do sprawdzenia na żywo po podpięciu monitorów do Legiona).
+- Pomysł: Erebus. Gdy działa brama przez Blackwall (Claude Code / Codex odpowiada w czacie), Capri ma małą szansę
+  chwilowo zmienić się w Erebusa, rogue AI z dodatku „Widmo wolności” (Phantom Liberty). Wtedy glitch w stylu
+  Blackwalla (czerwień, zakłócenia obrazu) i wypowiedzi groźne, destrukcyjne, jak broń Erebusa w rękach protagonisty
+  w grze. Po powrocie Capri komentuje to w swoim stylu: „wykryto wrogie AI”, „aktywacja LODU” (ICE), itd.
+- Do decyzji: telefon parowany raz dla całego roju. Komputery same przekazują sobie token bota i sekret TOTP
+  (zaszyfrowanym kanałem roju, tylko między twoimi urządzeniami, na każdym zapisane kontem Windows), więc każdy
+  może przejąć telefon i działa jeden kod w aplikacji uwierzytelniającej. Za: parowanie raz, telefon działa, nawet
+  gdy komputer z botem jest wyłączony. Przeciw: token trafia na każdy komputer roju, więc przejęcie któregokolwiek
+  daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
+- Animacja (gałąź `anim/poses`): Capri w trybie mini co jakiś czas otwiera jedno oko i spod przymrużonej powieki
+  obserwuje, co się aktualnie dzieje na ekranie.
