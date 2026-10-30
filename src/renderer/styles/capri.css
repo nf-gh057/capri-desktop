@@ -294,6 +294,12 @@ body {
   font-weight: 600;
 }
 
+/* Erebus has her (panel.js setFace): her name struck out in red, his speaking through her */
+.panel.is-possessed .panel__who {
+  color: color-mix(in oklch, var(--paper) 55%, transparent);
+  text-decoration: line-through 2px var(--red);
+}
+
 .panel__tag {
   min-width: 0;
   overflow: hidden;
