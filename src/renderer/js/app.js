@@ -701,7 +701,12 @@ async function boot() {
     if (!screens || id === screens.current) return;
     const mid = capri.screenPoint(118, 232);
     const side = [-1, 1].find((s) => beyond(s, Math.max(120, mid.y - 140))?.id === id);
-    if (side && (await capri.leapTo(side))) return;
+    // a leap only starts her off: done once she's landed over there (one that didn't make it: her
+    // column of light), so whoever sent her (a window to show you) carries on from there
+    if (side && (await capri.leapTo(side))) {
+      for (let i = 0; i < 40 && capri.busy; i++) await sleep(100);
+      if (screens.current === id) return;
+    }
     await capri.jumpScreen(async () => {
       await moveTo(id);
       return host.cursor();

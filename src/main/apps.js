@@ -242,11 +242,23 @@ async function showWindow(id) {
     + '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(System.IntPtr h, int c);'
     + '[DllImport("user32.dll")] public static extern bool IsIconic(System.IntPtr h);'
     + '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h);'
+    + '[DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow();'
+    + '[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, System.IntPtr p);'
+    + '[DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();'
+    + '[DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool on);'
+    + '[DllImport("user32.dll")] public static extern bool SetWindowPos(System.IntPtr h, System.IntPtr after, int x, int y, int w, int h2, uint f);'
     + '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
     + '[DllImport("user32.dll")] public static extern bool GetWindowRect(System.IntPtr h, int[] r);\'; '
     + `[void][Capri.Win]::SetProcessDPIAware(); $h = [System.IntPtr]::new([int64]${Number(id)}); `
     + 'if ([Capri.Win]::IsIconic($h)) { [void][Capri.Win]::ShowWindowAsync($h, 9); Start-Sleep -Milliseconds 250 }; '
-    + '$ok = [Capri.Win]::SetForegroundWindow($h); $r = New-Object int[] 4; [void][Capri.Win]::GetWindowRect($h, $r); '
+    // Windows only lets the app you're using hand the front over: through its input (attached to it a
+    // moment), and failing that, the window at least raised over the others (topmost, then not)
+    + '$fg = [Capri.Win]::GetForegroundWindow(); $a = [Capri.Win]::GetCurrentThreadId(); '
+    + '$b = [Capri.Win]::GetWindowThreadProcessId($fg, [System.IntPtr]::Zero); $on = $b -and $b -ne $a -and [Capri.Win]::AttachThreadInput($a, $b, $true); '
+    + '[void][Capri.Win]::SetForegroundWindow($h); if ($on) { [void][Capri.Win]::AttachThreadInput($a, $b, $false) }; '
+    + '$ok = [Capri.Win]::GetForegroundWindow() -eq $h; '
+    + 'if (-not $ok) { $ok = [Capri.Win]::SetWindowPos($h, [System.IntPtr]::new(-1), 0, 0, 0, 0, 0x13) -and [Capri.Win]::SetWindowPos($h, [System.IntPtr]::new(-2), 0, 0, 0, 0, 0x13) }; '
+    + '$r = New-Object int[] 4; [void][Capri.Win]::GetWindowRect($h, $r); '
     + '[pscustomobject]@{ ok = $ok; x = $r[0]; y = $r[1]; w = $r[2] - $r[0]; h = $r[3] - $r[1] } | ConvertTo-Json -Compress',
   ).catch(() => '');
   try {
