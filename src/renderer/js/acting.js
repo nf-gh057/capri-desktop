@@ -19,6 +19,8 @@
 // An act on top swaps the cut-out back in for as long as it plays, unless it has drawings of its
 // own or `keeps` the one underneath (it only moves her mane).
 // Directional acts are drawn leaning to screen-right; played with dir -1 they're mirrored.
+// Every sheet is played with twice the drawings it's written with, at twice its rate (Player):
+// each key gets an in-between on its way to the next one, so an act lasts as long as it's written.
 
 export const SHEET_FPS = 12;
 
@@ -797,6 +799,40 @@ export const ACTS = {
   },
 };
 
+// Halfway from one drawing to the next, in her rig: a field one of them leaves out is taken
+// as neutral. The drawing it's done on stays the first one's; no smear, echo or cue of its own.
+const MIXED = [...Object.keys(NEUTRAL).filter((k) => typeof NEUTRAL[k] === 'number'), 'reach', 'long'];
+const AT_REST = { ...NEUTRAL, reach: 0, long: 1 };
+const spelled = (pose) => (pose.arms === undefined ? pose : { armL: pose.arms, armR: pose.arms, ...pose });
+function inBetween(a, b) {
+  const from = spelled(a);
+  const to = spelled(b);
+  const out = {};
+  for (const k of MIXED) {
+    if (from[k] !== undefined || to[k] !== undefined) out[k] = ((from[k] ?? AT_REST[k]) + (to[k] ?? AT_REST[k])) / 2;
+  }
+  if (a.draw !== undefined) out.draw = a.draw;
+  return out;
+}
+
+// A sheet with twice its drawings, for twice its rate: each key held as long as it was written,
+// and on the last frames before the next key, the in-between to it (a one-shot's last key has
+// none: nothing comes after it). Each keeps the index of the key it belongs to.
+const doubled = new Map();
+function double(act) {
+  if (doubled.has(act)) return doubled.get(act);
+  const { keys } = act;
+  const out = [];
+  keys.forEach(([hold, pose, cue], i) => {
+    const next = keys[i + 1] ?? (act.loop ? keys[0] : null);
+    const between = !next ? 0 : hold === 1 ? 1 : 2;
+    out.push([hold * 2 - between, pose, cue, i]);
+    if (between) out.push([between, inBetween(pose, next[1]), undefined, i]);
+  });
+  doubled.set(act, out);
+  return out;
+}
+
 export class Player {
   constructor(name, { dir = 0, reach = 1, at = performance.now() } = {}) {
     this.name = name;
@@ -804,25 +840,25 @@ export class Player {
     this.dir = dir;
     this.reach = reach;
     this.start = at;
-    this.total = this.act.keys.reduce((n, [hold]) => n + hold, 0);
+    this.keys = double(this.act);
+    this.fps = (this.act.fps || SHEET_FPS) * 2;
+    this.total = this.keys.reduce((n, [hold]) => n + hold, 0);
   }
 
   get priority() {
     return this.act.priority ?? 0;
   }
 
-  // The drawing on screen at `now` ({ pose, index, cue }), or null once a one-shot act is over.
+  // The drawing on screen at `now` ({ pose, index, cue }: index is the key on the sheet, an
+  // in-between counting as its key's), or null once a one-shot act is over.
   sample(now) {
-    const fps = this.act.fps || SHEET_FPS;
-    let f = Math.floor((now - this.start) / (1000 / fps));
+    let f = Math.floor((now - this.start) / (1000 / this.fps));
     if (f >= this.total) {
       if (!this.act.loop) return null;
       f %= this.total;
     }
-    const { keys } = this.act;
-    for (let i = 0; i < keys.length; i++) {
-      const [hold, pose, cue] = keys[i];
-      if (f < hold) return { pose, index: i, cue };
+    for (const [hold, pose, cue, index] of this.keys) {
+      if (f < hold) return { pose, index, cue };
       f -= hold;
     }
     return null;
