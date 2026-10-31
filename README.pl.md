@@ -10,7 +10,8 @@ wszystko, co opisuje, jest też w tym forku.
 
 - **Mainframe**: jej okno, w stylu menu z gry, z jej czatem i wszystkimi ustawieniami.
 - **Jej czat**, w którym szybko odpowiada Claude Code albo Codex, i który działa dalej bez sieci.
-- **Jej telefon**: wiadomości i rozmowa przez twojego własnego bota na Telegramie.
+- **Jej telefon**: wiadomości i rozmowa przez twojego własnego bota na Telegramie albo rozmowa na jej stronie przez
+  Tailscale, bez żadnego serwera pośrodku.
 - **Rój**: jedna Capri na wszystkich twoich komputerach.
 - **Więcej jej animacji**: pozy, gdy się nudzi, chodzenie po oknach i wiszenie na nich, teleporty, które rozdzierają
   ekran, i Erebus, wrogie AI zza Blackwalla, które od czasu do czasu ją przejmuje.
@@ -119,6 +120,51 @@ zaszyfrowany jak token i zostaje zapisany dopiero wtedy, gdy pierwszy kod z apli
 - Twoje wiadomości i jej odpowiedzi idą przez serwery Telegrama i do tej samej pamięci co jej czat przy komputerze.
 - Przyciski pod jej wiadomościami („przypomnij za 30 min”, „cisza na godzinę”) nie wymagają kodu: zmieniają tylko to, co
   ci wysyła.
+
+### Jej telefon przez Tailscale
+
+Rozmowa z nią na telefonie bez niczego pośrodku: jej strona pod nazwą tego komputera w twojej sieci
+[Tailscale](https://tailscale.com), otwarta w przeglądarce telefonu. Nie ma tu Telegrama, niczyjego serwera ani kodu do
+wpisywania za każdym razem.
+
+![Mainframe › HOLO › TAILSCALE ze sparowanym telefonem i kodem QR dla kolejnego, obok jej strona na telefonie](docs/fork/pocket.png)
+
+**Konfiguracja**
+
+1. Zainstaluj Tailscale na tym komputerze (`install.ps1 -Tailscale`) i na telefonie (App Store albo Google Play)
+   i zaloguj się na obu tym samym kontem.
+2. Raz włącz certyfikaty HTTPS dla swojej sieci Tailscale: w konsoli administracyjnej Tailscale **DNS › HTTPS
+   Certificates › Enable**. Mainframe ma przycisk, który otwiera tę stronę. Certyfikaty są publiczne, więc nazwa tego
+   komputera w Tailscale i nazwa twojej sieci (np. `desk.tail1234.ts.net`) trafią do publicznych rejestrów certyfikatów.
+   Nic więcej tam nie trafia.
+3. W Mainframe › HOLO › **TAILSCALE** włącz **Jej czat na moim telefonie, przez Tailscale**. Pojawi się tam adres jej
+   strony.
+4. Kliknij **Sparuj telefon** i zeskanuj kod QR aparatem telefonu albo otwórz jej stronę i wpisz kod. Działa raz, przez
+   10 minut.
+
+Jeśli chcesz mieć ją na ekranie głównym, najpierw dodaj tam jej stronę (menu przeglądarki › **Dodaj do ekranu
+głównego**), otwórz ją stamtąd i wpisz kod. Klucz zostaje w przeglądarce, która parowała, a na iPhonie strona na ekranie
+głównym ma własną pamięć, osobną od Safari.
+
+**Bezpieczeństwo**
+
+- Jej strona nasłuchuje tylko na adresie Tailscale tego komputera, przez HTTPS z certyfikatem, który Tailscale daje temu
+  komputerowi.
+- Tailscale mówi, z którego urządzenia przychodzi każde połączenie. Urządzenie zalogowane na inne konto nie dostaje nic,
+  nawet samej strony.
+- Spośród twoich urządzeń wchodzi tylko sparowany telefon. Przy parowaniu jego przeglądarka tworzy klucz, którego można
+  używać, ale nie da się go z niej odczytać, a Capri zachowuje tylko jego publiczną połowę.
+- Za każdym otwarciem strona podpisuje tym kluczem świeże wyzwanie i dostaje sesję tylko dla tego urządzenia. Inne twoje
+  urządzenie z tym samym ciasteczkiem nie dostaje nic, tak samo ten sam telefon bez klucza.
+- Nie ma kodu z aplikacji uwierzytelniającej. Wejście wymaga tego telefonu, odblokowanego i zalogowanego do Tailscale,
+  a nie konta, które da się przejąć zdalnie.
+- Stamtąd Capri nie ma swoich mocy, jak na Telegramie, a Claude Code i Codex tylko czytają.
+- Twoje wiadomości i jej odpowiedzi idą tylko między telefonem a tym komputerem (WireGuard, a w nim HTTPS). Trafiają do
+  tej samej pamięci co jej czat przy komputerze.
+- Odłącz telefon w Mainframe (✕), a jego sesje kończą się od razu.
+
+Każdy komputer ma własną stronę; przy włączonym roju i tak dzielą jedną pamięć. Strona nie wysyła powiadomień: jej
+wiadomości, gdy cię nie ma, dalej idą przez Telegram. Zadań z narzędziami z telefonu jeszcze nie ma.
 
 ### Rój
 
@@ -277,7 +323,7 @@ Kliknij w okno PowerShella, wklej ją prawym przyciskiem myszy (albo Ctrl+V) i n
 | **Ollama** z gemma3, około 5 GB `[Y/n]` | Tak prawie zawsze: to jej mózg na twoim PC i to, dzięki czemu rozmawia bez sieci. |
 | **Codex** `[y/N]` | Masz plan ChatGPT i chcesz, żeby obserwowała Codexa. |
 | **Claude Code** `[y/N]` | Masz plan Claude Pro lub wyższy i chcesz, żeby obserwowała Claude Code. |
-| **Tailscale** `[y/N]` | Chcesz jednej Capri na kilku komputerach (rój). W przeciwnym razie nie. |
+| **Tailscale** `[y/N]` | Chcesz jednej Capri na kilku komputerach (rój) albo jej czatu na telefonie bez Telegrama. W przeciwnym razie nie. |
 
 **4. Poczekaj.** Instaluje wszystko po kolei, a linijki zaczynające się od `[capri]` mówią, co właśnie robi. Gdy Windows
 zapyta, czy pozwolić aplikacji wprowadzić zmiany na urządzeniu, kliknij **Tak**. Pobieranie modelu chwilę trwa: nie
@@ -334,7 +380,8 @@ Dokłada to, czego potrzebuje, a potem samą Capri, i pyta o części opcjonalne
 - **Ollamę z modelem** (gemma3, razem około 5 GB; domyślnie tak): jej mózg na twoim PC i to, co pozwala jej myśleć bez
   sieci.
 - **Codex** albo **Claude Code**, jeśli chcesz (domyślnie nie): asystentów do programowania, których obserwuje.
-- **Tailscale**, jeśli chcesz (domyślnie nie): to, co łączy ją na wszystkich twoich komputerach, do roju.
+- **Tailscale**, jeśli chcesz (domyślnie nie): to, co łączy ją na wszystkich twoich komputerach, do roju i do jej strony
+  na telefonie.
 - **Capri** z tego forka, w `%LOCALAPPDATA%\Capri\capri-desktop`, ze skrótem w menu Start i na pulpicie. Potem ją
   uruchamia.
 
@@ -399,6 +446,8 @@ src/main/
   phone.js               jej wiadomości na twój telefon, przez twojego własnego bota na Telegramie, i rozmowa tam
   totp.js                kod z aplikacji uwierzytelniającej, który odblokowuje rozmowę przez Telegram
   swarm.js               rój: parowanie komputerów, szyfrowane wiadomości między nimi, przy którym jesteś
+  pocket.js              jej strona na telefonie przez Tailscale: kto się łączy (whois), parowanie kluczem, sesje
+src/pocket/              ta strona (HTML, jej skrypt i style, manifest do ekranu głównego)
   mind.js                jej wspólny umysł: to, co wie na wszystkich komputerach, wymieniane i scalane (wyspa nadrabia)
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
   screengrab.js / .ps1   kawałki ekranu w kilka ms, do rozdarcia przy teleporcie (pomocnik w PowerShellu, GDI)
@@ -408,7 +457,8 @@ src/renderer/js/
 tools/build-poses.py     jej pozy z wygenerowanych obrazków: wycięte, w jej kolorach, ułożone na jej sprite (POSES)
 ```
 
-Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`.
+Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
+`test:pocket`.
 
 `npm run dev` włącza jej trasy debugowania:
 
@@ -425,6 +475,8 @@ Zmienne środowiskowe:
 | `CAPRI_TELEGRAM_API` | Kieruje jej telefon do twojego własnego Telegrama |
 | `CAPRI_PROFILE=b` | Druga Capri na tym samym PC, do roju, z własnymi ustawieniami; daj jej własne `CAPRI_PORT`, `CAPRI_SWARM_PORT` i `CAPRI_TOKEN_FILE` |
 | `CAPRI_UPDATE_DEV=1` | W trybie `--dev` (klon programisty) Capri tylko mówi o nowej wersji; to pozwala jej zaktualizować także taki klon |
+| `CAPRI_POCKET_PLAIN=1` | W trybie `--dev` jej strona na telefon na `127.0.0.1` przez zwykłe HTTP, a każdy, kto ją otworzy, liczy się jako twój telefon (do wypróbowania w przeglądarce) |
+| `CAPRI_POCKET_PORT` | Port tej strony (domyślnie 47825) |
 
 Capri to projekt [mochiiwuff](https://github.com/mochiiwuff/capri-desktop). Ten fork
 ([nf-gh057](https://github.com/nf-gh057/capri-desktop)) dokłada to, co opisane wyżej, na tej samej licencji.

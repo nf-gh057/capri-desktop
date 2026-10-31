@@ -13,7 +13,7 @@ const REMEMBER = 20; // messages she has in mind when answering
 const REMEMBER_LOCAL = 8; // the same, with a model on this PC standing in (no network): less to read, a quicker answer
 const EREBUS_CHANCE = 0.08; // an answer through her Blackwall Gateway that brings Erebus in with it
 // a message from your phone (her chat on Telegram): what her AI is told, by the message
-const PHONE_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from their phone, on Telegram. You can\'t open apps, sites or music, play anything or set reminders for them now: if they ask, say so. Plain text, a few sentences at most.';
+const PHONE_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from their phone. You can\'t open apps, sites or music, play anything or set reminders for them now: if they ask, say so. Plain text, a few sentences at most.';
 const PHONE_AGENT = 'You only read here: change no file and run nothing that changes anything, even if asked; that waits until they\'re back at the PC.';
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
 // her language, where small models need it: how she says "we" (else it's in English), and the last line
@@ -409,8 +409,9 @@ export class Chat {
     this.listApps(); // fresh for the next message
   }
 
-  // A message from your phone (her chat on Telegram, main.js): the same conversation and memory, with
-  // nothing shown here and none of her powers (whatever she says she'd open stays unopened). Claude
+  // A message from your phone (her chat on Telegram, or her page over Tailscale: main.js askHer): the
+  // same conversation and memory, with nothing shown here and none of her powers (whatever she says
+  // she'd open stays unopened). Claude
   // Code or Codex only read for it, main.js sees to that. { ok, text } or { ok: false, error }
   async fromPhone(id, text) {
     while (this.turn) await new Promise((resolve) => setTimeout(resolve, 500)); // what you typed here first

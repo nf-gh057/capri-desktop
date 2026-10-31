@@ -107,30 +107,66 @@ const same = (a, b) => {
 
 const TAILSCALE = ['tailscale', 'C:\\Program Files\\Tailscale\\tailscale.exe'];
 
-// Tailscale here: { ip, name, user, peers: [{ name, ip, online, user }] } (user: the account a device
-// is signed in with), or null (not installed, not signed in)
-async function tailscale() {
+// `tailscale <args>` from the first place it's found: what it printed, or null (not there, or it failed)
+async function runTailscale(args, timeout = 5000) {
   for (const exe of TAILSCALE) {
     const out = await new Promise((resolve) => {
-      execFile(exe, ['status', '--json'], { timeout: 5000, windowsHide: true }, (err, stdout) => resolve(err ? null : stdout));
+      execFile(exe, args, { timeout, windowsHide: true, maxBuffer: 1024 * 1024 }, (err, stdout) => resolve(err ? null : stdout));
     });
-    if (!out) continue;
-    try {
-      const s = JSON.parse(out);
-      if (s.BackendState !== 'Running') return { ip: null, state: s.BackendState };
-      const ip4 = (ips) => (ips || []).find((ip) => /^\d+\.\d+\.\d+\.\d+$/.test(ip)) || null;
-      return {
-        ip: ip4(s.Self?.TailscaleIPs),
-        name: s.Self?.HostName || null,
-        user: s.Self?.UserID ?? null,
-        state: 'Running',
-        peers: Object.values(s.Peer || {}).map((p) => ({ name: p.HostName, ip: ip4(p.TailscaleIPs), online: Boolean(p.Online), user: p.UserID ?? null })),
-      };
-    } catch {
-      return null;
-    }
+    if (out) return out;
   }
   return null;
+}
+
+// Tailscale here: { ip, name, dns, certs, user, peers: [{ name, ip, online, user }] } (user: the account a
+// device is signed in with; dns: this device's name on your Tailscale network; certs: the names it can
+// have an HTTPS certificate for, none until HTTPS is turned on for the network), or null (not installed)
+async function tailscale() {
+  const out = await runTailscale(['status', '--json']);
+  if (!out) return null;
+  try {
+    const s = JSON.parse(out);
+    if (s.BackendState !== 'Running') return { ip: null, state: s.BackendState };
+    const ip4 = (ips) => (ips || []).find((ip) => /^\d+\.\d+\.\d+\.\d+$/.test(ip)) || null;
+    return {
+      ip: ip4(s.Self?.TailscaleIPs),
+      name: s.Self?.HostName || null,
+      dns: String(s.Self?.DNSName || '').replace(/\.$/, '') || null,
+      certs: (s.CertDomains || []).map(String),
+      user: s.Self?.UserID ?? null,
+      state: 'Running',
+      peers: Object.values(s.Peer || {}).map((p) => ({ name: p.HostName, ip: ip4(p.TailscaleIPs), online: Boolean(p.Online), user: p.UserID ?? null })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Which device of your Tailscale network an address is, as Tailscale says: { node, name, user, os }
+// (node: the device, for good; user: the account it's signed in with), or null (none, or not Tailscale)
+async function whois(address) {
+  if (!/^\d+\.\d+\.\d+\.\d+$|^[0-9a-f:]+$/i.test(String(address || ''))) return null;
+  const out = await runTailscale(['whois', '--json', address]);
+  try {
+    const w = JSON.parse(out);
+    const node = String(w.Node?.StableID || w.Node?.ID || '');
+    if (!node) return null;
+    const name = w.Node.ComputedName || w.Node.Hostinfo?.Hostname || String(w.Node.Name || '').split('.')[0] || node;
+    return { node, name: String(name).slice(0, 60), user: w.UserProfile?.ID ?? null, os: String(w.Node.Hostinfo?.OS || '') };
+  } catch {
+    return null;
+  }
+}
+
+// This device's HTTPS certificate on your Tailscale network (`domain`: its *.ts.net name), straight from
+// Tailscale and never written anywhere by her: { cert, key } (PEM), or null
+async function certificate(domain) {
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net$/i.test(String(domain || ''))) return null;
+  const out = await runTailscale(['cert', '--cert-file', '-', '--key-file', '-', domain], 60000);
+  const blocks = String(out || '').match(/-----BEGIN ([A-Z ]+)-----[\s\S]+?-----END \1-----/g) || [];
+  const cert = blocks.filter((b) => b.startsWith('-----BEGIN CERTIFICATE-----')).join('\n');
+  const key = blocks.find((b) => /^-----BEGIN (EC |RSA )?PRIVATE KEY-----/.test(b));
+  return cert && key ? { cert, key } : null;
 }
 
 // What of a Claude Code / Codex event goes to another PC: the fields her brain reads (brain.js), texts
@@ -539,4 +575,7 @@ function createSwarm({
   return { start, stop, join, joinTailnet, look, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward, phone };
 }
 
-module.exports = { createSwarm, identity, nodeId, pairKey, seal, open, invite, readInvite, tailscale, cleanEvent, SwarmError, PORT, hostName: () => os.hostname() };
+module.exports = {
+  createSwarm, identity, nodeId, pairKey, seal, open, invite, readInvite, tailscale, whois, certificate, cleanEvent, SwarmError, PORT, ALPHABET,
+  hostName: () => os.hostname(),
+};

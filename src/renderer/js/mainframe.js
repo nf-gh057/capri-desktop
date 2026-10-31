@@ -286,6 +286,41 @@ function updates(s, t) {
     ]);
 }
 
+// Her page on your phone over Tailscale: turned on, HTTPS for your Tailscale network if it isn't yet,
+// its address, and your phones paired with a QR code (or the code typed on the page)
+function pocket(s, t) {
+  const k = s.pocket;
+  const head = [el('p', { class: 'note' }, t.pocketHow), el('p', { class: 'note' }, t.pocketPrivacy)];
+  if (!k.on) return section(t.secPocket, head, check(t.pocketOn, false, 'pocketOn'));
+  const problem = k.error && [
+    el('p', { class: 'note is-error' }, k.error),
+    k.https && el('p', { class: 'note' }, t.pocketHttpsWhy),
+    el('div', { class: 'split' },
+      k.https ? button(t.pocketHttpsOpen, 'pocketHttps') : k.tailscale ? button(t.swarmGetTailscale, 'tailscaleGet') : null,
+      button(t.swarmCheck, 'pocketCheck')),
+  ];
+  return [
+    section(t.secPocket,
+      head,
+      check(t.pocketOn, true, 'pocketOn'),
+      problem,
+      k.url && el('p', { class: 'note' }, `${t.pocketAddress} `, el('span', { class: 'code' }, k.url))),
+    k.url && section(t.pocketPhones,
+      !k.phones.length && el('p', { class: 'note' }, t.pocketNone),
+      k.phones.map((p) => row(null, el('span', { class: 'grow reminder' }, `${p.name} · ${p.since}`),
+        button('✕', 'pocketForget', p.id, { title: t.pocketForget }))),
+      k.invite
+        ? [
+          el('p', { class: 'note' }, t.pocketPairHow),
+          el('img', { class: 'qr', src: k.invite.qr, alt: t.pocketPairHow }),
+          el('p', { class: 'note' }, `${t.pocketCode} `, el('span', { class: 'code' }, k.invite.text)),
+          row(null, button(t.phoneTotpCancel, 'pocketPairCancel', null, { class: 'grow' })),
+        ]
+        : row(null, button(t.pocketPair, 'pocketPair', null, { class: 'grow is-on' })),
+      el('p', { class: 'note' }, t.pocketSteps)),
+  ];
+}
+
 // Her swarm: this PC, Tailscale, your other PCs with where she is, and adding or joining one
 function swarm(s, t) {
   const w = s.swarm;
@@ -387,8 +422,10 @@ function holo(s, t) {
   }, el('span', { class: 'contact__name' }, name), el('span', { class: 'contact__plain' }, plain));
   const list = el('div', { class: 'holo__list' },
     contact('capri', 'CAPRI', t.holoCapri),
-    contact('phone', 'TELEGRAM', t.holoPhone));
+    contact('phone', 'TELEGRAM', t.holoPhone),
+    contact('pocket', 'TAILSCALE', t.holoPocket));
   if (holoView === 'phone') return el('div', { class: 'holo' }, list, el('div', { class: 'holo__cards' }, [phone(s, t)].flat()));
+  if (holoView === 'pocket') return el('div', { class: 'holo' }, list, el('div', { class: 'holo__cards' }, [pocket(s, t)].flat()));
   // your message being answered, until it's in her chat with her answer
   const last = h.chat.at(-2);
   const pending = h.turn && !(last?.role === 'user' && last.content === h.turn.text && h.chat.at(-1)?.role === 'assistant');

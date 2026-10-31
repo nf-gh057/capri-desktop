@@ -44,7 +44,8 @@ Wspólne dla wszystkich etapów:
   nie uruchomi niczego na pozostałych bezpośrednio; wspólna persona i wspomnienia trafiają jednak do agentów na każdym
   komputerze, więc ich zmianę z innego komputera Capri pokazuje tam, gdzie jesteś, z „Cofnij” (zrobione w 0.4.4-22).
 
-### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama)
+### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama) (zrobione: rozmowa w 0.4.4-49, `pocket.js`; bez zadań z narzędziami)
+Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z etapem 3 Telegrama.
 - Telefon z aplikacją Tailscale otwiera stronę czatu Capri (PWA) na jej adresie w sieci Tailscale (HTTPS z certyfikatem
   `*.ts.net`): treść nie przechodzi przez żaden obcy serwer.
 - Parowanie telefonu raz, w Mainframe: Capri zapamiętuje jego urządzenie w Tailscale (`whois`) i klucz w przeglądarce.

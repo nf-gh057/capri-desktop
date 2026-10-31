@@ -10,7 +10,8 @@ everything it describes is in this fork too.
 
 - **Mainframe**: her window, styled like her game's menus, with her chat and all her settings.
 - **Her chat** answered by Claude Code or Codex, quickly, and kept going without the network.
-- **Her phone**: messages and her chat through a Telegram bot of your own.
+- **Her phone**: messages and her chat through a Telegram bot of your own, or her chat on a page of hers over
+  Tailscale, with no server in between.
 - **Her swarm**: one Capri on all your PCs.
 - **More of her animation**: poses when she's bored, walking along windows and hanging off them, teleports that tear
   the screen open, and Erebus, a rogue AI from beyond the Blackwall, taking her over now and then.
@@ -116,6 +117,48 @@ and is only saved once the app's first code checks out.
 - Your messages and her answers go through Telegram's servers, and into the same memory as her chat at the PC.
 - Buttons under her messages ("remind me in 30 min", "quiet for an hour") need no code: they only change what she sends
   you.
+
+### Her phone over Tailscale
+
+Her chat on your phone with nothing in between: a page of hers at this PC's name on your
+[Tailscale](https://tailscale.com) network, opened in your phone's browser. There's no Telegram, nobody's server, and no
+code to type each time.
+
+![Mainframe › HOLO › TAILSCALE with a phone paired and a QR code for another, and her page on the phone](docs/fork/pocket.png)
+
+**Setting it up**
+
+1. Install Tailscale on this PC (`install.ps1 -Tailscale`) and on your phone (App Store or Google Play), and sign in on
+   both with the same account.
+2. Turn on HTTPS certificates for your Tailscale network, once: in Tailscale's admin console, **DNS › HTTPS Certificates ›
+   Enable**. Mainframe has a button that opens that page. Certificates are public, so this PC's name on Tailscale and your
+   network's name (like `desk.tail1234.ts.net`) show up in public certificate logs. Nothing else does.
+3. In Mainframe › HOLO › **TAILSCALE**, turn on **Her chat on my phone, over Tailscale**. Her page's address shows there.
+4. Click **Pair a phone** and scan the QR code with the phone's camera, or open her page and type the code. It works once,
+   for 10 minutes.
+
+To keep her on the home screen, add her page there first (browser menu › **Add to Home screen**), open it from there and
+type the code. The key stays in the browser that paired, and on an iPhone a page on the home screen keeps its own,
+apart from Safari's.
+
+**Security**
+
+- Her page listens on this PC's Tailscale address only, over HTTPS with the certificate Tailscale gives this PC.
+- Tailscale says which device each connection comes from. A device signed in with another account gets nothing, not even
+  the page.
+- Of your own devices, only a paired phone gets in. When it pairs, its browser makes a key that can be used but never read
+  out, and she keeps only its public half.
+- Each time her page opens, it signs a fresh challenge with that key and gets a session for that device alone. Another
+  device of yours with the same cookie gets nothing, and neither does the same phone without the key.
+- There's no authenticator code. Getting in takes that phone, unlocked and signed in to Tailscale, rather than an account
+  that could be taken over from afar.
+- From there she has no powers, as on Telegram, and Claude Code or Codex only read.
+- Your messages and her answers go only between your phone and this PC (WireGuard, then HTTPS). They go into the same
+  memory as her chat at the PC.
+- Unpair a phone in Mainframe (✕), and its sessions end at once.
+
+Each PC has a page of its own; with her swarm on, they share one memory anyway. The page doesn't notify you: her messages
+while you're away still go through Telegram. Tasks with tools from the phone aren't there yet.
 
 ### Her swarm
 
@@ -271,7 +314,7 @@ Enter alone takes the capital letter, the default.
 | **Ollama** with gemma3, about 5 GB `[Y/n]` | Yes for nearly everyone: her brain on your PC, and what lets her talk without the network. |
 | **Codex** `[y/N]` | You have a ChatGPT plan and want her to watch Codex. |
 | **Claude Code** `[y/N]` | You have a Claude Pro plan or higher and want her to watch Claude Code. |
-| **Tailscale** `[y/N]` | You want one Capri on several PCs (her swarm). Otherwise no. |
+| **Tailscale** `[y/N]` | You want one Capri on several PCs (her swarm), or her chat on your phone without Telegram. Otherwise no. |
 
 **4. Wait.** It puts things in one by one, and the lines starting with `[capri]` say what it's doing. If Windows asks
 whether to let an app make changes to your device, click **Yes**. Fetching her model takes a while: leave the window
@@ -326,7 +369,8 @@ It puts in what she needs, then Capri herself, and asks about the optional parts
 - **Ollama with a model** (gemma3, about 5 GB in all; yes by default): her brain on your PC, and what keeps her thinking
   without the network.
 - **Codex** or **Claude Code**, if you want them (no by default): the coding assistants she watches.
-- **Tailscale**, if you want it (no by default): what links her on all your PCs, for her swarm.
+- **Tailscale**, if you want it (no by default): what links her on all your PCs, for her swarm and her page on your
+  phone.
 - **Capri** from this fork, in `%LOCALAPPDATA%\Capri\capri-desktop`, with a Start menu and desktop shortcut. Then she
   starts.
 
@@ -391,6 +435,8 @@ src/main/
   phone.js               her messages to your phone, through your own Telegram bot, and her chat there
   totp.js                the code from your authenticator app that unlocks her chat on Telegram
   swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
+  pocket.js              her page on your phone over Tailscale: who's calling (whois), pairing with a key, sessions
+src/pocket/              that page (HTML, its script and styles, a manifest for the home screen)
   mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
   screengrab.js / .ps1   bits of the screen in a few ms, for her teleports to tear open (a PowerShell helper, GDI)
@@ -400,7 +446,8 @@ src/renderer/js/
 tools/build-poses.py     her pose drawings from generated pictures: keyed, her colours, placed on her sprite (POSES)
 ```
 
-Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`.
+Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
+`test:pocket`.
 
 `npm run dev` turns on her debug routes:
 
@@ -417,6 +464,8 @@ Environment variables:
 | `CAPRI_TELEGRAM_API` | Points her phone at a Telegram of your own |
 | `CAPRI_PROFILE=b` | A second Capri on the same PC, for her swarm, with settings of its own; give it its own `CAPRI_PORT`, `CAPRI_SWARM_PORT` and `CAPRI_TOKEN_FILE` |
 | `CAPRI_UPDATE_DEV=1` | In `--dev` (a developer's clone) she only tells of a new version; this lets her update that clone too |
+| `CAPRI_POCKET_PLAIN=1` | In `--dev`, her phone page on `127.0.0.1` over plain HTTP, whoever opens it taken for a phone of yours (to try it in a browser) |
+| `CAPRI_POCKET_PORT` | That page's port (47825 by default) |
 
 Capri was made by [mochiiwuff](https://github.com/mochiiwuff/capri-desktop). This fork
 ([nf-gh057](https://github.com/nf-gh057/capri-desktop)) adds what's described above, under the same license.

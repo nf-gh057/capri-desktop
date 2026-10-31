@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- Her chat in your pocket (src/main/pocket.js serves it, on your Tailscale network only) -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#0b0a0f">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Capri</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.png">
+  <link rel="apple-touch-icon" href="/icon.png">
+  <link rel="stylesheet" href="/pocket.css">
+  <script src="/pocket.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <span class="top__name">CAPRI</span>
+    <span class="top__pc" id="pc"></span>
+  </header>
+  <main class="main">
+    <section class="card" id="pair" hidden>
+      <h1 class="card__name" id="pairTitle"></h1>
+      <p class="note" id="pairHow"></p>
+      <form class="row" id="pairForm">
+        <input class="input" id="code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="11" required>
+        <button class="button" id="pairGo" type="submit"></button>
+      </form>
+      <p class="note is-error" id="pairError" hidden></p>
+      <p class="note" id="pairTip"></p>
+    </section>
+    <section class="talk" id="chat" hidden>
+      <div class="log" id="log" aria-live="polite"></div>
+      <form class="say" id="say">
+        <textarea class="input" id="text" rows="1" maxlength="4000" required></textarea>
+        <button class="button" id="send" type="submit"></button>
+      </form>
+    </section>
+    <p class="status" id="status" hidden></p>
+  </main>
+</body>
+</html>

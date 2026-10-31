@@ -1,0 +1,220 @@
+/* ------------------------------------------------------------------
+   Her chat in your pocket: Mainframe's HOLO on a phone. Dark, red
+   lines and cut corners, her in yellow, you in cyan.
+------------------------------------------------------------------- */
+
+:root {
+  --bg: #0b0a0f;
+  --bg-2: #15121b;
+  --line: #3a2629;
+  --text: oklch(0.95 0.012 20);
+  --text-2: oklch(0.68 0.03 20);
+  --red: #ff5f56;
+  --yellow: #f2e750;
+  --cyan: #5ef6ff;
+  --cyan-wash: rgba(94, 246, 255, 0.07);
+  --font-display: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --cut: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 var(--font-mono);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background:
+    radial-gradient(120% 50% at 50% -20%, rgba(255, 95, 86, 0.12), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+    var(--bg);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.top {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.top__name {
+  color: var(--red);
+  font: 700 18px/1 var(--font-display);
+  letter-spacing: 0.18em;
+}
+.top__pc {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  margin: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  clip-path: var(--cut);
+}
+.card__name {
+  margin: 0 0 10px;
+  color: var(--red);
+  font: 700 14px/1.2 var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.note {
+  margin: 0 0 12px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.note.is-error,
+.status {
+  color: var(--red);
+}
+.status {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.row,
+.say {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+#code {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+textarea.input {
+  resize: none;
+  max-height: 160px;
+}
+
+.button {
+  flex: none;
+  padding: 10px 16px;
+  border: 1px solid var(--red);
+  border-radius: 0;
+  background: rgba(255, 95, 86, 0.08);
+  color: var(--red);
+  font: 700 13px/1 var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  clip-path: var(--cut);
+}
+.button:active {
+  background: rgba(255, 95, 86, 0.2);
+}
+.button:disabled {
+  opacity: 0.45;
+}
+
+.talk {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  overscroll-behavior: contain;
+}
+.say {
+  flex: none;
+  margin: 0;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--line);
+  align-items: flex-end;
+}
+
+.msg {
+  --who: var(--yellow);
+  align-self: flex-start;
+  max-width: 86%;
+  padding: 9px 13px 8px;
+  border: 1px solid var(--yellow);
+  background: rgba(242, 231, 80, 0.05);
+  color: var(--yellow);
+  clip-path: var(--cut);
+}
+.msg--you {
+  --who: var(--cyan);
+  align-self: flex-end;
+  border-color: var(--cyan);
+  background: var(--cyan-wash);
+  color: var(--cyan);
+}
+.msg.is-pending {
+  opacity: 0.75;
+}
+.msg.is-error {
+  --who: var(--red);
+  border-color: var(--red);
+  color: var(--red);
+}
+.msg__head {
+  margin: 0 0 4px;
+  color: var(--who);
+  font: 600 11px/1.2 var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.msg__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

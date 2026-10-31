@@ -26,6 +26,7 @@ const { createMainframe } = require('./mainframe');
 const phone = require('./phone');
 const totp = require('./totp');
 const swarm = require('./swarm');
+const pocket = require('./pocket');
 const update = require('./update');
 const { createMind } = require('./mind');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
@@ -92,6 +93,12 @@ let totpDraft = null;      // { secret, wrong }: the code being set up in Mainfr
 let phoneQueue = Promise.resolve(); // your messages, answered one after the other
 const phoneTurns = new Map(); // id -> done(answer): her answers being written by the overlay
 const phoneReplies = phone.limiter(20);
+// her chat in your pocket (pocket.js, below syncPocket): her page on your phone over Tailscale
+let pocketLink = null;    // its server, while it's on
+let pocketError = null;   // why it isn't: 'noTailscale', 'noHttps', 'cert', 'port'
+let pocketInvite = null;  // { text, qr }: a code for a phone to pair with, shown in Mainframe
+let pocketSyncing = Promise.resolve();
+const pocketDeltas = new Map(); // id -> delta(text): her answer to your phone's page, as it's written
 
 const userSoundsDir = () => path.join(app.getPath('userData'), 'sounds');
 
@@ -423,7 +430,8 @@ function resolveLang(setting) {
 
 // What the overlay gets: `lang` is the resolved one, `langSetting` what the user picked.
 function rendererConfig() {
-  const { apiKeys, telegram, swarm: hiveKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
+  // the keys stay here: the overlay only learns which ones are set
+  const { apiKeys, telegram, swarm: hiveKeys, pocket: pocketPhones, ...cfg } = config.load();
   return {
     ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang,
     floorGap: overlayArea().gap, screens: displays().length, hiveAway: hiveAway !== null,
@@ -800,6 +808,7 @@ function mainframeState() {
       hours: String(phoneHours(cfg)),
       open: phoneOpen ? t.phoneOpenUntil(phoneTime(phoneOpen.until, cfg)) : null,
     },
+    pocket: pocketState(cfg, t), // her page on your phone, over Tailscale
     update: updateState(cfg, t),
     // HOLO: her chat (as on all your PCs) and what she said on this one, and your message being answered
     holo: {
@@ -910,6 +919,12 @@ async function mainframeAct(name, value) {
       break;
     case 'phoneHours': if (one(['1', '4', '8'])) updateConfig({ phoneUnlockHours: Number(value) }); break;
     case 'phoneLock': phoneLock('phoneBotLockedNow'); break;
+    case 'pocketOn': updateConfig({ pocketOn: Boolean(value) }); await syncPocket(); break;
+    case 'pocketCheck': await syncHive(); await syncPocket(); break;
+    case 'pocketHttps': shell.openExternal('https://login.tailscale.com/admin/dns'); break;
+    case 'pocketPair': pocketPair(); break;
+    case 'pocketPairCancel': pocketLink?.stopPairing(); pocketInvite = null; break;
+    case 'pocketForget': if (typeof value === 'string') pocketForget(value); break;
     case 'updateCheckNow': await checkUpdate(); break;
     case 'updateApply': applyUpdate(); break; // she restarts when it's done
     case 'updateCheck': case 'updateAuto': updateConfig({ [name]: Boolean(value) }); break;
@@ -1098,7 +1113,7 @@ function phoneLock(why = null) {
   if (!phoneOpen) return;
   phoneOpen = null;
   phoneAwaySeen = false;
-  for (const id of phoneTurns.keys()) chats.get(id)?.abort();
+  for (const id of phoneTurns.keys()) if (id.startsWith('phone-')) chats.get(id)?.abort(); // not your page's (pocket)
   mainframe?.refresh();
   if (why) phoneReply(trayLabels()[why]);
 }
@@ -1175,30 +1190,158 @@ async function phoneUnlock(typed, message) {
   return phoneReply(t.phoneBotUnlocked(phoneTime(phoneOpen.until, cfg)));
 }
 
-// Your message to her chat (chat.js fromPhone, in the overlay), and her answer back to your phone
+// Your message from your phone to her chat (chat.js fromPhone, in the overlay): her answer, { ok, text }
+// or { ok: false, error }. `kind`: 'phone' (Telegram) or 'pocket' (her page over Tailscale); `delta`:
+// her answer as it's written, piece by piece. Claude Code or Codex only read for it (chat:send).
+function askHer(kind, text, delta = null) {
+  if (!overlay) return Promise.resolve({ ok: false, error: 'offline' });
+  const id = `${kind}-${randomUUID()}`;
+  return new Promise((resolve) => {
+    phoneTurns.set(id, resolve);
+    if (delta) pocketDeltas.set(id, delta);
+    overlay.webContents.send('phone:chat', { id, text });
+    setTimeout(() => {
+      chats.get(id)?.abort();
+      resolve({ ok: false, error: 'timeout' });
+    }, PHONE_ANSWER_MS);
+  }).finally(() => {
+    phoneTurns.delete(id);
+    pocketDeltas.delete(id);
+  });
+}
+
+// Your message on Telegram, and her answer back there
 async function phoneAnswer(text) {
   const cfg = config.load();
   if (!phoneOpen || !overlay || !cfg.telegram?.chat) return;
   const t = trayLabels(cfg);
   const token = phoneToken(cfg);
-  const id = `phone-${randomUUID()}`;
   phone.typing(token, cfg.telegram.chat);
   const typing = setInterval(() => phone.typing(token, cfg.telegram.chat), 4500);
   try {
-    const answer = await new Promise((resolve) => {
-      phoneTurns.set(id, resolve);
-      overlay.webContents.send('phone:chat', { id, text });
-      setTimeout(() => {
-        chats.get(id)?.abort();
-        resolve({ ok: false, error: 'timeout' });
-      }, PHONE_ANSWER_MS);
-    });
+    const answer = await askHer('phone', text);
     if (!phoneOpen) return; // locked meanwhile: what she says stays here
     await phone.sendLong(token, cfg.telegram.chat, answer.ok ? answer.text : t.phoneBotFailed(answer.error)).catch(() => {});
   } finally {
     clearInterval(typing);
-    phoneTurns.delete(id);
   }
+}
+
+// --- Her chat in your pocket -----------------------------------------------------------------------
+// Her page on your phone over Tailscale (pocket.js), turned on in Mainframe › HOLO › TAILSCALE: on this
+// PC's Tailscale address only, with its *.ts.net certificate (HTTPS turned on once for your Tailscale
+// network, on Tailscale's DNS page). A phone paired there once talks to her chat as from Telegram: the
+// same memory, none of her powers, Claude Code or Codex only reading; no code to type, as only that
+// phone (its Tailscale device, and the key its browser made) gets in.
+
+const POCKET_PORT = (DEV && Number(process.env.CAPRI_POCKET_PORT)) || pocket.PORT;
+// --dev: on 127.0.0.1 over plain HTTP, whoever calls taken for a phone of yours (to try the page here)
+const POCKET_PLAIN = DEV && process.env.CAPRI_POCKET_PLAIN === '1';
+const POCKET_CERT_MS = 24 * 60 * 60 * 1000; // a fresh certificate from Tailscale once a day (it renews them)
+
+// Started, stopped or started again (Tailscale's address or name changed), one at a time
+function syncPocket() {
+  pocketSyncing = pocketSyncing.then(runSyncPocket).catch((err) => logError(`[capri] her page over Tailscale: ${err.message}`));
+  return pocketSyncing;
+}
+
+async function runSyncPocket() {
+  const cfg = config.load();
+  let where = null; // { host, domain, origin, user }
+  if (cfg.pocketOn && POCKET_PLAIN) where = { host: '127.0.0.1', domain: null, origin: `http://127.0.0.1:${POCKET_PORT}`, user: 'dev' };
+  else if (cfg.pocketOn) {
+    const ts = await swarm.tailscale().catch(() => null);
+    if (!ts?.ip) pocketError = 'noTailscale';
+    else if (!ts.dns || !ts.certs.includes(ts.dns)) pocketError = 'noHttps';
+    else where = { host: ts.ip, domain: ts.dns, origin: `https://${ts.dns}:${POCKET_PORT}`, user: ts.user };
+  }
+  const sig = where && JSON.stringify([where.host, where.origin, where.user]);
+  if (pocketLink && pocketLink.sig !== sig) {
+    pocketLink.stop();
+    pocketLink = null;
+    pocketInvite = null;
+  }
+  if (where && !pocketLink) {
+    const tls = where.domain ? await swarm.certificate(where.domain).catch(() => null) : null;
+    if (where.domain && !tls) pocketError = 'cert';
+    else {
+      const link = pocket.createPocket({
+        host: where.host, port: POCKET_PORT, tls, origins: [where.origin],
+        dir: path.join(ROOT, 'src', 'pocket'), icon: path.join(ROOT, 'assets', 'icons', 'capri.png'),
+        whois: POCKET_PLAIN ? async () => ({ node: 'dev-phone', name: 'dev phone', user: 'dev' }) : swarm.whois,
+        // a device of yours: signed in to Tailscale with the same account as this PC
+        mine: (who) => who.user !== null && who.user !== undefined && who.user === where.user,
+        phones: () => config.load().pocket?.phones || [],
+        onPhones: (phones) => {
+          updateConfig({ pocket: { ...config.load().pocket, phones } });
+          pocketInvite = null;
+          mainframe?.refresh();
+        },
+        ask: (text, { delta }) => pocketAsk(text, delta),
+        history: () => readMemory().history || [],
+        // the page's words in her language, and you as she calls you (as in Mainframe's HOLO)
+        labels: () => {
+          const t = trayLabels();
+          return { ...t.pocketPage, lang: resolveLang(config.load().lang), you: config.load().userName || t.holoYou };
+        },
+        name: () => hiveName(),
+      });
+      Object.assign(link, { sig, origin: where.origin, domain: where.domain, certAt: Date.now() });
+      if (await link.start()) {
+        pocketLink = link;
+        pocketError = null;
+      } else {
+        pocketError = 'port';
+      }
+    }
+  }
+  if (!cfg.pocketOn) pocketError = null;
+  // its certificate, fresh from Tailscale now and then: put in place without a restart
+  if (pocketLink?.domain && Date.now() - pocketLink.certAt > POCKET_CERT_MS) {
+    const tls = await swarm.certificate(pocketLink.domain).catch(() => null);
+    if (tls) {
+      pocketLink.setCert(tls);
+      pocketLink.certAt = Date.now();
+    }
+  }
+  mainframe?.refresh();
+}
+
+// your message from her page, after any from Telegram: her answer as it's written, then all of it
+function pocketAsk(text, delta) {
+  const turn = phoneQueue.then(() => askHer('pocket', text, delta));
+  phoneQueue = turn.catch(() => {});
+  return turn;
+}
+
+// a code for a phone to pair with: as text, and as a QR code that opens her page with it
+function pocketPair() {
+  if (!pocketLink) return;
+  const inv = pocketLink.startPairing();
+  pocketInvite = { text: inv.text, qr: totp.qr(`${pocketLink.origin}/#pair=${inv.code}`) };
+}
+
+function pocketForget(id) {
+  updateConfig({ pocket: { ...config.load().pocket, phones: (config.load().pocket?.phones || []).filter((p) => p.id !== id) } });
+  pocketLink?.forget(id);
+}
+
+// what Mainframe shows of it
+function pocketState(cfg, t) {
+  const error = pocketError === 'noTailscale'
+    ? (hiveTailscale ? t.swarmTailscaleOff : t.swarmNoTailscale)
+    : pocketError && (t[`pocketErr${pocketError[0].toUpperCase()}${pocketError.slice(1)}`] || pocketError);
+  return {
+    on: Boolean(cfg.pocketOn),
+    url: pocketLink ? `${pocketLink.origin}/` : null,
+    error,
+    https: pocketError === 'noHttps',
+    tailscale: pocketError === 'noTailscale',
+    invite: pocketInvite && pocketLink?.pairing() ? pocketInvite : null, // until it's used, cancelled or runs out
+    phones: (cfg.pocket?.phones || []).map(({ id, name, at }) => ({
+      id, name, since: new Date(at).toLocaleDateString(resolveLang(cfg.lang), { day: 'numeric', month: 'short', year: 'numeric' }),
+    })),
+  };
 }
 
 // "Control+Alt+C" as people write it: "Ctrl+Alt+C"
@@ -1507,6 +1650,7 @@ function registerIpc() {
       const send = (text) => {
         streamed = true;
         overlay?.webContents.send('chat:delta', { id, text });
+        pocketDeltas.get(id)?.(text); // from your phone's page: shown there as it comes
         if (deskTurn?.id === id) mainframe?.stream({ answer: (deskTurn.answer += text) }); // typed in Mainframe: shown there as it comes
       };
       if (local) {
@@ -2566,6 +2710,9 @@ function main() {
     watchPhone();
     syncPhoneChat();
     syncHive();
+    syncPocket();
+    // her page on your phone: Tailscale's address or name changed, HTTPS turned on, a fresh certificate
+    setInterval(() => config.load().pocketOn && syncPocket(), 60000);
     // Tailscale installed, signed in, or its address changed; your other PCs' Capris on it; a newer her on one of them
     setInterval(async () => {
       if (!config.load().swarmOn) return;
@@ -2609,6 +2756,7 @@ function main() {
     stopPairing();
     phoneListener?.abort();
     hive?.stop();
+    pocketLink?.stop();
     globalShortcut.unregisterAll();
     windowWatch?.stop();
     screenGrab?.stop();
