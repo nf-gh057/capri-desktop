@@ -69,3 +69,12 @@ Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z 
   daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
 - Animacja (gałąź `anim/poses`): Capri w trybie mini co jakiś czas otwiera jedno oko i spod przymrużonej powieki
   obserwuje, co się aktualnie dzieje na ekranie.
+- Aplikacja na Androida z widżetem rozmowy: natywna (Kotlin, w repo `android/`), APK instalowany ręcznie i podpisany
+  kluczem, który zostaje u użytkownika (bez Sklepu Play). Parowanie tym samym kodem QR z Mainframe, klucz w Android
+  Keystore (sprzętowy, nie do wyciągnięcia, opcjonalnie odblokowywany odciskiem palca), ten sam protokół co jej strona
+  (`pocket.js`: podpisane wyzwanie, sesja tylko dla tego urządzenia), więc po stronie Capri bez zmian. Widżet: ostatnia
+  kwestia Capri i przycisk „Napisz” otwierający małe okno odpowiedzi (widżety Androida nie mają pola tekstowego).
+  Powiadomienia: UnifiedPush z serwerem ntfy postawionym przez Capri na PC i dostępnym tylko przez Tailscale (żaden obcy
+  serwer; treść i tak szyfrowana jak Web Push, RFC 8291); zapasowo ntfy.sh (widzi tylko szyfr) albo FCM (wymaga projektu
+  Firebase i jego klucza na PC). Bez powiadomień widżet odświeża się po wysłaniu, po otwarciu aplikacji i co ~15 min.
+  Do budowania: Android SDK na PC.

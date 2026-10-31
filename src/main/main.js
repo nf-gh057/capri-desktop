@@ -1267,7 +1267,7 @@ async function runSyncPocket() {
     else {
       const link = pocket.createPocket({
         host: where.host, port: POCKET_PORT, tls, origins: [where.origin],
-        dir: path.join(ROOT, 'src', 'pocket'), icon: path.join(ROOT, 'assets', 'icons', 'capri.png'),
+        dir: path.join(ROOT, 'src', 'pocket'),
         whois: POCKET_PLAIN ? async () => ({ node: 'dev-phone', name: 'dev phone', user: 'dev' }) : swarm.whois,
         // a device of yours: signed in to Tailscale with the same account as this PC
         mine: (who) => who.user !== null && who.user !== undefined && who.user === where.user,

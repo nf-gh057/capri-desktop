@@ -41,6 +41,9 @@ const FILES = {
   '/pocket.js': ['pocket.js', 'text/javascript; charset=utf-8'],
   '/pocket.css': ['pocket.css', 'text/css; charset=utf-8'],
   '/manifest.webmanifest': ['manifest.webmanifest', 'application/manifest+json'],
+  // her face, for the phone's home screen (Chrome installs her as an app with both sizes)
+  '/icon-192.png': ['icon-192.png', 'image/png'],
+  '/icon-512.png': ['icon-512.png', 'image/png'],
 };
 
 const HEADERS = {
@@ -97,7 +100,7 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 
 // `host`, `port`: where to listen (this PC's Tailscale address); `tls`: { cert, key }, or null for plain
 // HTTP (tests and --dev on 127.0.0.1 only); `origins`: the page's own address(es), the only ones its
-// requests may come from; `dir`: the page's files; `icon`: her picture, for the phone's home screen.
+// requests may come from; `dir`: the page's files.
 // `whois(address)`: the device Tailscale says is there, { node, name, user } or null; `mine(who)`:
 // whether it's signed in with your account. `phones()`: the paired ones, [{ id, name, key, at }], and
 // `onPhones(list)`: the list to save. `ask(text, { node, delta })`: her answer to your message, { ok,
@@ -105,7 +108,7 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 // content, at }]; `labels()`: the page's words, in her language; `name()`: this PC's. `remember`: how
 // long what Tailscale said of an address is kept (ms).
 function createPocket({
-  host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, icon = null, whois, mine = () => false, phones = () => [], onPhones = () => {},
+  host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
   ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '',
 }) {
   const who = new Map();        // address -> { at, it }
@@ -232,11 +235,10 @@ function createPocket({
   }
 
   function file(res, route) {
-    const [name, type] = FILES[route] || [];
-    const at = route === '/icon.png' ? icon : name && path.join(dir, name);
-    fs.readFile(at || '', (err, data) => {
+    const [name, type] = FILES[route];
+    fs.readFile(path.join(dir, name), (err, data) => {
       if (err) return reply(res, 404, { error: 'notFound' });
-      res.writeHead(200, { ...HEADERS, 'content-type': type || 'image/png' });
+      res.writeHead(200, { ...HEADERS, 'content-type': type });
       res.end(data);
     });
   }
@@ -256,7 +258,7 @@ function createPocket({
       return res.end();
     }
     const route = String(req.url || '/').split('?')[0];
-    if (req.method === 'GET' && (FILES[route] || (route === '/icon.png' && icon))) return file(res, route);
+    if (req.method === 'GET' && FILES[route]) return file(res, route);
     if (req.method === 'GET' && route === '/api/events') {
       try {
         return listen(device, req, res);

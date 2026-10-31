@@ -169,6 +169,22 @@ test('no stream without a session', async (t) => {
   assert.equal((await fetch(`${it.origin}/api/events`)).status, 401);
 });
 
+test('installable as an app: every icon its manifest lists is there, at the size it says', async (t) => {
+  const it = page(t);
+  await it.p.start();
+  const manifest = await (await fetch(`${it.origin}/manifest.webmanifest`)).json();
+  assert.equal(manifest.display, 'standalone');
+  const sizes = manifest.icons.map((i) => i.sizes);
+  assert.ok(sizes.includes('192x192') && sizes.includes('512x512')); // what Chrome asks for to install her
+  for (const icon of manifest.icons) {
+    const res = await fetch(`${it.origin}${icon.src}`);
+    assert.equal(res.status, 200, icon.src);
+    assert.equal(res.headers.get('content-type'), 'image/png');
+    const png = Buffer.from(await res.arrayBuffer());
+    assert.equal(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`, icon.sizes); // its width and height, from the PNG header
+  }
+});
+
 test('a phone key as the page sends it: only P-256, only its public half', () => {
   assert.equal(pocket.publicKey({ kty: 'RSA', n: 'x', e: 'AQAB' }), null);
   assert.equal(pocket.publicKey({ kty: 'EC', crv: 'P-384', x: 'a', y: 'b' }), null);
