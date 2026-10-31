@@ -150,8 +150,8 @@ głównym ma własną pamięć, osobną od Safari.
 
 - Jej strona nasłuchuje tylko na adresie Tailscale tego komputera, przez HTTPS z certyfikatem, który Tailscale daje temu
   komputerowi.
-- Tailscale mówi, z którego urządzenia przychodzi każde połączenie. Urządzenie zalogowane na inne konto nie dostaje nic,
-  nawet samej strony.
+- Tailscale mówi, z którego urządzenia przychodzi każde połączenie i co na nim działa. Stronę dostaje tylko telefon albo
+  tablet zalogowany na twoje konto; nic innego nie dostaje niczego, także twój komputer.
 - Spośród twoich urządzeń wchodzi tylko sparowany telefon. Przy parowaniu jego przeglądarka tworzy klucz, którego można
   używać, ale nie da się go z niej odczytać, a Capri zachowuje tylko jego publiczną połowę.
 - Za każdym otwarciem strona podpisuje tym kluczem świeże wyzwanie i dostaje sesję tylko dla tego urządzenia. Inne twoje
@@ -163,8 +163,17 @@ głównym ma własną pamięć, osobną od Safari.
   tej samej pamięci co jej czat przy komputerze.
 - Odłącz telefon w Mainframe (✕), a jego sesje kończą się od razu.
 
-Każdy komputer ma własną stronę; przy włączonym roju i tak dzielą jedną pamięć. Strona nie wysyła powiadomień: jej
-wiadomości, gdy cię nie ma, dalej idą przez Telegram. Zadań z narzędziami z telefonu jeszcze nie ma.
+**Z rojem**
+
+Każdy komputer ma własną stronę pod własnym adresem, a wszystkie dzielą jedną pamięć Capri. Telefon sparowany na jednym
+komputerze znają wszystkie, a odłączenie go na którymkolwiek odłącza go wszędzie. Między komputerami idą tylko publiczne
+połowy jego kluczy, więc nic tajnego nie opuszcza żadnego komputera.
+
+Przeglądarka trzyma jednak jeden klucz na adres. Dlatego stronę sparuj raz na każdym komputerze, do którego chcesz
+wchodzić z telefonu. Jej aplikacja, kiedy powstanie, sparuje się raz dla wszystkich.
+
+Strona nie wysyła powiadomień: jej wiadomości, gdy cię nie ma, dalej idą przez Telegram. Zadań z narzędziami z telefonu
+jeszcze nie ma.
 
 ### Rój
 
@@ -214,7 +223,8 @@ Wynik narzędzia ani zawartość pliku nigdy nie idą.
 **Jeden umysł na wszystkich**
 
 Na każdym komputerze to samo jest: wasze rozmowy, **Zapomnij nasze rozmowy**, twoje imię, to, jaka ma być, to, co
-kazałeś jej zapamiętać, jej przypomnienia i wasza więź. Ekran, rozmiar, hooki i AI zostają osobne dla każdego komputera.
+kazałeś jej zapamiętać, jej przypomnienia, wasza więź i telefony sparowane z jej stroną. Ekran, rozmiar, hooki i AI
+zostają osobne dla każdego komputera.
 
 - Każda zmiana jest zapisywana z czasem i komputerem.
 - Dwa komputery wymieniają się tylko tym, czego drugi jeszcze nie widział. Wygrywa nowsza zmiana, a usunięte zostaje

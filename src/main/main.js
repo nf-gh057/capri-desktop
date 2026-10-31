@@ -1268,7 +1268,7 @@ async function runSyncPocket() {
       const link = pocket.createPocket({
         host: where.host, port: POCKET_PORT, tls, origins: [where.origin],
         dir: path.join(ROOT, 'src', 'pocket'),
-        whois: POCKET_PLAIN ? async () => ({ node: 'dev-phone', name: 'dev phone', user: 'dev' }) : swarm.whois,
+        whois: POCKET_PLAIN ? async () => ({ node: 'dev-phone', name: 'dev phone', user: 'dev', os: 'android' }) : swarm.whois,
         // a device of yours: signed in to Tailscale with the same account as this PC
         mine: (who) => who.user !== null && who.user !== undefined && who.user === where.user,
         phones: () => config.load().pocket?.phones || [],
@@ -1285,6 +1285,8 @@ async function runSyncPocket() {
           return { ...t.pocketPage, lang: resolveLang(config.load().lang), you: config.load().userName || t.holoYou };
         },
         name: () => hiveName(),
+        // her page on your other PCs (her swarm), for her app to go to when this one's away
+        pcs: () => (hive?.state().peers || []).filter((p) => p.pocket).map((p) => ({ name: p.name, url: p.pocket, active: p.active })),
       });
       Object.assign(link, { sig, origin: where.origin, domain: where.domain, certAt: Date.now() });
       if (await link.start()) {
@@ -1338,7 +1340,8 @@ function pocketState(cfg, t) {
     https: pocketError === 'noHttps',
     tailscale: pocketError === 'noTailscale',
     invite: pocketInvite && pocketLink?.pairing() ? pocketInvite : null, // until it's used, cancelled or runs out
-    phones: (cfg.pocket?.phones || []).map(({ id, name, at }) => ({
+    // each phone once, however many keys it has (a page on each PC, her app), since it first paired
+    phones: [...new Map((cfg.pocket?.phones || []).slice().sort((a, b) => b.at - a.at).map((p) => [p.id, p])).values()].map(({ id, name, at }) => ({
       id, name, since: new Date(at).toLocaleDateString(resolveLang(cfg.lang), { day: 'numeric', month: 'short', year: 'numeric' }),
     })),
   };
@@ -2059,8 +2062,11 @@ const HIVE_PORT = (DEV && Number(process.env.CAPRI_SWARM_PORT)) || swarm.PORT;
 function hiveHere() {
   const cfg = config.load();
   const phoneHere = cfg.telegram?.chat ? cfg.telegram.bot : null; // your phone paired here (for the others to send to)
-  if (hiveFake) return { ...hiveFake, phone: phoneHere };
-  return { locked: screenLocked || powerMonitor.getSystemIdleState(1) === 'locked', idle: powerMonitor.getSystemIdleTime(), phone: phoneHere };
+  const pocketHere = pocketLink?.domain ? `${pocketLink.origin}/` : null; // her page for your phone here (for her app)
+  if (hiveFake) return { ...hiveFake, phone: phoneHere, pocket: pocketHere };
+  return {
+    locked: screenLocked || powerMonitor.getSystemIdleState(1) === 'locked', idle: powerMonitor.getSystemIdleTime(), phone: phoneHere, pocket: pocketHere,
+  };
 }
 
 // her own key, made the first time (sealed like the others)
@@ -2160,14 +2166,15 @@ async function hiveEvent(evt) {
 
 // --- Her shared mind ---------------------------------------------------------------------------------
 // What one Capri knows on all your PCs (mind.js), while her swarm is on: your chats with her, "forget
-// our conversations", your name, how you want her, what you asked her to remember, her reminders and
-// how close she is to you. What changes here is written into it; what comes from another PC is put
+// our conversations", your name, how you want her, what you asked her to remember, her reminders, how
+// close she is to you, and the keys of the phones paired for her page (pocket.js). What changes here is written into it; what comes from another PC is put
 // back here (her config, her chat's memory) and told to the overlay.
 
-const MIND_KEYS = ['userName', 'persona', 'memories', 'reminders', 'bond'];
+const MIND_KEYS = ['userName', 'persona', 'memories', 'reminders', 'bond', 'pocket'];
 const MIND_CHAT = 60; // the messages kept, as her chat keeps them (chat.js KEEP)
 const mindFile = () => path.join(app.getPath('userData'), 'mind.json');
 const memoKey = (text) => `memo:${createHash('sha1').update(String(text)).digest('hex').slice(0, 16)}`;
+const phoneKey = (p) => `phone:${createHash('sha1').update(`${p.id}|${p.via || ''}`).digest('hex').slice(0, 16)}`;
 
 function mindOpen(id) {
   if (mind) return mind;
@@ -2273,6 +2280,10 @@ function mindCapture() {
   for (const [key, r] of reminders) put(key, r);
   for (const e of mind.list('rem:')) if (!reminders.has(e.key)) put(e.key, null, { del: true });
   if (cfg.bond) put('bond', bondJoin(mind.get('bond'), cfg.bond));
+  // your phones' keys (only their public halves: nothing secret goes across), one entry per place each paired
+  const phones = new Map((cfg.pocket?.phones || []).map((p) => [phoneKey(p), p]));
+  for (const [key, p] of phones) put(key, p);
+  for (const e of mind.list('phone:')) if (!phones.has(e.key)) put(e.key, null, { del: true });
   mind.prune('chat:', MIND_CHAT, (e) => e.v?.at || 0); // the newest messages
   if (wrote) mindSave();
 }
@@ -2293,6 +2304,12 @@ function mindApply(keys, peer) {
     patch.reminders = mind.list('rem:').map((e) => e.v)
       .filter((r) => object(r) && typeof r.id === 'string' && typeof r.text === 'string' && Number.isFinite(r.at))
       .sort((a, b) => a.at - b.at);
+  }
+  // your phones' keys, each checked as pocket.js checks one; a phone unpaired on another PC is out here too
+  if (keys.some((k) => k.startsWith('phone:'))) {
+    const phones = mind.list('phone:').map((e) => pocket.phoneRecord(e.v)).filter(Boolean);
+    for (const p of cfg.pocket?.phones || []) if (!phones.some((q) => q.id === p.id)) pocketLink?.forget(p.id);
+    patch.pocket = { ...cfg.pocket, phones };
   }
   if (keys.includes('bond') && object(mind.get('bond'))) {
     const joined = bondJoin(cfg.bond, mind.get('bond'));

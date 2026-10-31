@@ -144,8 +144,8 @@ apart from Safari's.
 **Security**
 
 - Her page listens on this PC's Tailscale address only, over HTTPS with the certificate Tailscale gives this PC.
-- Tailscale says which device each connection comes from. A device signed in with another account gets nothing, not even
-  the page.
+- Tailscale says which device each connection comes from, and what it runs. Only a phone or a tablet signed in with your
+  account gets the page; anything else gets nothing, a PC of yours included.
 - Of your own devices, only a paired phone gets in. When it pairs, its browser makes a key that can be used but never read
   out, and she keeps only its public half.
 - Each time her page opens, it signs a fresh challenge with that key and gets a session for that device alone. Another
@@ -157,8 +157,17 @@ apart from Safari's.
   memory as her chat at the PC.
 - Unpair a phone in Mainframe (✕), and its sessions end at once.
 
-Each PC has a page of its own; with her swarm on, they share one memory anyway. The page doesn't notify you: her messages
-while you're away still go through Telegram. Tasks with tools from the phone aren't there yet.
+**With her swarm**
+
+Each PC has a page of its own, at its own address, and all of them share her one memory. A phone paired on one PC is known
+to all of them, and unpairing it on any of them unpairs it everywhere. Only the public halves of its keys go across, so
+nothing secret leaves a PC.
+
+A browser keeps one key per address, though. So pair her page once on each PC you want to reach from the phone. Her app,
+when it comes, will pair once for all of them.
+
+The page doesn't notify you: her messages while you're away still go through Telegram. Tasks with tools from the phone
+aren't there yet.
 
 ### Her swarm
 
@@ -206,7 +215,8 @@ its texts clipped, and a tool's inputs one level deep. A tool's output or a file
 **One mind on all of them**
 
 These are the same on every PC: your chats with her, **Forget our conversations**, your name, how you want her, what you
-asked her to remember, her reminders, and how close she is to you. Her screen, size, hooks and AI stay each PC's own.
+asked her to remember, her reminders, how close she is to you, and the phones paired for her page. Her screen, size, hooks
+and AI stay each PC's own.
 
 - Each change is written down with when and on which PC.
 - Two PCs swap only what the other hasn't seen yet. The newer change wins, and what was removed stays removed.

@@ -4,12 +4,14 @@
 // network (HTTPS, with the *.ts.net certificate Tailscale gives it). What you say goes from the phone
 // to her and nowhere else: no Telegram, nobody's server in between.
 //
-// Who gets in: a device signed in to Tailscale with your account (Tailscale says which device each
-// connection comes from: whois; anything else gets nothing, not even the page), and of those only a
-// phone paired once, with a code shown in Mainframe. Pairing, the phone's browser makes a key of its own
-// (one that can be used but never read out of it) and Capri keeps its public half. Each time the page
-// opens it signs a fresh challenge with it, and gets a session for that device alone: another device
-// of yours with the same cookie, or the same device without the key, gets nothing.
+// Who gets in: a phone or a tablet signed in to Tailscale with your account (Tailscale says which device
+// each connection comes from, and what it runs: whois; anything else, a PC of yours too, gets nothing,
+// not even the page), and of those only one paired with a code shown in Mainframe. Pairing, the phone's
+// browser (or her app) makes a key of its own, one that can be used but never read out of it, and Capri
+// keeps its public half. Each time the page opens it signs a fresh challenge with it, and gets a session
+// for that device alone: another device of yours with the same cookie, or the same device without the
+// key, gets nothing. A phone has a key for each page it paired on (a browser keeps one per address: one
+// per PC of her swarm) and one for her app; her swarm shares them all (main.js), so the app pairs once.
 // What the phone can do: talk to her chat, the one on your desktop, without her powers and with Claude
 // Code or Codex only reading (main.js). Never anything else to run.
 //
@@ -31,9 +33,10 @@ const WHO_MS = 30 * 1000;             // what Tailscale said of an address, kept
 const MAX_BODY = 16 * 1024;
 const MAX_TEXT = 4000;
 const PER_MINUTE = 10;
-const MAX_PHONES = 5;
+const MAX_KEYS = 12;                  // phones' keys kept: a page on each PC, her app
 const COOKIE = 'capri_pocket';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I: read off one screen, typed on another
+const MOBILE = /^(android|ios)$/i; // what Tailscale says a phone or a tablet runs
 
 // the page's own files, and nothing else of this PC's
 const FILES = {
@@ -90,6 +93,14 @@ function verify(jwk, data, sig) {
   }
 }
 
+// A paired phone's key as it's kept, and as another PC of her swarm sends it: checked, or null
+function phoneRecord(p) {
+  const key = publicKey(p?.key);
+  if (!key || typeof p.id !== 'string' || !p.id || p.id.length > 100 || !Number.isFinite(p.at)) return null;
+  const via = typeof p.via === 'string' && p.via.length <= 200 ? p.via : null;
+  return { id: p.id, name: String(p.name || p.id).slice(0, 60), key, at: p.at, ...(via && { via }) };
+}
+
 const same = (a, b) => {
   const x = Buffer.from(String(a));
   const y = Buffer.from(String(b));
@@ -102,14 +113,15 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 // HTTP (tests and --dev on 127.0.0.1 only); `origins`: the page's own address(es), the only ones its
 // requests may come from; `dir`: the page's files.
 // `whois(address)`: the device Tailscale says is there, { node, name, user } or null; `mine(who)`:
-// whether it's signed in with your account. `phones()`: the paired ones, [{ id, name, key, at }], and
-// `onPhones(list)`: the list to save. `ask(text, { node, delta })`: her answer to your message, { ok,
+// whether it's signed in with your account. `phones()`: the paired phones' keys, [{ id (the device), name,
+// key, at, via (where it paired: a page's address, or 'app') }], and `onPhones(list)`: the list to save. `ask(text, { node, delta })`: her answer to your message, { ok,
 // text } or { ok: false, error }, `delta(text)` as it's written; `history()`: her chat so far, [{ role,
-// content, at }]; `labels()`: the page's words, in her language; `name()`: this PC's. `remember`: how
+// content, at }]; `labels()`: the page's words, in her language; `name()`: this PC's; `pcs()`: her page
+// on the other PCs of her swarm, [{ name, url, active }]. `remember`: how
 // long what Tailscale said of an address is kept (ms).
 function createPocket({
   host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
-  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '',
+  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [],
 }) {
   const who = new Map();        // address -> { at, it }
   const challenges = new Map(); // challenge -> { node, at }
@@ -174,11 +186,12 @@ function createPocket({
       const paired = Boolean(phoneOf(device.node));
       return {
         name: name(), device: device.name, paired, pairing: Boolean(pair && pair.until > Date.now()),
-        challenge: paired ? challenge(device.node) : null, t: labels(),
+        challenge: paired ? challenge(device.node) : null, t: labels(), pcs: pcs(),
       };
     },
-    // this phone, with the code shown in Mainframe and the public half of the key its browser made
-    'POST /api/pair': (device, body) => {
+    // this phone, with the code shown in Mainframe and the public half of the key its browser (or her
+    // app: `client: 'app'`) made
+    'POST /api/pair': (device, body, _res, req) => {
       if (!pair || pair.until < Date.now() || pair.tries >= PAIR_TRIES) throw new PocketError('noPairing');
       const key = publicKey(body?.key);
       if (!key) throw new PocketError('badKey', 400);
@@ -187,21 +200,23 @@ function createPocket({
         pair.tries += 1;
         throw new PocketError('badCode');
       }
-      // the same device paired again (its key lost: another browser, the page cleared) takes its place
-      const others = phones().filter((p) => p.id !== device.node);
-      if (others.length >= MAX_PHONES) throw new PocketError('tooManyPhones');
+      // the same device paired again from the same place (its key lost: the page cleared, the app put in
+      // again) takes its place; its keys from elsewhere (another PC's page, her app) stay
+      const via = body?.client === 'app' ? 'app' : req.headers.origin;
+      const others = phones().filter((p) => p.id !== device.node || (p.via || origins[0]) !== via);
+      if (others.length >= MAX_KEYS) throw new PocketError('tooManyPhones');
       pair = null;
-      onPhones([...others, { id: device.node, name: device.name, key, at: Date.now() }]);
+      onPhones([...others, { id: device.node, name: device.name, key, at: Date.now(), via }]);
       for (const [token, s] of sessions) if (s.node === device.node) sessions.delete(token);
       return { ok: true, challenge: challenge(device.node) };
     },
-    // the challenge signed with this phone's key: a session for it
+    // the challenge signed with one of this phone's keys: a session for it
     'POST /api/hello': (device, body, res) => {
-      const phone = phoneOf(device.node);
+      const keys = phones().filter((p) => p.id === device.node);
       const ch = challenges.get(String(body?.challenge || ''));
       challenges.delete(String(body?.challenge || '')); // a challenge works once, right or wrong
-      if (!phone || !ch || ch.node !== device.node || Date.now() - ch.at > CHALLENGE_MS) throw new PocketError('noChallenge');
-      if (!verify(phone.key, signed(body.challenge), body.sig)) throw new PocketError('badSig');
+      if (!keys.length || !ch || ch.node !== device.node || Date.now() - ch.at > CHALLENGE_MS) throw new PocketError('noChallenge');
+      if (!keys.some((p) => verify(p.key, signed(body.challenge), body.sig))) throw new PocketError('badSig');
       const token = crypto.randomBytes(32).toString('base64url');
       sessions.set(token, { node: device.node, until: Date.now() + SESSION_MS });
       res.setHeader('set-cookie', `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MS / 1000}${tls ? '; Secure' : ''}`);
@@ -253,7 +268,7 @@ function createPocket({
   async function handle(req, res) {
     const address = String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
     const device = await identify(address);
-    if (!device?.node || !mine(device)) {
+    if (!device?.node || !mine(device) || !MOBILE.test(device.os || '')) {
       res.writeHead(403, { connection: 'close' });
       return res.end();
     }
@@ -339,4 +354,4 @@ function createPocket({
   };
 }
 
-module.exports = { createPocket, publicKey, verify, signed, PocketError, PORT, PAIR_MS, PAIR_TRIES, MAX_TEXT };
+module.exports = { createPocket, publicKey, phoneRecord, verify, signed, PocketError, PORT, PAIR_MS, PAIR_TRIES, MAX_TEXT };

@@ -84,7 +84,9 @@ Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z 
     numer: aplikacja pokazuje je raz, a komputer trzyma ostatnie i dosyła przegapione po zmianie sieci.
   - Parowanie raz dla całego roju: komputery wymieniają przez rój tylko publiczną połowę klucza telefonu i jego
     urządzenie w Tailscale (nic tajnego, więc przejęcie jednego komputera nie daje dostępu do telefonu); aplikacja
-    dostaje od niego adresy pozostałych komputerów. Ta sama zmiana pozwala stronie (PWA) wejść na każdy komputer roju.
+    dostaje od niego adresy pozostałych komputerów. (zrobione po stronie Capri w 0.4.4-52: klucze telefonu we wspólnej
+    pamięci roju, po jednym na miejsce parowania, `client: 'app'` dla aplikacji, adresy w `/api/start` jako `pcs`; strona
+    w przeglądarce i tak paruje się osobno z każdym komputerem, bo przeglądarka trzyma klucz osobno dla każdego adresu)
   - Zapasowo, opcjonalnie: FCM albo UnifiedPush, dla telefonów, które mimo wyłączonej optymalizacji baterii zabijają
     aplikacje w tle (niektóre Xiaomi, Huawei); treść szyfrowana kluczem telefonu (RFC 8291), więc pośrednik widzi tylko
     szyfr, czas i rozmiar. Bez powiadomień widżet odświeża się po wysłaniu, po otwarciu aplikacji i co ~15 min.

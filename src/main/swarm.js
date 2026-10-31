@@ -27,6 +27,7 @@ const PAIR_TRIES = 5;             // wrong tries before it stops working
 const SKEW_MS = 5 * 60 * 1000;    // clocks a little apart still pass; older is refused
 const MAX_BODY = 64 * 1024;
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I: read off one screen, typed on another
+const POCKET_URL = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net:\d{2,5}\/$/i;
 
 class SwarmError extends Error {}
 
@@ -195,8 +196,8 @@ function cleanEvent(evt) {
 // --- the swarm ---------------------------------------------------------------------------------
 
 // `me`: { id, pub, key, name, version }; `peers`: [{ id, name, pub, host, port }]; `here()`: this PC now,
-// { locked, idle, phone } (idle: seconds since a key or the mouse; phone: the Telegram bot paired here, if
-// any); `onChange(state)`: who's where changed; `onPhone(peer, note)`: a message for your phone, from a PC
+// { locked, idle, phone, pocket } (idle: seconds since a key or the mouse; phone: the Telegram bot paired
+// here, if any; pocket: the address of her page for your phone here, if it's on: pocket.js); `onChange(state)`: who's where changed; `onPhone(peer, note)`: a message for your phone, from a PC
 // without one (true: it's taken);
 // `onPeers(peers)`: the list to save; `onEvent(peer, evt)`: what an agent did on another PC (cleaned).
 // `mind`: her shared mind (mind.js), swapped with each PC as it answers; `onMind(keys, peer)`: what of
@@ -256,7 +257,10 @@ function createSwarm({
 
   function hereNow() {
     const h = here();
-    return { name: me.name, version: me.version || null, locked: Boolean(h.locked), idle: Math.max(0, Number(h.idle) || 0), phone: h.phone || null, active };
+    return {
+      name: me.name, version: me.version || null, locked: Boolean(h.locked), idle: Math.max(0, Number(h.idle) || 0), phone: h.phone || null,
+      pocket: h.pocket || null, active,
+    };
   }
 
   // what came in, sealed: its answer (sealed too)
@@ -383,7 +387,9 @@ function createSwarm({
     const now = Date.now();
     const version = typeof body?.version === 'string' ? body.version.slice(0, 40) : null;
     const phone = typeof body?.phone === 'string' ? body.phone.slice(0, 64) : null;
-    status.set(peer.id, { seen: now, locked: Boolean(body?.locked), idle: Math.max(0, Number(body?.idle) || 0), at: now, version, phone });
+    // her page for your phone there: only ever an address of her own on your Tailscale network
+    const pocket = typeof body?.pocket === 'string' && POCKET_URL.test(body.pocket) ? body.pocket : null;
+    status.set(peer.id, { seen: now, locked: Boolean(body?.locked), idle: Math.max(0, Number(body?.idle) || 0), at: now, version, phone, pocket });
     if (typeof body?.name === 'string' && body.name && body.name !== peer.name) {
       peer.name = body.name.slice(0, 60);
       saved();
@@ -457,7 +463,7 @@ function createSwarm({
         const online = Boolean(s && now - s.seen <= gone);
         return {
           id: p.id, name: p.name, host: p.host, online, locked: online && s.locked, active: p.id === active, version: s?.version || null,
-          idle: online ? s.idle + (now - s.at) / 1000 : null, phone: online ? s.phone || null : null,
+          idle: online ? s.idle + (now - s.at) / 1000 : null, phone: online ? s.phone || null : null, pocket: online ? s.pocket || null : null,
         };
       }),
     };

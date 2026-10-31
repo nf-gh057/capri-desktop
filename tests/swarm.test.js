@@ -250,3 +250,15 @@ test('your phone in the swarm: who holds it and how long each PC has been idle g
   assert.equal(notes[0][1].quote.length, 2000);
   assert.equal(await b.s.phone('0000000000000000', { line: 'x' }), false); // no such PC
 });
+
+test('her page for your phone on each PC goes around: only ever an address of hers on Tailscale', async (t) => {
+  const a = node(t, 'desk', 49291);
+  const b = node(t, 'laptop', 49292);
+  a.pc.pocket = 'https://desk.tail1234.ts.net:47825/';
+  b.pc.pocket = 'https://evil.example.com/'; // not on Tailscale: not taken
+  await Promise.all([a.s.start(), b.s.start()]);
+  await b.s.join(a.s.startPairing('127.0.0.1').text);
+  await wait(300);
+  assert.equal(b.s.state().peers[0].pocket, 'https://desk.tail1234.ts.net:47825/');
+  assert.equal(a.s.state().peers[0].pocket, null);
+});

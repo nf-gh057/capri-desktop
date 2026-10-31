@@ -13,7 +13,7 @@ let nextPort = 47950;
 function page(t, extra = {}) {
   const port = nextPort++;
   const origin = `http://127.0.0.1:${port}`;
-  const state = { who: { node: 'phone-1', name: 'pixel', user: 1 }, phones: [], asked: [] };
+  const state = { who: { node: 'phone-1', name: 'pixel', user: 1, os: 'android' }, phones: [], asked: [] };
   const p = pocket.createPocket({
     port, origins: [origin], remember: 0, dir: path.join(__dirname, '..', 'src', 'pocket'),
     whois: async () => state.who,
@@ -29,6 +29,7 @@ function page(t, extra = {}) {
     history: () => [{ role: 'user', content: 'hi', at: 1 }, { role: 'assistant', content: 'hey', at: 2 }],
     labels: () => ({ pair: 'Pair' }),
     name: () => 'desk',
+    pcs: () => [{ name: 'laptop', url: 'https://laptop.tail1234.ts.net:47825/', active: true }],
     ...extra,
   });
   t.after(() => p.stop());
@@ -71,7 +72,7 @@ async function paired(t) {
 test('a device that is not yours gets nothing, not even the page', async (t) => {
   const it = page(t);
   await it.p.start();
-  it.state.who = { node: 'theirs', name: 'x', user: 2 }; // shared into your network from another account
+  it.state.who = { node: 'theirs', name: 'x', user: 2, os: 'android' }; // shared into your network from another account
   for (const url of ['/', '/pocket.js', '/api/start']) assert.equal((await it.call('GET', url)).status, 403);
   it.state.who = null; // not Tailscale at all
   assert.equal((await it.call('GET', '/')).status, 403);
@@ -85,6 +86,7 @@ test('a phone of yours sees the page, and pairs only with the code, while it is 
   assert.match(res.headers.get('content-security-policy'), /default-src 'none'/);
   const start = await it.call('GET', '/api/start');
   assert.deepEqual([start.json.paired, start.json.pairing, start.json.challenge], [false, false, null]);
+  assert.equal(start.json.pcs[0].url, 'https://laptop.tail1234.ts.net:47825/'); // her page on your other PCs
   const key = await phoneKey();
   assert.equal((await it.call('POST', '/api/pair', { code: 'AAAAAAAAAA', key: key.jwk })).json.error, 'noPairing');
   const { code, text } = it.p.startPairing();
@@ -129,10 +131,10 @@ test('a session only for the key that paired, a challenge only once', async (t) 
 test('the cookie alone opens nothing: not on another device, not once the phone is unpaired', async (t) => {
   const it = await paired(t);
   assert.equal((await it.call('GET', '/api/history')).status, 200);
-  it.state.who = { node: 'laptop', name: 'laptop', user: 1 }; // another device of yours, with the phone's cookie
+  it.state.who = { node: 'tablet', name: 'tablet', user: 1, os: 'android' }; // another device of yours, with the phone's cookie
   assert.equal((await it.call('GET', '/api/history')).status, 401);
   assert.equal((await it.call('POST', '/api/send', { text: 'hi' })).status, 401);
-  it.state.who = { node: 'phone-1', name: 'pixel', user: 1 };
+  it.state.who = { node: 'phone-1', name: 'pixel', user: 1, os: 'android' };
   it.state.phones = []; // unpaired in Mainframe
   assert.equal((await it.call('GET', '/api/history')).status, 401);
 });
@@ -183,6 +185,48 @@ test('installable as an app: every icon its manifest lists is there, at the size
     const png = Buffer.from(await res.arrayBuffer());
     assert.equal(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`, icon.sizes); // its width and height, from the PNG header
   }
+});
+
+test('a PC of yours gets nothing either: phones and tablets only', async (t) => {
+  const it = page(t);
+  await it.p.start();
+  it.state.who = { node: 'laptop', name: 'laptop', user: 1, os: 'windows' };
+  assert.equal((await it.call('GET', '/')).status, 403);
+  assert.equal((await it.call('GET', '/api/start')).status, 403);
+  it.state.who = { node: 'ipad', name: 'ipad', user: 1, os: 'iOS' };
+  assert.equal((await it.call('GET', '/api/start')).status, 200);
+});
+
+test('a phone keeps a key for each place it paired (a page on each PC, her app), and any of them opens a session', async (t) => {
+  const it = page(t);
+  await it.p.start();
+  const browser = await phoneKey();
+  const app = await phoneKey();
+  const elsewhere = await phoneKey();
+  await it.call('POST', '/api/pair', { code: it.p.startPairing().code, key: browser.jwk });
+  await it.call('POST', '/api/pair', { code: it.p.startPairing().code, key: app.jwk, client: 'app' });
+  assert.deepEqual(it.state.phones.map((p) => p.via), [it.origin, 'app']);
+  // as another PC of her swarm passes it on: the same phone, paired on that PC's page
+  it.state.phones.push({ ...it.state.phones[0], key: pocket.publicKey(elsewhere.jwk), via: 'https://laptop.tail1234.ts.net:47825' });
+  for (const key of [browser, app, elsewhere]) {
+    const { challenge } = (await it.call('GET', '/api/start')).json;
+    assert.equal((await it.call('POST', '/api/hello', { challenge, sig: await key.sign(challenge) })).status, 200);
+  }
+  // this page's key lost, paired again: it takes the old one's place, the others stay
+  const again = await phoneKey();
+  await it.call('POST', '/api/pair', { code: it.p.startPairing().code, key: again.jwk });
+  assert.equal(it.state.phones.length, 3);
+  const { challenge } = (await it.call('GET', '/api/start')).json;
+  assert.equal((await it.call('POST', '/api/hello', { challenge, sig: await browser.sign(challenge) })).json.error, 'badSig');
+});
+
+test('a phone key from another PC of her swarm: taken only in the shape it is kept', async () => {
+  const { jwk } = await phoneKey();
+  assert.deepEqual(pocket.phoneRecord({ id: 'n1', name: 'pixel', key: jwk, at: 5, via: 'app', extra: 1 }),
+    { id: 'n1', name: 'pixel', key: { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y }, at: 5, via: 'app' });
+  assert.equal(pocket.phoneRecord({ id: 'n1', key: { ...jwk, d: 'x' }, at: 5 }), null);
+  assert.equal(pocket.phoneRecord({ id: '', key: jwk, at: 5 }), null);
+  assert.equal(pocket.phoneRecord({ id: 'n1', key: jwk }), null);
 });
 
 test('a phone key as the page sends it: only P-256, only its public half', () => {
