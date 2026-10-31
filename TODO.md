@@ -74,7 +74,17 @@ Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z 
   Keystore (sprzętowy, nie do wyciągnięcia, opcjonalnie odblokowywany odciskiem palca), ten sam protokół co jej strona
   (`pocket.js`: podpisane wyzwanie, sesja tylko dla tego urządzenia), więc po stronie Capri bez zmian. Widżet: ostatnia
   kwestia Capri i przycisk „Napisz” otwierający małe okno odpowiedzi (widżety Androida nie mają pola tekstowego).
-  Powiadomienia: UnifiedPush z serwerem ntfy postawionym przez Capri na PC i dostępnym tylko przez Tailscale (żaden obcy
-  serwer; treść i tak szyfrowana jak Web Push, RFC 8291); zapasowo ntfy.sh (widzi tylko szyfr) albo FCM (wymaga projektu
-  Firebase i jego klucza na PC). Bez powiadomień widżet odświeża się po wysłaniu, po otwarciu aplikacji i co ~15 min.
   Do budowania: Android SDK na PC.
+  - Powiadomienia bez żadnego serwera pośrodku (bez ntfy i UnifiedPush): usługa aplikacji w tle (z widocznym
+    powiadomieniem „Capri słucha”) trzyma przez Tailscale lekkie połączenie ze stroną Capri na każdym komputerze roju
+    (tym samym strumieniem co strona dziś, `/api/events`), z sygnałem co kilka minut. Wymaga wyłączenia optymalizacji
+    baterii dla aplikacji (jak dla ntfy i Tailscale); bez tego w głębokim uśpieniu telefonu z opóźnieniem.
+  - Wysyła tylko komputer, na którym Capri jest teraz (rój już go wybiera; zdarzenia z innych tam trafiają), gdy nie ma
+    cię przy żadnym komputerze roju (jak Telegram). Gdy ten PC zniknie, w ~12 s przejmuje inny. Każde powiadomienie ma
+    numer: aplikacja pokazuje je raz, a komputer trzyma ostatnie i dosyła przegapione po zmianie sieci.
+  - Parowanie raz dla całego roju: komputery wymieniają przez rój tylko publiczną połowę klucza telefonu i jego
+    urządzenie w Tailscale (nic tajnego, więc przejęcie jednego komputera nie daje dostępu do telefonu); aplikacja
+    dostaje od niego adresy pozostałych komputerów. Ta sama zmiana pozwala stronie (PWA) wejść na każdy komputer roju.
+  - Zapasowo, opcjonalnie: FCM albo UnifiedPush, dla telefonów, które mimo wyłączonej optymalizacji baterii zabijają
+    aplikacje w tle (niektóre Xiaomi, Huawei); treść szyfrowana kluczem telefonu (RFC 8291), więc pośrednik widzi tylko
+    szyfr, czas i rozmiar. Bez powiadomień widżet odświeża się po wysłaniu, po otwarciu aplikacji i co ~15 min.
