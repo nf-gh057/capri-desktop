@@ -211,9 +211,11 @@ Capri is on it. When other PCs answer too, ▾ next to it lists them (only those
 chat there, with your fingerprint. If the PC it talks to doesn't answer and exactly one other does, it goes there by
 itself; with several, it asks. Her app pairs once: the other PCs of her swarm know its key.
 
-An order can be just an app's name ("Chrome"), and may name the PC ("Chrome on Legion"): sent to Legion, it opens Chrome
-there; sent to another PC, she doesn't do it and tells you to pick Legion (▾). What she did comes back with her answer
-("Chrome: on it.").
+An order can be just an app's name ("Chrome"), and may name the PC it's for ("Chrome on Legion"), whichever PC the app
+talks to. The PC it talks to says which one that is, and the app sends the order there itself, with your fingerprint as
+always. That PC knows the app's key through her swarm, and a signed order needs no session there, so there's nothing to
+switch. Her swarm still never carries an order from one PC to another. What she did comes back with her answer
+("Legion: Chrome: on it.").
 
 Adding a new fingerprint on the phone ends her key: pair the app again. It doesn't notify you in the background yet, and
 has no widget yet (see `TODO.md`).

@@ -9,7 +9,8 @@ import javax.net.ssl.HttpsURLConnection
 
 // Her page on your PC (src/main/pocket.js), as her app talks to it: over HTTPS on your Tailscale network, as
 // the page itself (its own address as Origin, JSON), with the session it got for this phone's key.
-class Api(val origin: String, private val wait: Int = 10_000) {
+// (`wait`: how long to reach it; `read`: how long an answer may take, an order done elsewhere a while)
+class Api(val origin: String, private val wait: Int = 10_000, private val read: Int = 30_000) {
     class Failed(val status: Int, message: String) : Exception(message)
 
     @Volatile var cookie: String? = null
@@ -25,7 +26,7 @@ class Api(val origin: String, private val wait: Int = 10_000) {
         val conn = URL(origin + path).openConnection() as HttpURLConnection
         require(conn is HttpsURLConnection || origin.startsWith("http://127.0.0.1")) // her page is HTTPS, always
         conn.connectTimeout = wait
-        conn.readTimeout = maxOf(wait, 30_000)
+        conn.readTimeout = maxOf(wait, read)
         conn.setRequestProperty("Origin", origin)
         cookie?.let { conn.setRequestProperty("Cookie", it) }
         return conn

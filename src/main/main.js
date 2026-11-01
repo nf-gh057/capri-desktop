@@ -1295,6 +1295,13 @@ async function runSyncPocket() {
         // (only those answering now: a PC that's off or gone has no page to go to)
         pcs: () => (hive?.state().peers || []).filter((p) => p.online && p.pocket).map((p) => ({ name: p.name, url: p.pocket, active: p.active })),
         here: () => (hive ? hive.state().here : true),
+        // an order naming another PC of your swarm: her app sends it there itself (the swarm never carries one)
+        route: (text) => {
+          const target = orderTarget(text);
+          if (!target.elsewhere) return { here: true };
+          const peer = hive?.state().peers.find((p) => p.name === target.elsewhere);
+          return { name: target.elsewhere, url: peer?.online && peer.pocket ? peer.pocket.replace(/\/$/, '') : null };
+        },
       });
       Object.assign(link, { sig, origin: where.origin, domain: where.domain, certAt: Date.now() });
       if (await link.start()) {

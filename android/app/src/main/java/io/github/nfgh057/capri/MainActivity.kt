@@ -354,8 +354,21 @@ class MainActivity : Activity() {
             work.execute { posted(runCatching { api.post("/api/send", JSONObject().put("text", words)).getString("id") }, words, false) }
             return
         }
-        // an order: a challenge of its own, your fingerprint, her key signs this order and only this one
+        // an order: which PC it's for first ("Chrome on Legion": straight to Legion, no PC to pick here)
         work.execute {
+            val route = runCatching { api.post("/api/route", JSONObject().put("text", words)) }.getOrNull()
+            val url = route?.optString("url").orEmpty().trimEnd('/')
+            if (route != null && !route.optBoolean("here") && tsNet.matches(url) && url != api.origin) {
+                return@execute runOnUiThread { orderThere(Api(url, read = 360_000), route.optString("name"), words) }
+            }
+            if (route != null && !route.optBoolean("here")) { // named a PC that doesn't answer now
+                return@execute runOnUiThread {
+                    send.isEnabled = true
+                    bubble(false, "${route.optString("name")}: ${getString(R.string.others_silent)}")
+                    down()
+                }
+            }
+            // here: a challenge of its own, your fingerprint, her key signs this order and only this one
             val challenge = runCatching { api.get("/api/challenge").getString("challenge") }
             runOnUiThread {
                 challenge.onFailure { posted(Result.failure(it), words, true) }.onSuccess { c ->
@@ -366,6 +379,45 @@ class MainActivity : Activity() {
                             posted(runCatching {
                                 api.post("/api/order", JSONObject().put("text", words).put("challenge", c).put("sig", Keys.sign(signer, Keys.order(c, words)))).getString("id")
                             }, words, true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // An order for another PC of your swarm, sent there straight from here (the swarm never carries one): its
+    // own challenge from that PC, your fingerprint, her key signs it; that PC knows her app's key through her
+    // swarm, needs no session for a signed order, and answers with what she did.
+    private fun orderThere(there: Api, name: String, words: String) {
+        work.execute {
+            val challenge = runCatching { there.get("/api/challenge").getString("challenge") }
+            runOnUiThread {
+                challenge.onFailure { e ->
+                    send.isEnabled = true
+                    bubble(false, "$name: ${if ((e as? Api.Failed)?.status == 401) getString(R.string.unknown_here, name) else getString(R.string.others_silent)}")
+                    down()
+                }.onSuccess { c ->
+                    send.isEnabled = true
+                    fingerprint(word("confirmTitle", "Order"), "→ $name: ${words.take(110)}") { signer ->
+                        send.isEnabled = false
+                        bubble(true, "${word("order", "Order")} → $name: $words")
+                        val view = bubble(false, word("thinking", "…"))
+                        down()
+                        work.execute {
+                            val done = runCatching {
+                                there.post("/api/order", JSONObject().put("text", words).put("challenge", c).put("sig", Keys.sign(signer, Keys.order(c, words))))
+                            }
+                            runOnUiThread {
+                                send.isEnabled = true
+                                val a = done.getOrNull()
+                                view.text = when {
+                                    a == null -> "$name: ${word("offline", getString(R.string.offline))}"
+                                    a.optBoolean("ok") -> "$name: ${clean(a.optString("text"))}"
+                                    else -> "$name: ${word("failed", "")} ${a.optString("error")}"
+                                }
+                                down()
+                            }
                         }
                     }
                 }

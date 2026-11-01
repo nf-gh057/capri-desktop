@@ -241,14 +241,33 @@ test('an order from her app: signed on its own, for that order, once', async (t)
   assert.equal((await it.call('POST', '/api/hello', { challenge, sig: await it.key.sign(challenge) })).json.error, 'noChallenge');
 });
 
-test('no orders from a page in a browser, nor without a session', async (t) => {
+test('no orders from a page in a browser', async (t) => {
   const it = await paired(t); // paired as her page is: a browser's key
   const { challenge } = (await it.call('GET', '/api/challenge')).json;
   const sig = Buffer.from(await subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, it.key.privateKey, pocket.orderSigned(challenge, 'x'))).toString('base64url');
   assert.equal((await it.call('POST', '/api/order', { text: 'x', challenge, sig })).json.error, 'notApp');
   it.setCookie('');
-  assert.equal((await it.call('GET', '/api/challenge')).status, 401);
+  assert.equal((await it.call('GET', '/api/challenge')).status, 401); // and without a session, no challenge for it
   assert.deepEqual(it.state.asked, []);
+});
+
+test('her app on another PC sends an order here directly: signed, no session, her answer back with it', async (t) => {
+  const it = await appPaired(t);
+  it.setCookie(''); // her app's session is on another PC
+  const { challenge } = (await it.call('GET', '/api/challenge')).json;
+  const done = await it.call('POST', '/api/order', { text: 'open Chrome', challenge, sig: await it.signOrder(challenge, 'open Chrome') });
+  assert.equal(done.status, 200);
+  assert.deepEqual([done.json.ok, done.json.text], [true, 'Hello']);
+  assert.deepEqual(it.state.asked, ['order: open Chrome']);
+  const again = await it.call('POST', '/api/order', { text: 'open Chrome', challenge, sig: await it.signOrder(challenge, 'open Chrome') });
+  assert.equal(again.json.error, 'noChallenge'); // played again: no
+});
+
+test('which PC an order is for: asked with a session only', async (t) => {
+  const it = await appPaired(t);
+  assert.deepEqual((await it.call('POST', '/api/route', { text: 'Chrome' })).json, { here: true });
+  it.setCookie('');
+  assert.equal((await it.call('POST', '/api/route', { text: 'Chrome' })).status, 401);
 });
 
 test('a session that ends (the app locked) ends its stream too', async (t) => {

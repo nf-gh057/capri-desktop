@@ -221,9 +221,11 @@ odpowiadają teraz), a wybranie jednego otwiera jej czat tam, po twoim odcisku p
 nie odpowiada, a odpowiada dokładnie jeden inny, aplikacja przechodzi na niego sama; przy kilku pyta. Aplikację paruje się
 raz: pozostałe komputery roju znają jej klucz.
 
-Zlecenie może być samą nazwą aplikacji („Chrome”) i może wymieniać komputer („Chrome na legionie”): wysłane do Legiona
-otworzy tam Chrome; wysłane do innego komputera nie zostanie wykonane, a Capri podpowie, żeby wybrać Legiona (▾). To, co
-zrobiła, wraca razem z jej odpowiedzią („Chrome: odpalam.”).
+Zlecenie może być samą nazwą aplikacji („Chrome”) i może wymieniać komputer, dla którego jest („Chrome na legionie”), bez
+względu na to, z którym komputerem rozmawia aplikacja. Komputer, z którym rozmawia, mówi, który to, a aplikacja sama wysyła
+tam zlecenie, jak zawsze po twoim odcisku palca. Tamten komputer zna klucz aplikacji dzięki rojowi, a podpisane zlecenie
+nie potrzebuje u niego sesji, więc nie trzeba niczego przełączać. Rój nadal nigdy nie przekazuje zleceń między
+komputerami. To, co zrobiła, wraca razem z jej odpowiedzią („Legion: Chrome: odpalam.”).
 
 Dodanie nowego odcisku palca w telefonie kończy jej klucz: sparuj aplikację ponownie. Nie powiadamia jeszcze w tle i nie ma
 jeszcze widżetu (zob. `TODO.md`).

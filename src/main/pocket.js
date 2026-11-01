@@ -127,10 +127,11 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 // { ok, text } or { ok: false, error }, `delta(text)` as it's written; `history()`: her chat so far,
 // [{ role, content, at }]; `labels()`: the page's words, in her language; `name()`: this PC's; `pcs()`: her
 // page on the other PCs of her swarm that answer now, [{ name, url, active }]; `here()`: whether she's on
-// this one. `remember`: how long what Tailscale said of an address is kept (ms).
+// this one; `route(text)`: which PC an order is for. `remember`: how long what Tailscale said of an address is
+// kept (ms).
 function createPocket({
   host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
-  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true,
+  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true, route = () => ({ here: true }),
 }) {
   const who = new Map();        // address -> { at, it }
   const challenges = new Map(); // challenge -> { node, at }
@@ -171,6 +172,16 @@ function createPocket({
     return Boolean(ch && ch.node === device.node && ch.purpose === purpose && Date.now() - ch.at <= CHALLENGE_MS);
   }
 
+  // whether this request carries a live session of this device
+  const live = (req, device) => {
+    try {
+      session(req, device);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   // the session this request carries, if it's this device's and the device is still paired
   function session(req, device) {
     const token = cookie(req);
@@ -192,11 +203,16 @@ function createPocket({
       const data = `event: ${kind}\ndata: ${JSON.stringify({ id, ...body })}\n\n`;
       for (const s of streams) if (s.node === device.node && sessions.has(s.token)) s.res.write(data); // only live sessions
     };
-    queue = queue
+    const done = queue
       .then(() => ask(text, { node: device.node, name: device.name, order, delta: (piece) => tell('delta', { text: String(piece) }) }))
-      .then((a) => tell('answer', a?.ok ? { ok: true, text: String(a.text || '') } : { ok: false, error: String(a?.error || '…') }))
-      .catch((err) => tell('answer', { ok: false, error: String(err?.message || '…') }));
-    return { id };
+      .then((a) => (a?.ok ? { ok: true, text: String(a.text || '') } : { ok: false, error: String(a?.error || '…') }))
+      .catch((err) => ({ ok: false, error: String(err?.message || '…') }))
+      .then((answer) => {
+        tell('answer', answer);
+        return answer;
+      });
+    queue = done;
+    return { id, done };
   }
 
   const routes = {
@@ -250,21 +266,30 @@ function createPocket({
       return send(device, text);
     },
     // a challenge for one order (her app signs it with the order, after your fingerprint)
+    // (her app talking to another PC of your swarm, for an order meant for it: no session there, its key
+    // known there all the same)
     'GET /api/challenge': (device, _body, _res, req) => {
-      session(req, device);
+      if (!live(req, device) && !phones().some((p) => p.id === device.node && p.via === 'app')) throw new PocketError('noSession', 401);
       return { challenge: challenge(device.node, 'order') };
     },
     // an order from her app: only a key her app made (not a page in a browser) may give one, each signed on
-    // its own, after your fingerprint; then she does it, as if you'd typed it at the PC
-    'POST /api/order': (device, body, _res, req) => {
-      session(req, device);
+    // its own, after your fingerprint; then she does it, as if you'd typed it at the PC. Signed, it needs no
+    // session: from her app open on another PC, it's sent here directly, and her answer comes back with it.
+    'POST /api/order': async (device, body, _res, req) => {
       const text = typeof body?.text === 'string' ? body.text.trim() : '';
       if (!text || text.length > MAX_TEXT) throw new PocketError('badText', 400);
       const keys = phones().filter((p) => p.id === device.node && p.via === 'app');
       if (!keys.length) throw new PocketError('notApp');
       if (!spend(device, body?.challenge, 'order')) throw new PocketError('noChallenge');
       if (!keys.some((p) => verify(p.key, orderSigned(body.challenge, text), body.sig))) throw new PocketError('badSig');
-      return send(device, text, true);
+      const { id, done } = send(device, text, true);
+      return live(req, device) ? { id } : { id, ...(await done) };
+    },
+    // which PC of your swarm an order is for: this one ({ here: true }), or another, and her page there
+    // ({ name, url }, url null if it doesn't answer now)
+    'POST /api/route': (device, body, _res, req) => {
+      session(req, device);
+      return route(typeof body?.text === 'string' ? body.text : '');
     },
     // the app locked, or the page left: its session ends, and its streams with it
     'POST /api/bye': (device, _body, res, req) => {
