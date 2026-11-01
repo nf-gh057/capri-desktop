@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Her widget, as calls in her game: your last words with her (hers red on the left, yours green on the right) on
-     the home screen as it is (no background), and under them, on the right, MSG, her name in a red call box, to
-     write to her -->
+     the home screen as it is (no background), and under them, on the right, MSG over her name in a red call box,
+     to write to her -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,61 +16,67 @@
         android:gravity="bottom"
         android:orientation="vertical" />
 
-    <TextView
-        android:id="@+id/widget_msg"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="6dp"
-        android:fontFamily="sans-serif-condensed"
-        android:letterSpacing="0.08"
-        android:shadowColor="#CC000000"
-        android:shadowRadius="4"
-        android:text="MSG"
-        android:textColor="#FFE8392D"
-        android:textSize="22sp" />
-
+    <!-- MSG over the call box, from its left, as CALL in her game -->
     <LinearLayout
         android:id="@+id/widget_write"
         android:layout_width="wrap_content"
-        android:layout_height="46dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="end"
-        android:layout_marginTop="2dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_marginTop="4dp"
+        android:orientation="vertical">
 
-        <ImageView
-            android:layout_width="8dp"
-            android:layout_height="match_parent"
-            android:src="@drawable/widget_msg_bar" />
+        <TextView
+            android:id="@+id/widget_msg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:fontFamily="sans-serif-condensed"
+            android:letterSpacing="0.08"
+            android:shadowColor="#CC000000"
+            android:shadowRadius="4"
+            android:text="MSG"
+            android:textColor="#FFE8392D"
+            android:textSize="16.5sp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginStart="4dp"
-            android:background="@drawable/widget_msg_frame"
+            android:layout_height="37dp"
+            android:layout_marginTop="1dp"
             android:gravity="center_vertical"
-            android:minWidth="140dp"
-            android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingEnd="22dp">
+            android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="34dp"
-                android:layout_height="28dp"
-                android:src="@drawable/widget_msg_icon" />
+                android:layout_width="6dp"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_msg_bar" />
 
-            <TextView
-                android:id="@+id/widget_name"
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="sans-serif-condensed"
-                android:text="Capri"
-                android:textColor="#FFE8392D"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/widget_msg_frame"
+                android:gravity="center_vertical"
+                android:minWidth="112dp"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingEnd="18dp">
+
+                <ImageView
+                    android:layout_width="27dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/widget_msg_icon" />
+
+                <TextView
+                    android:id="@+id/widget_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:fontFamily="sans-serif-condensed"
+                    android:text="Capri"
+                    android:textColor="#FFE8392D"
+                    android:textSize="17.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
