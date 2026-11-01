@@ -13,8 +13,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 // Her widget on your home screen, as calls in her game: your last words with her (hers red on the left, yours
-// green on the right, each under its name), and MSG with her name in a call box, which opens her app (your
-// fingerprint, then her chat). Nothing on it can do anything on your PCs.
+// green on the right, each under its name, in a neon bubble), and along its bottom edge her HUD bar with the call
+// and message buttons, which open her app (your fingerprint, then her chat). Nothing on it can do anything on
+// your PCs.
 class Widget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         draw(context, manager, ids)
@@ -75,6 +76,9 @@ class Widget : AppWidgetProvider() {
                     views.setOnClickPendingIntent(R.id.widget_log, open)
                 }
                 views.setOnClickPendingIntent(R.id.widget_write, open)
+                // talking to her: her app for now; her voice, with the microphone, is to come (TODO.md)
+                val talk = Intent(context, MainActivity::class.java).putExtra("talk", true)
+                views.setOnClickPendingIntent(R.id.widget_call, PendingIntent.getActivity(context, 2, talk, PendingIntent.FLAG_IMMUTABLE))
                 manager.updateAppWidget(id, views)
             }
         }

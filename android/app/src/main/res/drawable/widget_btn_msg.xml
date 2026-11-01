@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the bar's message button: a speech bubble with three lines of text, in the same frame -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="32dp"
+    android:viewportWidth="40"
+    android:viewportHeight="32">
+    <path
+        android:fillColor="#40E8392D"
+        android:strokeColor="#FFFF5F56"
+        android:strokeWidth="1.2"
+        android:pathData="M1,1H39V25L33,31H1Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFF5F56"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.6"
+        android:pathData="M10,7h20a1.5,1.5 0,0 1,1.5 1.5v10a1.5,1.5 0,0 1,-1.5 1.5H17l-4.5,4v-4H10a1.5,1.5 0,0 1,-1.5 -1.5v-10A1.5,1.5 0,0 1,10 7z" />
+    <path
+        android:fillColor="#FFFF5F56"
+        android:pathData="M12,10.5h16v1.6h-16zM12,13.5h12v1.6h-12zM12,16.5h8v1.6h-8z" />
+</vector>

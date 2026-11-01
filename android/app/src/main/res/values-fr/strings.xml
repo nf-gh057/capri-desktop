@@ -14,4 +14,6 @@
     <string name="channel_notes">Ses messages</string>
     <string name="widget_you">Toi</string>
     <string name="widget_empty">Rien d’elle pour l’instant.</string>
+    <string name="widget_call">Lui parler</string>
+    <string name="widget_write">Lui écrire</string>
 </resources>

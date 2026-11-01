@@ -27,18 +27,20 @@
 
         <TextView
             android:id="@+id/row_text"
-            android:layout_width="0dp"
+            android:background="@drawable/widget_bubble_you"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="5dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="32dp"
             android:layout_marginEnd="8dp"
-            android:layout_weight="1"
             android:ellipsize="end"
             android:fontFamily="sans-serif-condensed"
             android:gravity="end"
             android:maxLines="2"
             android:shadowColor="#E6000000"
             android:shadowRadius="4"
-            android:textColor="#FF57E389"
+            android:textColor="#FFC9F7D4"
             android:textSize="14sp" />
 
         <ImageView

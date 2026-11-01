@@ -70,6 +70,10 @@ w 0.4.4-54: zlecenia z jej aplikacji na Androida, każde podpisane po odcisku pa
   daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
 - Animacja (gałąź `anim/poses`): Capri w trybie mini co jakiś czas otwiera jedno oko i spod przymrużonej powieki
   obserwuje, co się aktualnie dzieje na ekranie.
+- Rozmowa głosowa z jej aplikacji: przycisk rozmowy (słuchawka) na listwie widżetu włącza mikrofon i rozmawiasz z nią
+  głosem (dziś tylko otwiera aplikację z `talk`); razem z jej głosem (punkt wyżej).
+- Erebus w jej widżecie: gdy przejmuje Capri, jego kwestie w widżecie (jego czerwień Blackwalla, jak w HOLO), a na jej
+  kwadracie glitch (przesunięte pasy, przebarwienie), dopóki go nie wyrzuci.
 - Capri zaczepia cię na telefonie, gdy nie ma cię przy komputerze: sama z siebie, jak jej uwagi na pulpicie
   (`talk.js`), wiadomość do jej aplikacji (powiadomienie, widżet) albo na Telegram. Z umiarem (kilka razy dziennie
   najwyżej, nie w nocy), ustawiane w Mainframe; wysyła komputer, na którym jest, gdy nie ma cię przy żadnym.

@@ -14,4 +14,6 @@
     <string name="channel_notes">Jej wiadomości</string>
     <string name="widget_you">Ty</string>
     <string name="widget_empty">Jeszcze nic od niej.</string>
+    <string name="widget_call">Porozmawiaj z nią</string>
+    <string name="widget_write">Napisz do niej</string>
 </resources>

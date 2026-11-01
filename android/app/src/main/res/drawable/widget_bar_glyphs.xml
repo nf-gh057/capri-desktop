@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the bar's left side, ornaments only: signal segments filling up, a slash, and a row of tiny code blocks -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="18dp"
+    android:viewportWidth="96"
+    android:viewportHeight="18">
+    <path
+        android:fillColor="#FFE8392D"
+        android:pathData="M0,12h3v6h-3zM5,9h3v9h-3zM10,6h3v12h-3z" />
+    <path
+        android:fillColor="#59E8392D"
+        android:pathData="M15,3h3v15h-3zM20,0h3v18h-3z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFE8392D"
+        android:strokeWidth="1.4"
+        android:pathData="M30,17L36,1M34,17L40,1" />
+    <path
+        android:fillColor="#CCE8392D"
+        android:pathData="M46,4h6v2h-6zM54,4h3v2h-3zM59,4h8v2h-8zM69,4h2v2h-2zM73,4h5v2h-5zM46,9h3v2h-3zM51,9h9v2h-9zM62,9h4v2h-4zM68,9h7v2h-7zM46,14h8v2h-8zM56,14h2v2h-2zM60,14h5v2h-5z" />
+    <path
+        android:fillColor="#59E8392D"
+        android:pathData="M82,4h12v2h-12zM82,9h8v2h-8zM82,14h12v2h-12z" />
+</vector>

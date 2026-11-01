@@ -15,4 +15,6 @@
     <string name="channel_notes">Her notes</string>
     <string name="widget_you">You</string>
     <string name="widget_empty">Nothing from her yet.</string>
+    <string name="widget_call">Talk to her</string>
+    <string name="widget_write">Write to her</string>
 </resources>

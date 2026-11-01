@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- your words' bubble in her widget: a light green wash, see-through, in a neon green outline -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#383BE36A" />
+    <stroke android:width="1dp" android:color="#FF57E389" />
+    <corners android:radius="3dp" />
+</shape>
