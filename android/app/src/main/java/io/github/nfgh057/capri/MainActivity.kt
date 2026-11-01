@@ -329,6 +329,10 @@ class MainActivity : Activity() {
                     if (m.has("line")) note(m, false) else bubble(m.optString("role") == "user", m.optString("content"))
                 }
                 pending?.let { log.addView(it.second) }
+                // her widget: the last thing she said, from her chat as it is now (said elsewhere too)
+                all.sortedBy { it.optLong("at") }.lastOrNull { it.has("line") || it.optString("role") == "assistant" }?.let { m ->
+                    Widget.show(this, if (m.has("line")) listOf(m.optString("project"), m.optString("line")).filter { it.isNotEmpty() }.joinToString(" · ") else clean(m.optString("content")))
+                }
                 down()
             }
         }
@@ -447,7 +451,7 @@ class MainActivity : Activity() {
                                 val a = done.getOrNull()
                                 view.text = when {
                                     a == null -> "$name: ${word("offline", getString(R.string.offline))}"
-                                    a.optBoolean("ok") -> "$name: ${clean(a.optString("text"))}"
+                                    a.optBoolean("ok") -> "$name: ${clean(a.optString("text"))}".also { Widget.show(this, it) }
                                     else -> "$name: ${word("failed", "")} ${a.optString("error")}"
                                 }
                                 down()
