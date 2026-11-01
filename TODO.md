@@ -81,7 +81,9 @@ Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z 
     baterii dla aplikacji (jak dla ntfy i Tailscale); bez tego w głębokim uśpieniu telefonu z opóźnieniem.
   - Wysyła tylko komputer, na którym Capri jest teraz (rój już go wybiera; zdarzenia z innych tam trafiają), gdy nie ma
     cię przy żadnym komputerze roju (jak Telegram). Gdy ten PC zniknie, w ~12 s przejmuje inny. Każde powiadomienie ma
-    numer: aplikacja pokazuje je raz, a komputer trzyma ostatnie i dosyła przegapione po zmianie sieci.
+    numer: aplikacja pokazuje je raz, a komputer trzyma ostatnie i dosyła przegapione po zmianie sieci. (zrobione po
+    stronie Capri w 0.4.4-53: zdarzenie `note` w `/api/events` z `id:` = czas, dosyłanie przez `?since=` albo
+    Last-Event-ID, rodzaj `pocket` w roju; strona pokazuje je, gdy jest otwarta)
   - Parowanie raz dla całego roju: komputery wymieniają przez rój tylko publiczną połowę klucza telefonu i jego
     urządzenie w Tailscale (nic tajnego, więc przejęcie jednego komputera nie daje dostępu do telefonu); aplikacja
     dostaje od niego adresy pozostałych komputerów. (zrobione po stronie Capri w 0.4.4-52: klucze telefonu we wspólnej

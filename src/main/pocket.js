@@ -13,7 +13,8 @@
 // key, gets nothing. A phone has a key for each page it paired on (a browser keeps one per address: one
 // per PC of her swarm) and one for her app; her swarm shares them all (main.js), so the app pairs once.
 // What the phone can do: talk to her chat, the one on your desktop, without her powers and with Claude
-// Code or Codex only reading (main.js). Never anything else to run.
+// Code or Codex only reading (main.js). Never anything else to run. What it gets besides: her notes while
+// you're away (Claude Code needs you, it's done, it crashed), numbered, the ones it missed sent again.
 //
 // Nothing here knows Electron: main.js hands in the certificate, who Tailscale says is calling, the
 // paired phones, and her answers.
@@ -33,6 +34,8 @@ const WHO_MS = 30 * 1000;             // what Tailscale said of an address, kept
 const MAX_BODY = 16 * 1024;
 const MAX_TEXT = 4000;
 const PER_MINUTE = 10;
+const NOTES = 50;                     // her notes kept for a phone that missed them
+const NOTES_MS = 24 * 60 * 60 * 1000; // for a day at most
 const MAX_KEYS = 12;                  // phones' keys kept: a page on each PC, her app
 const COOKIE = 'capri_pocket';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I: read off one screen, typed on another
@@ -128,6 +131,7 @@ function createPocket({
   const sessions = new Map();   // token -> { node, until }
   const streams = new Set();    // { node, res }: pages listening for her answers
   const sent = new Map();       // node -> [times]: messages in the last minute
+  const notes = [];             // { id, at, line, project, quote }: her notes, oldest first
   let pair = null;              // { code, until, tries }
   let server = null;
   let ping = null;
@@ -239,14 +243,35 @@ function createPocket({
     },
   };
 
-  // her answers as they come, for as long as the page is open
+  // a note as the stream carries it: its time is its number, for the phone to say where it got to
+  const noteEvent = (n) => `id: ${n.at}\nevent: note\ndata: ${JSON.stringify(n)}\n\n`;
+
+  // her answers and her notes as they come, for as long as the page is open; first the notes after the
+  // last one it saw (`since`, or what the browser says when it comes back: Last-Event-ID), if it says
   function listen(device, req, res) {
     session(req, device);
+    const asked = new URL(req.url, 'http://x').searchParams.get('since');
+    const since = Number(req.headers['last-event-id']) || Number(asked) || 0;
     res.writeHead(200, { ...HEADERS, 'content-type': 'text/event-stream; charset=utf-8', connection: 'keep-alive' });
     res.write(': hello\n\n');
+    if (since > 0) for (const n of notes) if (n.at > since) res.write(noteEvent(n));
     const s = { node: device.node, res };
     streams.add(s);
     req.on('close', () => streams.delete(s));
+  }
+
+  // A note of hers for your phone (main.js decides when: you're away from all your PCs), kept a while and
+  // sent to every page listening. The same note from another PC of her swarm (its id) is taken once.
+  function note({ id, at, line, project = '', quote = '' } = {}) {
+    if (typeof id !== 'string' || !id || id.length > 64 || !Number.isFinite(at) || typeof line !== 'string' || !line) return false;
+    if (Date.now() - at > NOTES_MS) return false; // too old to be news
+    if (notes.some((n) => n.id === id)) return false;
+    const n = { id, at, line: line.slice(0, 300), project: String(project).slice(0, 120), quote: String(quote).slice(0, 400) };
+    notes.push(n);
+    notes.sort((a, b) => a.at - b.at);
+    while (notes.length > NOTES || (notes.length && Date.now() - notes[0].at > NOTES_MS)) notes.shift();
+    for (const s of streams) s.res.write(noteEvent(n));
+    return true;
   }
 
   function file(res, route) {
@@ -346,7 +371,7 @@ function createPocket({
   }
 
   return {
-    start, stop, startPairing, forget,
+    start, stop, startPairing, forget, note,
     stopPairing: () => { pair = null; },
     pairing: () => Boolean(pair && pair.until > Date.now() && pair.tries < PAIR_TRIES),
     setCert: (next) => server?.setSecureContext?.({ cert: next.cert, key: next.key }), // a renewed certificate, without a restart

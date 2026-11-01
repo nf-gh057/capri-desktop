@@ -203,9 +203,11 @@ function cleanEvent(evt) {
 // `mind`: her shared mind (mind.js), swapped with each PC as it answers; `onMind(keys, peer)`: what of
 // it changed here. `trust(address)`: whether a device at that address is yours (Tailscale says so):
 // it may join without a code. `onJoined(peer)`: one did. `hosts`: the addresses to listen on.
+// `onPocket(peer, note)`: a note of hers for your phone's page, from the PC that wrote it (pocket.js).
 function createSwarm({
   me, peers = [], port = PORT, hosts = ['127.0.0.1'], here, onChange = () => {}, onPeers = () => {}, onEvent = () => {},
-  mind = null, onMind = () => {}, trust = async () => false, onJoined = () => {}, onPhone = () => false, every = 3000, gone = 12000,
+  mind = null, onMind = () => {}, trust = async () => false, onJoined = () => {}, onPhone = () => false, onPocket = () => {},
+  every = 3000, gone = 12000,
 }) {
   const known = new Map(peers.map((p) => [p.id, { ...p }]));
   const keys = new Map(); // id -> shared key
@@ -289,6 +291,14 @@ function createSwarm({
       const note = inside.body || {};
       const text = (key) => (typeof note[key] === 'string' ? note[key].slice(0, 2000) : '');
       answer = { ok: Boolean(onPhone({ id: peer.id, name: peer.name }, { line: text('line'), project: text('project'), quote: text('quote') })) };
+    } else if (inside.kind === 'pocket') {
+      // a note for your phone's page: its words, its id and time, nothing else
+      const note = inside.body || {};
+      const text = (key, max) => (typeof note[key] === 'string' ? note[key].slice(0, max) : '');
+      onPocket({ id: peer.id, name: peer.name }, {
+        id: text('id', 64), at: Number.isFinite(note.at) ? note.at : 0, line: text('line', 300), project: text('project', 120), quote: text('quote', 400),
+      });
+      answer = { ok: true };
     } else if (inside.kind === 'sync') {
       answer = mind ? mind.since(inside.body?.vv || {}) : { items: [], more: false };
     } else if (inside.kind === 'event') {
@@ -578,7 +588,14 @@ function createSwarm({
     }
   }
 
-  return { start, stop, join, joinTailnet, look, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward, phone };
+  // A note for your phone's page, to every PC of the swarm that answers (a phone listening to any of them
+  // gets it; the same note twice is taken once, by its id): how many took it
+  async function pocket(note) {
+    const took = await Promise.all([...known.values()].map((peer) => send(peer, 'pocket', note).then(() => 1, () => 0)));
+    return took.reduce((a, b) => a + b, 0);
+  }
+
+  return { start, stop, join, joinTailnet, look, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward, phone, pocket };
 }
 
 module.exports = {

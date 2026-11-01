@@ -172,8 +172,20 @@ połowy jego kluczy, więc nic tajnego nie opuszcza żadnego komputera.
 Przeglądarka trzyma jednak jeden klucz na adres. Dlatego stronę sparuj raz na każdym komputerze, do którego chcesz
 wchodzić z telefonu. Jej aplikacja, kiedy powstanie, sparuje się raz dla wszystkich.
 
-Strona nie wysyła powiadomień: jej wiadomości, gdy cię nie ma, dalej idą przez Telegram. Zadań z narzędziami z telefonu
-jeszcze nie ma.
+**Jej wiadomości, gdy cię nie ma**
+
+Gdy Claude Code albo Codex cię potrzebuje, kończy albo się wysypuje, a także z raportem z dnia, Capri zostawia wiadomość na
+swojej stronie. Dzieje się to, gdy nie ma cię przy żadnym komputerze, według tej samej miary co dla Telegrama (**Kiedy**,
+obok **Jej wiadomości na telefonie, gdy mnie nie ma** w Mainframe).
+
+- Wiadomość pisze komputer, na którym Capri jest, i przekazuje ją pozostałym w roju, więc dostaje ją strona otwarta na
+  którymkolwiek z nich. Każda ma swój numer i ta sama pokazuje się raz.
+- Każdy komputer trzyma ostatnie 50 wiadomości przez dobę. Strona, która wraca, dostaje te, które przegapiła.
+- Niosą jej kwestię, projekt i kawałek tego, co padło (najwyżej 400 znaków, z zamazanym wszystkim, co wygląda na klucz).
+  Nie opuszczają twoich urządzeń.
+
+Na razie strona pokazuje je tylko, gdy jest otwarta: strona nie obudzi telefonu bez czyjegoś serwera push. Jej aplikacja
+to zrobi. Zadań z narzędziami z telefonu jeszcze nie ma.
 
 ### Rój
 

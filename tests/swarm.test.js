@@ -251,6 +251,19 @@ test('your phone in the swarm: who holds it and how long each PC has been idle g
   assert.equal(await b.s.phone('0000000000000000', { line: 'x' }), false); // no such PC
 });
 
+test('a note for your phone goes to every PC, its words only', async (t) => {
+  const got = [];
+  const a = node(t, 'desk', 49301, { onPocket: (peer, note) => got.push([peer.name, note]) });
+  const b = node(t, 'laptop', 49302);
+  await Promise.all([a.s.start(), b.s.start()]);
+  await b.s.join(a.s.startPairing('127.0.0.1').text);
+  assert.equal(await b.s.pocket({ id: 'n1', at: 5, line: 'Done', project: 'capri', quote: 'x'.repeat(900), run: 'calc.exe' }), 1);
+  assert.equal(got.length, 1);
+  assert.equal(got[0][0], 'laptop');
+  assert.deepEqual(Object.keys(got[0][1]), ['id', 'at', 'line', 'project', 'quote']);
+  assert.equal(got[0][1].quote.length, 400);
+});
+
 test('her page for your phone on each PC goes around: only ever an address of hers on Tailscale', async (t) => {
   const a = node(t, 'desk', 49291);
   const b = node(t, 'laptop', 49292);

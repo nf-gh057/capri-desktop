@@ -111,6 +111,8 @@ const TRAY = {
     pocketPair: 'Appairer un téléphone',
     pocketPairHow: 'Sur ton téléphone, avec Tailscale activé : scanne ceci avec l’appareil photo. Ou ouvre sa page et tape le code. Valable 10 minutes.',
     pocketCode: 'Code :',
+    pocketNotes: 'Ses messages sur mon téléphone quand je suis absent',
+    pocketNotesHow: 'Quand Claude Code a besoin de toi, termine ou plante, et son rapport de la journée, dès que tu es loin de tous tes PC. Pour l’instant, ils s’affichent sur sa page tant qu’elle est ouverte ; son app te préviendra.',
     pocketSteps: 'Astuce : sur le téléphone, ajoute sa page à l’écran d’accueil (menu du navigateur › Ajouter à l’écran d’accueil) avant d’appairer, et appaire depuis là : la clé reste dans le navigateur qui a appairé.',
     // the page itself (src/pocket), on the phone
     pocketPage: {
@@ -247,6 +249,8 @@ const TRAY = {
     pocketPair: 'Pair a phone',
     pocketPairHow: 'On your phone, with Tailscale on: scan this with its camera. Or open her page and type the code. It works for 10 minutes.',
     pocketCode: 'Code:',
+    pocketNotes: 'Her notes on my phone while I’m away',
+    pocketNotesHow: 'When Claude Code needs you, finishes or crashes, and her report of the day, once you’re away from all your PCs. For now they show on her page while it’s open; her app will notify you.',
     pocketSteps: 'Tip: on the phone, add her page to the home screen (browser menu › Add to Home screen) before you pair, and pair from there: the key stays in the browser that paired.',
     // the page itself (src/pocket), on the phone
     pocketPage: {
@@ -382,6 +386,8 @@ const TRAY = {
     pocketPair: 'Emparejar un teléfono',
     pocketPairHow: 'En tu teléfono, con Tailscale activado: escanea esto con la cámara. O abre su página y escribe el código. Vale 10 minutos.',
     pocketCode: 'Código:',
+    pocketNotes: 'Sus mensajes en mi teléfono cuando no estoy',
+    pocketNotesHow: 'Cuando Claude Code te necesita, termina o falla, y su informe del día, cuando no estás frente a ninguno de tus PC. Por ahora se ven en su página mientras está abierta; su app te avisará.',
     pocketSteps: 'Consejo: en el teléfono, añade su página a la pantalla de inicio (menú del navegador › Añadir a pantalla de inicio) antes de emparejar, y empareja desde allí: la clave se queda en el navegador que emparejó.',
     // the page itself (src/pocket), on the phone
     pocketPage: {
@@ -518,6 +524,8 @@ const TRAY = {
     pocketPair: 'Parear um celular',
     pocketPairHow: 'No celular, com o Tailscale ligado: escaneie isto com a câmera. Ou abra a página dela e digite o código. Vale por 10 minutos.',
     pocketCode: 'Código:',
+    pocketNotes: 'As mensagens dela no meu celular quando eu estiver fora',
+    pocketNotesHow: 'Quando o Claude Code precisa de você, termina ou trava, e o relatório do dia, quando você está longe de todos os seus PCs. Por enquanto aparecem na página dela enquanto ela está aberta; o app dela vai te avisar.',
     pocketSteps: 'Dica: no celular, adicione a página dela à tela inicial (menu do navegador › Adicionar à tela inicial) antes de parear, e pareie a partir dali: a chave fica no navegador que pareou.',
     // the page itself (src/pocket), on the phone
     pocketPage: {
@@ -652,6 +660,8 @@ const TRAY = {
     pocketPair: 'Сопрячь телефон',
     pocketPairHow: 'На телефоне, с включённым Tailscale: отсканируй это камерой. Или открой её страницу и введи код. Действует 10 минут.',
     pocketCode: 'Код:',
+    pocketNotes: 'Её сообщения на телефон, когда меня нет',
+    pocketNotesHow: 'Когда ты нужен Claude Code, он закончил или упал, и её отчёт за день, когда тебя нет ни у одного ПК. Пока они видны на её странице, пока она открыта; её приложение будет присылать уведомления.',
     pocketSteps: 'Совет: на телефоне добавь её страницу на главный экран (меню браузера › Добавить на главный экран) до сопряжения и сопрягай уже оттуда: ключ остаётся в браузере, который сопрягал.',
     // the page itself (src/pocket), on the phone
     pocketPage: {
@@ -787,6 +797,8 @@ const TRAY = {
     pocketPair: 'Sparuj telefon',
     pocketPairHow: 'Na telefonie, z włączonym Tailscale: zeskanuj to aparatem. Albo otwórz jej stronę i wpisz kod. Działa przez 10 minut.',
     pocketCode: 'Kod:',
+    pocketNotes: 'Jej wiadomości na telefonie, gdy mnie nie ma',
+    pocketNotesHow: 'Gdy Claude Code cię potrzebuje, kończy albo się wysypuje, i jej raport z dnia, gdy nie ma cię przy żadnym komputerze. Na razie widać je na jej stronie, kiedy jest otwarta; jej aplikacja będzie powiadamiać.',
     pocketSteps: 'Wskazówka: na telefonie dodaj jej stronę do ekranu głównego (menu przeglądarki › Dodaj do ekranu głównego) przed parowaniem i paruj już stamtąd: klucz zostaje w przeglądarce, która parowała.',
     // the page itself (src/pocket), on the phone
     pocketPage: {

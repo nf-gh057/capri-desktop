@@ -206,6 +206,20 @@ textarea.input {
   border-color: var(--red);
   color: var(--red);
 }
+/* one of her notes while you were away: a dimmer box, a bit of what was said under it */
+.msg--note {
+  border-color: rgba(242, 231, 80, 0.45);
+  background: transparent;
+}
+.msg__quote {
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid rgba(242, 231, 80, 0.35);
+  color: var(--text-2);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .msg__head {
   margin: 0 0 4px;
   color: var(--who);

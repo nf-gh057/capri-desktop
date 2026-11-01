@@ -165,6 +165,51 @@ test('your message goes to her, and her answer comes back on the stream as she w
   assert.equal((await it.call('POST', '/api/send', { text: 'x'.repeat(pocket.MAX_TEXT + 1) })).json.error, 'badText');
 });
 
+// what a stream says until `until` is in it (or a short while has passed)
+async function heard(res, until) {
+  const reader = res.body.getReader();
+  let got = '';
+  const stop = Date.now() + 1500;
+  while (!got.includes(until) && Date.now() < stop) {
+    const chunk = await Promise.race([reader.read(), new Promise((r) => setTimeout(() => r({ value: null }), 300))]);
+    if (chunk.value) got += new TextDecoder().decode(chunk.value);
+  }
+  reader.cancel().catch(() => {});
+  return got;
+}
+
+test('her notes reach the page as they come, numbered by their time, the same one once', async (t) => {
+  const it = await paired(t);
+  const controller = new AbortController();
+  t.after(() => controller.abort());
+  const stream = await fetch(`${it.origin}/api/events`, { headers: { cookie: it.cookie() }, signal: controller.signal });
+  const at = Date.now();
+  assert.equal(it.p.note({ id: 'a1', at, line: 'Codex needs you', project: 'capri', quote: 'Allow?' }), true);
+  assert.equal(it.p.note({ id: 'a1', at, line: 'Codex needs you' }), false); // from another PC too: once
+  assert.equal(it.p.note({ id: 'x', at: 'soon', line: 'no' }), false);
+  assert.equal(it.p.note({ id: 'y', at, line: '' }), false);
+  assert.equal(it.p.note({ id: 'z', at: at - 2 * 24 * 3600 * 1000, line: 'two days ago' }), false); // too old to be news
+  const got = await heard(stream, 'event: note');
+  assert.ok(got.includes(`id: ${at}\nevent: note\ndata: {"id":"a1","at":${at},"line":"Codex needs you","project":"capri","quote":"Allow?"}`));
+});
+
+test('a page back after a while gets the notes it missed, and only those', async (t) => {
+  const it = await paired(t);
+  const now = Date.now();
+  it.p.note({ id: 'old', at: now - 3000, line: 'first' });
+  it.p.note({ id: 'new', at: now - 1000, line: 'second' });
+  const controller = new AbortController();
+  t.after(() => controller.abort());
+  const asked = await heard(await fetch(`${it.origin}/api/events?since=${now - 2000}`, { headers: { cookie: it.cookie() }, signal: controller.signal }), 'second');
+  assert.ok(asked.includes('second') && !asked.includes('first'));
+  // as a browser says it, coming back on its own: the last one it got
+  const back = await heard(await fetch(`${it.origin}/api/events`, { headers: { cookie: it.cookie(), 'last-event-id': String(now - 1000) }, signal: controller.signal }), 'event: note');
+  assert.ok(!back.includes('event: note'));
+  // a page that says nothing gets nothing old
+  const fresh = await heard(await fetch(`${it.origin}/api/events`, { headers: { cookie: it.cookie() }, signal: controller.signal }), 'event: note');
+  assert.ok(!fresh.includes('event: note'));
+});
+
 test('no stream without a session', async (t) => {
   const it = page(t);
   await it.p.start();

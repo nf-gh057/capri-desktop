@@ -8,6 +8,36 @@ let t = {};
 let keys = null;    // this phone's key pair (CryptoKey objects, as IndexedDB keeps them)
 let events = null;  // her answers as they come (EventSource)
 let pending = null; // { id, el, text }: her answer being written
+// her notes while you were away, as they came: { id, at, line, project, quote }; the last few kept in
+// this browser, so they're still there when the page opens again
+const notes = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('capri.pocket.notes') || '[]').filter((n) => n?.id && n.at && n.line);
+  } catch {
+    return [];
+  }
+})();
+const keepNotes = () => {
+  try {
+    localStorage.setItem('capri.pocket.notes', JSON.stringify(notes.slice(-20)));
+  } catch {
+    // no storage here: they stay until the page closes
+  }
+};
+
+// where her notes got to, the last time this page heard one (this browser's own storage; none, and it
+// starts from now)
+function since(at) {
+  try {
+    if (at) localStorage.setItem('capri.pocket.since', String(at));
+    const kept = Number(localStorage.getItem('capri.pocket.since'));
+    if (kept) return kept;
+    localStorage.setItem('capri.pocket.since', String(Date.now()));
+  } catch {
+    // no storage here: from now
+  }
+  return Date.now();
+}
 
 // --- the server --------------------------------------------------------------------------------
 
@@ -95,6 +125,26 @@ function bubble(role, text, at) {
   return box;
 }
 
+// one of her notes (Claude Code needs you, it's done…): dimmer, its project on top, a bit of what was said under it
+function noteBubble(n) {
+  const box = document.createElement('div');
+  box.className = 'msg msg--note';
+  const head = document.createElement('p');
+  head.className = 'msg__head';
+  head.textContent = ['> CAPRI', n.project, when(n.at)].filter(Boolean).join(' · ');
+  const body = document.createElement('p');
+  body.className = 'msg__text';
+  body.textContent = n.line;
+  box.append(head, body);
+  if (n.quote) {
+    const quote = document.createElement('p');
+    quote.className = 'msg__quote';
+    quote.textContent = n.quote;
+    box.append(quote);
+  }
+  return box;
+}
+
 function scrollDown() {
   const log = $('log');
   log.scrollTop = log.scrollHeight;
@@ -103,7 +153,12 @@ function scrollDown() {
 async function loadHistory() {
   const { history } = await api('GET', '/api/history');
   const log = $('log');
-  log.replaceChildren(...history.filter((m) => ['user', 'assistant'].includes(m.role) && m.content).map((m) => bubble(m.role, m.content, m.at)));
+  // her chat and her notes, in the order they came
+  const all = [
+    ...history.filter((m) => ['user', 'assistant'].includes(m.role) && m.content).map((m) => ({ at: m.at, el: () => bubble(m.role, m.content, m.at) })),
+    ...notes.map((n) => ({ at: n.at, el: () => noteBubble(n) })),
+  ].sort((a, b) => a.at - b.at);
+  log.replaceChildren(...all.map((m) => m.el()));
   if (pending) log.append(pending.el);
   scrollDown();
 }
@@ -177,7 +232,16 @@ async function boot() {
 
 function listen() {
   events?.close();
-  events = new EventSource('/api/events');
+  events = new EventSource(`/api/events?since=${since()}`); // her notes since the last one heard here, then as they come
+  events.addEventListener('note', (e) => {
+    const n = JSON.parse(e.data);
+    if (notes.some((m) => m.id === n.id)) return;
+    notes.push(n);
+    keepNotes();
+    since(n.at);
+    $('log').append(noteBubble(n));
+    scrollDown();
+  });
   events.addEventListener('delta', (e) => {
     const d = JSON.parse(e.data);
     if (pending?.id !== d.id) return;

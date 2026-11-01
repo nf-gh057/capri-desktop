@@ -166,8 +166,20 @@ nothing secret leaves a PC.
 A browser keeps one key per address, though. So pair her page once on each PC you want to reach from the phone. Her app,
 when it comes, will pair once for all of them.
 
-The page doesn't notify you: her messages while you're away still go through Telegram. Tasks with tools from the phone
-aren't there yet.
+**Her notes while you're away**
+
+When Claude Code or Codex needs you, finishes or crashes, and with her report of the day, she leaves a note on her page.
+That happens once you're away from all your PCs, by the same measure as for Telegram (**When**, next to **Her notes on my
+phone while I'm away** in Mainframe).
+
+- The PC she's on writes the note and hands it to the others in her swarm, so a page open on any of them gets it. Each
+  note has an id, and the same one is shown once.
+- Each PC keeps the last 50 notes for a day. A page that comes back gets the ones it missed.
+- They carry her line, the project and a bit of what was said (400 characters at most, anything that looks like a key
+  blanked out). They never leave your devices.
+
+For now the page shows them only while it's open: a page can't wake your phone without somebody's push server. Her app
+will. Tasks with tools from the phone aren't there yet.
 
 ### Her swarm
 

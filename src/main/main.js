@@ -921,6 +921,7 @@ async function mainframeAct(name, value) {
     case 'phoneLock': phoneLock('phoneBotLockedNow'); break;
     case 'pocketOn': updateConfig({ pocketOn: Boolean(value) }); await syncPocket(); break;
     case 'pocketCheck': await syncHive(); await syncPocket(); break;
+    case 'pocketNotes': updateConfig({ pocketNotes: Boolean(value) }); break;
     case 'pocketHttps': shell.openExternal('https://login.tailscale.com/admin/dns'); break;
     case 'pocketPair': pocketPair(); break;
     case 'pocketPairCancel': pocketLink?.stopPairing(); pocketInvite = null; break;
@@ -1036,8 +1037,10 @@ function phoneHolder(cfg = config.load()) {
 }
 
 // For your phone: sent from here (if this PC holds it, and you're away from all of them), else handed to
-// the PC that does (`from`: the PC it came from, for its name next to the project)
+// the PC that does (`from`: the PC it came from, for its name next to the project). Written here, it goes
+// to your phone's page over Tailscale too.
 async function phoneNote(note, from = null) {
+  if (!from) pocketNote(note);
   const cfg = config.load();
   const holder = phoneHolder(cfg);
   if (holder && holder !== 'here') return from ? false : hive.phone(holder.id, note);
@@ -1309,6 +1312,20 @@ async function runSyncPocket() {
   mainframe?.refresh();
 }
 
+// A note of hers for your phone's page (pocket.js) while you're away from all your PCs, as for Telegram,
+// written here: with an id and a time, kept here, and handed to the other PCs of her swarm for a phone
+// listening to one of them. Only once a phone is paired; its words as on Telegram, keys blanked out.
+function pocketNote(note) {
+  const cfg = config.load();
+  if (cfg.pocketNotes === false || !cfg.pocket?.phones?.length || !phoneAway(cfg)) return false;
+  const quote = phone.redact(String(note.quote || '').replace(/\s+/g, ' ').trim());
+  const n = { id: randomUUID(), at: Date.now(), line: String(note.line || '').slice(0, 300), project: String(note.project || '').slice(0, 120), quote: quote.slice(0, 400) };
+  if (!n.line) return false;
+  pocketLink?.note(n);
+  hive?.pocket(n);
+  return true;
+}
+
 // your message from her page, after any from Telegram: her answer as it's written, then all of it
 function pocketAsk(text, delta) {
   const turn = phoneQueue.then(() => askHer('pocket', text, delta));
@@ -1335,6 +1352,8 @@ function pocketState(cfg, t) {
     : pocketError && (t[`pocketErr${pocketError[0].toUpperCase()}${pocketError.slice(1)}`] || pocketError);
   return {
     on: Boolean(cfg.pocketOn),
+    notes: cfg.pocketNotes !== false, // her notes while you're away
+    away: String(cfg.phoneAway ?? 5), // away: the same as for Telegram
     url: pocketLink ? `${pocketLink.origin}/` : null,
     error,
     https: pocketError === 'noHttps',
@@ -2104,6 +2123,8 @@ async function syncHive(fresh = false) {
       onMind: (keys, peer) => mindApply(keys, peer),
       trust: hiveTrust,
       // a message for your phone from a PC without one: taken if this one holds it
+      // a note for your phone's page, written on another PC: for a phone listening here
+      onPocket: (peer, note) => pocketLink?.note(note),
       onPhone: (peer, note) => {
         if (phoneHolder() !== 'here') return false;
         phoneNote(note, peer);

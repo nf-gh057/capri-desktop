@@ -304,7 +304,14 @@ function pocket(s, t) {
       head,
       check(t.pocketOn, true, 'pocketOn'),
       problem,
-      k.url && el('p', { class: 'note' }, `${t.pocketAddress} `, el('span', { class: 'code' }, k.url))),
+      k.url && el('p', { class: 'note' }, `${t.pocketAddress} `, el('span', { class: 'code' }, k.url)),
+      // her notes while you're away: "away" is the same as for Telegram
+      k.url && [
+        check(t.pocketNotes, k.notes, 'pocketNotes'),
+        k.notes && row(t.phoneWhen, select([['5', t.phoneAway5], ['15', t.phoneAway15], ['0', t.phoneAlways]].map(([id, label]) => ({ id, label })),
+          k.away, 'phoneAway', { label: t.phoneWhen })),
+        el('p', { class: 'note' }, t.pocketNotesHow),
+      ]),
     k.url && section(t.pocketPhones,
       !k.phones.length && el('p', { class: 'note' }, t.pocketNone),
       k.phones.map((p) => row(null, el('span', { class: 'grow reminder' }, `${p.name} · ${p.since}`),
