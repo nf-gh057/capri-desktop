@@ -1,51 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- one of yours in her widget's chat: your name on top, on the right, your words before your green square -->
+<!-- one of yours in her widget's chat, in the same three columns: hers on the left, empty; your name and words in
+     a bubble at most 80 % of the middle column, on your side; your green square on the right -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/row"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingBottom="6dp"
-    android:gravity="end"
-    android:orientation="vertical">
+    android:orientation="horizontal"
+    android:paddingBottom="6dp">
 
-    <TextView
-        android:id="@+id/row_name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-condensed"
-        android:shadowColor="#CC000000"
-        android:shadowRadius="4"
-        android:textColor="#FF57E389"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+    <FrameLayout
+        android:layout_width="46dp"
+        android:layout_height="1dp" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:gravity="end"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/row_text"
-            android:background="@drawable/widget_bubble_you"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="5dp"
+            android:id="@+id/row_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginEnd="8dp"
-            android:ellipsize="end"
             android:fontFamily="sans-serif-condensed"
-            android:gravity="end"
-            android:maxLines="2"
-            android:shadowColor="#E6000000"
+            android:shadowColor="#CC000000"
             android:shadowRadius="4"
-            android:textColor="#FFC9F7D4"
-            android:textSize="14sp" />
+            android:textColor="#FF57E389"
+            android:textSize="15sp"
+            android:textStyle="bold" />
 
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/widget_face_you" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="0.2" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.8"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/row_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/widget_bubble_you"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-condensed"
+                    android:maxLines="3"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="5dp"
+                    android:shadowColor="#E6000000"
+                    android:shadowRadius="4"
+                    android:textColor="#FFC9F7D4"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
+
+    <ImageView
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="6dp"
+        android:src="@drawable/widget_face_you" />
 </LinearLayout>

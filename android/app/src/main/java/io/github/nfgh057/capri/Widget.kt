@@ -68,11 +68,11 @@ class Widget : AppWidgetProvider() {
                     val tap = PendingIntent.getActivity(context, 1, Intent(context, MainActivity::class.java), PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                     views.setPendingIntentTemplate(R.id.widget_list, tap)
                 } else {
-                    // (Android 11: the last two, as they are)
+                    // (Android 11: the last few, as they are, from the bottom; what doesn't fit is cut at the top)
                     views.setViewVisibility(R.id.widget_list, View.GONE)
                     views.setViewVisibility(R.id.widget_log, View.VISIBLE)
                     views.removeAllViews(R.id.widget_log)
-                    for ((mine, text) in said.takeLast(2)) views.addView(R.id.widget_log, row(mine, text))
+                    for ((mine, text) in said.takeLast(6)) views.addView(R.id.widget_log, row(mine, text))
                     views.setOnClickPendingIntent(R.id.widget_log, open)
                 }
                 views.setOnClickPendingIntent(R.id.widget_write, open)
