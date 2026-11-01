@@ -87,6 +87,7 @@ test('a phone of yours sees the page, and pairs only with the code, while it is 
   const start = await it.call('GET', '/api/start');
   assert.deepEqual([start.json.paired, start.json.pairing, start.json.challenge], [false, false, null]);
   assert.equal(start.json.pcs[0].url, 'https://laptop.tail1234.ts.net:47825/'); // her page on your other PCs
+  assert.equal(start.json.here, true); // she's on this one
   const key = await phoneKey();
   assert.equal((await it.call('POST', '/api/pair', { code: 'AAAAAAAAAA', key: key.jwk })).json.error, 'noPairing');
   const { code, text } = it.p.startPairing();

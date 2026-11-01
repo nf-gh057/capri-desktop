@@ -1291,7 +1291,9 @@ async function runSyncPocket() {
         },
         name: () => hiveName(),
         // her page on your other PCs (her swarm), for her app to go to when this one's away
-        pcs: () => (hive?.state().peers || []).filter((p) => p.pocket).map((p) => ({ name: p.name, url: p.pocket, active: p.active })),
+        // (only those answering now: a PC that's off or gone has no page to go to)
+        pcs: () => (hive?.state().peers || []).filter((p) => p.online && p.pocket).map((p) => ({ name: p.name, url: p.pocket, active: p.active })),
+        here: () => (hive ? hive.state().here : true),
       });
       Object.assign(link, { sig, origin: where.origin, domain: where.domain, certAt: Date.now() });
       if (await link.start()) {

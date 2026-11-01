@@ -3,4 +3,6 @@
     <string name="wait">Chwileczkę…</string>
     <string name="offline">Nie mogę połączyć się z twoim PC. Czy jest włączony, z działającą Capri i Tailscale?</string>
     <string name="not_paired">Jeszcze nie sparowana. Na komputerze: Mainframe › HOLO › TAILSCALE › Sparuj telefon. Zeskanuj kod QR aparatem tego telefonu, otwórz stronę i dotknij „Sparuj aplikację Capri”.</string>
+    <string name="pick_pc">Który komputer?</string>
+    <string name="she_is_here">tu jest Capri</string>
 </resources>

@@ -1,6 +1,7 @@
 package io.github.nfgh057.capri
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
@@ -23,6 +24,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import org.json.JSONArray
 import org.json.JSONObject
 import java.security.Signature
 import java.util.concurrent.Executors
@@ -139,13 +141,79 @@ class MainActivity : Activity() {
             runOnUiThread {
                 start.onSuccess { s ->
                     t = s.optJSONObject("t") ?: JSONObject()
-                    head.text = "CAPRI  ${s.optString("name")}"
+                    remember(api.origin, s)
                     if (!s.optBoolean("paired")) return@runOnUiThread say(word("lost", getString(R.string.not_paired)))
                     say(word("unlockSub", ""), word("unlock", "Unlock")) { unlock() }
                     hello(s.getString("challenge"))
-                }.onFailure { say(word("offline", getString(R.string.offline)), word("unlock", "Unlock")) { unlock() } }
+                }.onFailure {
+                    // this PC doesn't answer: another of your swarm that does, by itself if there's only one
+                    alive { found ->
+                        val others = found.filter { it.url != api.origin }
+                        when {
+                            others.size == 1 -> switchTo(others[0].url)
+                            others.size > 1 -> pick(others)
+                            else -> say(word("offline", getString(R.string.offline)), word("unlock", "Unlock")) { unlock() }
+                        }
+                    }
+                }
             }
         }
+    }
+
+    // --- your PCs: the one she answers on, and the others of her swarm with her page on -----------------
+
+    private class Pc(val name: String, val url: String, val here: Boolean)
+
+    private val tsNet = Regex("^https://[a-z0-9-]+(\\.[a-z0-9-]+)*\\.ts\\.net:\\d{2,5}$", RegexOption.IGNORE_CASE)
+
+    // what this PC said of itself and of the others answering now, kept for when it's the one that's away;
+    // the name on top, with ▾ when there's another to go to
+    private fun remember(origin: String, s: JSONObject) {
+        val all = JSONArray().put(JSONObject().put("name", s.optString("name")).put("url", origin))
+        val pcs = s.optJSONArray("pcs") ?: JSONArray()
+        var others = 0
+        for (i in 0 until pcs.length()) {
+            val p = pcs.getJSONObject(i)
+            val url = p.optString("url").trimEnd('/')
+            if (!tsNet.matches(url) || url == origin) continue
+            all.put(JSONObject().put("name", p.optString("name")).put("url", url))
+            others++
+        }
+        prefs.edit().putString("pcs", all.toString()).apply()
+        head.text = "CAPRI  ${s.optString("name")}${if (s.optBoolean("here")) " ★" else ""}${if (others > 0) "  ▾" else ""}"
+        head.setOnClickListener(if (others > 0) View.OnClickListener { alive { found -> if (found.size > 1) pick(found) } } else null)
+    }
+
+    // your PCs that answer now (her page on them), asked all at once
+    private fun alive(then: (List<Pc>) -> Unit) {
+        val known = runCatching { JSONArray(prefs.getString("pcs", "[]")) }.getOrDefault(JSONArray())
+        val urls = (0 until known.length()).map { known.getJSONObject(it).optString("url") }.filter { tsNet.matches(it) }.distinct()
+        if (urls.isEmpty()) return then(emptyList())
+        val found = java.util.Collections.synchronizedList(mutableListOf<Pc>())
+        val left = java.util.concurrent.atomic.AtomicInteger(urls.size)
+        for (url in urls) {
+            Thread {
+                runCatching { Api(url, 3000).get("/api/start") }.getOrNull()?.let { found.add(Pc(it.optString("name"), url, it.optBoolean("here"))) }
+                if (left.decrementAndGet() == 0) runOnUiThread { then(found.sortedBy { it.name }) }
+            }.start()
+        }
+    }
+
+    private fun pick(pcs: List<Pc>) {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.pick_pc))
+            .setItems(pcs.map { if (it.here) "${it.name}  ★ ${getString(R.string.she_is_here)}" else it.name }.toTypedArray()) { _, i -> switchTo(pcs[i].url) }
+            .show()
+    }
+
+    // her chat on another PC: a session there, your fingerprint again
+    private fun switchTo(url: String) {
+        if (url == api?.origin && unlocked) return
+        lock()
+        log.removeAllViews()
+        api = Api(url)
+        prefs.edit().putString("origin", url).apply()
+        unlock()
     }
 
     private fun hello(challenge: String) {

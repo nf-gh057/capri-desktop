@@ -215,6 +215,12 @@ albo Codex zmieniające pliki w swoim folderze.
 3. Sparuj ją: w Mainframe kliknij **Sparuj telefon** i zeskanuj kod QR aparatem telefonu. Na jej stronie dotknij
    **Sparuj aplikację Capri**, potem **Sparuj** w aplikacji, i przyłóż palec.
 
+**Który komputer.** Aplikacja rozmawia naraz z jednym komputerem roju i tam wykonuje zlecenie. Jego nazwa jest na górze,
+z ★, gdy jest na nim Capri. Gdy odpowiadają też inne komputery, ▾ obok niej pokazuje ich listę (tylko tych, które
+odpowiadają teraz), a wybranie jednego otwiera jej czat tam, po twoim odcisku palca. Jeśli komputer, z którym rozmawia,
+nie odpowiada, a odpowiada dokładnie jeden inny, aplikacja przechodzi na niego sama; przy kilku pyta. Aplikację paruje się
+raz: pozostałe komputery roju znają jej klucz.
+
 Dodanie nowego odcisku palca w telefonie kończy jej klucz: sparuj aplikację ponownie. Nie powiadamia jeszcze w tle i nie ma
 jeszcze widżetu (zob. `TODO.md`).
 

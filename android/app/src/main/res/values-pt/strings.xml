@@ -3,4 +3,6 @@
     <string name="wait">Um momento…</string>
     <string name="offline">Não consigo alcançar seu PC. Ele está ligado, com a Capri e o Tailscale rodando?</string>
     <string name="not_paired">Ainda não pareado. No seu PC: Mainframe › HOLO › TAILSCALE › Parear um celular. Escaneie o QR code com a câmera deste celular, abra a página e toque em “Parear o app Capri”.</string>
+    <string name="pick_pc">Qual PC?</string>
+    <string name="she_is_here">ela está aqui</string>
 </resources>

@@ -206,6 +206,11 @@ PC. That means her powers (opening apps, music, reminders), and Claude Code or C
 3. Pair it: in Mainframe click **Pair a phone** and scan the QR code with the phone's camera. On her page, tap **Pair the
    Capri app**, then **Pair** in the app, and give it your fingerprint.
 
+**Which PC.** The app talks to one PC of her swarm at a time, and an order is done there. Its name is on top, with ★ when
+Capri is on it. When other PCs answer too, ▾ next to it lists them (only those answering now), and picking one opens her
+chat there, with your fingerprint. If the PC it talks to doesn't answer and exactly one other does, it goes there by
+itself; with several, it asks. Her app pairs once: the other PCs of her swarm know its key.
+
 Adding a new fingerprint on the phone ends her key: pair the app again. It doesn't notify you in the background yet, and
 has no widget yet (see `TODO.md`).
 

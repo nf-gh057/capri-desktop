@@ -122,14 +122,15 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 // requests may come from; `dir`: the page's files.
 // `whois(address)`: the device Tailscale says is there, { node, name, user } or null; `mine(who)`:
 // whether it's signed in with your account. `phones()`: the paired phones' keys, [{ id (the device), name,
-// key, at, via (where it paired: a page's address, or 'app') }], and `onPhones(list)`: the list to save. `ask(text, { node, delta })`: her answer to your message, { ok,
-// text } or { ok: false, error }, `delta(text)` as it's written; `history()`: her chat so far, [{ role,
-// content, at }]; `labels()`: the page's words, in her language; `name()`: this PC's; `pcs()`: her page
-// on the other PCs of her swarm, [{ name, url, active }]. `remember`: how
-// long what Tailscale said of an address is kept (ms).
+// key, at, via (where it paired: a page's address, or 'app') }], and `onPhones(list)`: the list to save.
+// `ask(text, { node, name, order, delta })`: her answer to your message (`order`: an order from her app),
+// { ok, text } or { ok: false, error }, `delta(text)` as it's written; `history()`: her chat so far,
+// [{ role, content, at }]; `labels()`: the page's words, in her language; `name()`: this PC's; `pcs()`: her
+// page on the other PCs of her swarm that answer now, [{ name, url, active }]; `here()`: whether she's on
+// this one. `remember`: how long what Tailscale said of an address is kept (ms).
 function createPocket({
   host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
-  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [],
+  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true,
 }) {
   const who = new Map();        // address -> { at, it }
   const challenges = new Map(); // challenge -> { node, at }
@@ -204,7 +205,7 @@ function createPocket({
       const paired = Boolean(phoneOf(device.node));
       return {
         name: name(), device: device.name, paired, pairing: Boolean(pair && pair.until > Date.now()),
-        challenge: paired ? challenge(device.node) : null, t: labels(), pcs: pcs(),
+        challenge: paired ? challenge(device.node) : null, t: labels(), pcs: pcs(), here: here(),
       };
     },
     // this phone, with the code shown in Mainframe and the public half of the key its browser (or her

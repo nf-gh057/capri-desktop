@@ -3,4 +3,6 @@
     <string name="wait">Un momento…</string>
     <string name="offline">No llego a tu PC. ¿Está encendido, con Capri y Tailscale en marcha?</string>
     <string name="not_paired">Aún no emparejada. En tu PC: Mainframe › HOLO › TAILSCALE › Emparejar un teléfono. Escanea el código QR con la cámara de este teléfono, abre la página y toca «Emparejar la app Capri».</string>
+    <string name="pick_pc">¿Qué PC?</string>
+    <string name="she_is_here">aquí está ella</string>
 </resources>
