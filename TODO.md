@@ -69,7 +69,7 @@ Wspólne dla wszystkich etapów:
 - Jej aplikacja na Androida (`android/`), co zostało:
   - Capri sprawdza poświadczenie klucza aplikacji od Google (Key Attestation): klucz sprzętowy, tylko po odcisku palca,
     za każdym razem, zrobiony do tego parowania; zlecenia tylko od tak potwierdzonego klucza. (zrobione w 0.4.4-69)
-  - Stały klucz podpisu APK, poza repozytorium, u użytkownika. (zrobione w 0.4.4-69: `%USERPROFILE%\.caprindroid`)
+  - Stały klucz podpisu APK, poza repozytorium, u użytkownika. (zrobione w 0.4.4-69: `%USERPROFILE%\.capri\android`)
   - Zapasowo, opcjonalnie: FCM albo UnifiedPush, dla telefonów, które mimo wyłączonej optymalizacji baterii zabijają
     aplikacje w tle (niektóre Xiaomi, Huawei); treść szyfrowana kluczem telefonu (RFC 8291), więc pośrednik widzi tylko
     szyfr, czas i rozmiar.
