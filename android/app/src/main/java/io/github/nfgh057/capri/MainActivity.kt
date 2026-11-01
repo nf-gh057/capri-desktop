@@ -24,6 +24,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.Signature
@@ -142,19 +143,13 @@ class MainActivity : Activity() {
                 start.onSuccess { s ->
                     t = s.optJSONObject("t") ?: JSONObject()
                     remember(api.origin, s)
-                    if (!s.optBoolean("paired")) return@runOnUiThread say(word("lost", getString(R.string.not_paired)))
+                    // this PC doesn't know her app's key (yet): said so, and the others to go to
+                    if (!s.optBoolean("paired")) return@runOnUiThread say(getString(R.string.unknown_here, s.optString("name")), getString(R.string.other_pc)) { elsewhere(api.origin) }
                     say(word("unlockSub", ""), word("unlock", "Unlock")) { unlock() }
                     hello(s.getString("challenge"))
                 }.onFailure {
                     // this PC doesn't answer: another of your swarm that does, by itself if there's only one
-                    alive { found ->
-                        val others = found.filter { it.url != api.origin }
-                        when {
-                            others.size == 1 -> switchTo(others[0].url)
-                            others.size > 1 -> pick(others)
-                            else -> say(word("offline", getString(R.string.offline)), word("unlock", "Unlock")) { unlock() }
-                        }
-                    }
+                    elsewhere(api.origin) { say(word("offline", getString(R.string.offline)), word("unlock", "Unlock")) { unlock() } }
                 }
             }
         }
@@ -181,7 +176,21 @@ class MainActivity : Activity() {
         }
         prefs.edit().putString("pcs", all.toString()).apply()
         head.text = "CAPRI  ${s.optString("name")}${if (s.optBoolean("here")) " ★" else ""}${if (others > 0) "  ▾" else ""}"
-        head.setOnClickListener(if (others > 0) View.OnClickListener { alive { found -> if (found.size > 1) pick(found) } } else null)
+        head.setOnClickListener(if (others > 0) View.OnClickListener { elsewhere(origin) } else null)
+    }
+
+    // another of your PCs that answers: by itself if there's only one, your pick if there are more, else
+    // `none` (or a word that none answers)
+    private fun elsewhere(from: String, none: (() -> Unit)? = null) {
+        alive { found ->
+            val others = found.filter { it.url != from }
+            when {
+                others.size == 1 -> switchTo(others[0].url)
+                others.size > 1 -> pick(found)
+                none != null -> none()
+                else -> Toast.makeText(this, getString(R.string.others_silent), Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // your PCs that answer now (her page on them), asked all at once

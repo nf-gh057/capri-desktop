@@ -6,4 +6,7 @@
     <string name="not_paired">Not paired yet. On your PC: Mainframe › HOLO › TAILSCALE › Pair a phone. Scan the QR code with this phone’s camera, open the page, and tap “Pair the Capri app”.</string>
     <string name="pick_pc">Which PC?</string>
     <string name="she_is_here">she’s here</string>
+    <string name="unknown_here">%1$s doesn’t know her app yet. With her swarm on on both PCs, it learns it from the others within a minute; or pair her app again.</string>
+    <string name="other_pc">Another PC</string>
+    <string name="others_silent">No other PC answers now.</string>
 </resources>

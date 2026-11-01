@@ -5,4 +5,7 @@
     <string name="not_paired">Aún no emparejada. En tu PC: Mainframe › HOLO › TAILSCALE › Emparejar un teléfono. Escanea el código QR con la cámara de este teléfono, abre la página y toca «Emparejar la app Capri».</string>
     <string name="pick_pc">¿Qué PC?</string>
     <string name="she_is_here">aquí está ella</string>
+    <string name="unknown_here">%1$s aún no conoce su app. Con el enjambre activado en ambos PC, la conoce por los demás en un minuto; o empareja su app de nuevo.</string>
+    <string name="other_pc">Otro PC</string>
+    <string name="others_silent">Ningún otro PC responde ahora.</string>
 </resources>

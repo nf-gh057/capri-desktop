@@ -5,4 +5,7 @@
     <string name="not_paired">Jeszcze nie sparowana. Na komputerze: Mainframe › HOLO › TAILSCALE › Sparuj telefon. Zeskanuj kod QR aparatem tego telefonu, otwórz stronę i dotknij „Sparuj aplikację Capri”.</string>
     <string name="pick_pc">Który komputer?</string>
     <string name="she_is_here">tu jest Capri</string>
+    <string name="unknown_here">%1$s jeszcze nie zna jej aplikacji. Przy włączonym roju na obu komputerach dowie się od pozostałych w ciągu minuty; albo sparuj aplikację ponownie.</string>
+    <string name="other_pc">Inny komputer</string>
+    <string name="others_silent">Żaden inny komputer teraz nie odpowiada.</string>
 </resources>

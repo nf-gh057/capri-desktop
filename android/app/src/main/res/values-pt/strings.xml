@@ -5,4 +5,7 @@
     <string name="not_paired">Ainda não pareado. No seu PC: Mainframe › HOLO › TAILSCALE › Parear um celular. Escaneie o QR code com a câmera deste celular, abra a página e toque em “Parear o app Capri”.</string>
     <string name="pick_pc">Qual PC?</string>
     <string name="she_is_here">ela está aqui</string>
+    <string name="unknown_here">%1$s ainda não conhece o app dela. Com o enxame ligado nos dois PCs, ele aprende com os outros em um minuto; ou pareie o app de novo.</string>
+    <string name="other_pc">Outro PC</string>
+    <string name="others_silent">Nenhum outro PC responde agora.</string>
 </resources>

@@ -1381,7 +1381,14 @@ function pocketPair() {
   pocketInvite = { text: inv.text, qr: totp.qr(`${pocketLink.origin}/#pair=${inv.code}`) };
 }
 
+// a phone unpaired here: from all your PCs (her mind says so, for each of its keys, those this PC has and
+// those it only knows of), its sessions ended
 function pocketForget(id) {
+  if (mind) {
+    for (const p of config.load().pocket?.phones || []) if (p.id === id) mind.write(phoneKey(p), null, { del: true });
+    for (const e of mind.list('phone:')) if (e.v?.id === id) mind.write(e.key, null, { del: true });
+    mindSave();
+  }
   updateConfig({ pocket: { ...config.load().pocket, phones: (config.load().pocket?.phones || []).filter((p) => p.id !== id) } });
   pocketLink?.forget(id);
 }
@@ -2350,10 +2357,21 @@ function mindCapture() {
   for (const [key, r] of reminders) put(key, r);
   for (const e of mind.list('rem:')) if (!reminders.has(e.key)) put(e.key, null, { del: true });
   if (cfg.bond) put('bond', bondJoin(mind.get('bond'), cfg.bond));
-  // your phones' keys (only their public halves: nothing secret goes across), one entry per place each paired
+  // your phones' keys (only their public halves: nothing secret goes across), one entry per place each paired.
+  // Only ever added from here: a phone leaves all your PCs when you unpair it (pocketForget), never because
+  // this PC doesn't have it, as one that kept them from another PC before it knew what they were. Those it
+  // has in her mind and not here, it takes.
   const phones = new Map((cfg.pocket?.phones || []).map((p) => [phoneKey(p), p]));
   for (const [key, p] of phones) put(key, p);
-  for (const e of mind.list('phone:')) if (!phones.has(e.key)) put(e.key, null, { del: true });
+  const known = mind.list('phone:').map((e) => pocket.phoneRecord(e.v)).filter(Boolean);
+  if (known.some((p) => !phones.has(phoneKey(p)))) {
+    mindApplying = true;
+    try {
+      updateConfig({ pocket: { ...cfg.pocket, phones: known } });
+    } finally {
+      mindApplying = false;
+    }
+  }
   mind.prune('chat:', MIND_CHAT, (e) => e.v?.at || 0); // the newest messages
   if (wrote) mindSave();
 }
