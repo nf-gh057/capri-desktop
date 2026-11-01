@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wait">Un instant…</string>
+    <string name="offline">Impossible de joindre ton PC. Est-il allumé, avec Capri et Tailscale lancés ?</string>
+    <string name="not_paired">Pas encore appairée. Sur ton PC : Mainframe › HOLO › TAILSCALE › Appairer un téléphone. Scanne le QR code avec l’appareil photo de ce téléphone, ouvre la page et touche « Appairer l’app Capri ».</string>
+</resources>

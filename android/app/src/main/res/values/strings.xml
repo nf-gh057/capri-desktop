@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Capri</string>
+    <string name="wait">One moment…</string>
+    <string name="offline">Can’t reach your PC. Is it on, with Capri and Tailscale running?</string>
+    <string name="not_paired">Not paired yet. On your PC: Mainframe › HOLO › TAILSCALE › Pair a phone. Scan the QR code with this phone’s camera, open the page, and tap “Pair the Capri app”.</string>
+</resources>

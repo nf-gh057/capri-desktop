@@ -922,6 +922,7 @@ async function mainframeAct(name, value) {
     case 'pocketOn': updateConfig({ pocketOn: Boolean(value) }); await syncPocket(); break;
     case 'pocketCheck': await syncHive(); await syncPocket(); break;
     case 'pocketNotes': updateConfig({ pocketNotes: Boolean(value) }); break;
+    case 'pocketOrderTelegram': updateConfig({ pocketOrderTelegram: Boolean(value) }); break;
     case 'pocketHttps': shell.openExternal('https://login.tailscale.com/admin/dns'); break;
     case 'pocketPair': pocketPair(); break;
     case 'pocketPairCancel': pocketLink?.stopPairing(); pocketInvite = null; break;
@@ -1194,15 +1195,16 @@ async function phoneUnlock(typed, message) {
 }
 
 // Your message from your phone to her chat (chat.js fromPhone, in the overlay): her answer, { ok, text }
-// or { ok: false, error }. `kind`: 'phone' (Telegram) or 'pocket' (her page over Tailscale); `delta`:
-// her answer as it's written, piece by piece. Claude Code or Codex only read for it (chat:send).
-function askHer(kind, text, delta = null) {
+// or { ok: false, error }. `kind`: 'phone' (Telegram) or 'pocket' (her page over Tailscale), and Claude
+// Code or Codex only read for it (chat:send); or 'order' (her app, after your fingerprint: chat.js fromDesk,
+// as typed at the PC, `tag` on it in her chat). `delta`: her answer as it's written, piece by piece.
+function askHer(kind, text, delta = null, tag = '') {
   if (!overlay) return Promise.resolve({ ok: false, error: 'offline' });
   const id = `${kind}-${randomUUID()}`;
   return new Promise((resolve) => {
     phoneTurns.set(id, resolve);
     if (delta) pocketDeltas.set(id, delta);
-    overlay.webContents.send('phone:chat', { id, text });
+    overlay.webContents.send('phone:chat', { id, text, ...(kind === 'order' && { order: tag || 'ORDER' }) });
     setTimeout(() => {
       chats.get(id)?.abort();
       resolve({ ok: false, error: 'timeout' });
@@ -1280,7 +1282,7 @@ async function runSyncPocket() {
           pocketInvite = null;
           mainframe?.refresh();
         },
-        ask: (text, { delta }) => pocketAsk(text, delta),
+        ask: (text, { delta, order, name }) => (order ? pocketOrder(text, name, delta) : pocketAsk(text, delta)),
         history: () => readMemory().history || [],
         // the page's words in her language, and you as she calls you (as in Mainframe's HOLO)
         labels: () => {
@@ -1333,6 +1335,43 @@ function pocketAsk(text, delta) {
   return turn;
 }
 
+// An order from her app (pocket.js checked it was signed after your fingerprint): written down first, in
+// her log of orders (Mainframe) and on Telegram if her bot is paired (so an order you didn't give doesn't
+// go unseen), then done as if you'd typed it at the PC: her powers on, Claude Code or Codex changing files
+// in their folder only, with nothing that runs or reaches out (chat:send)
+function pocketOrder(text, name, delta) {
+  const cfg = config.load();
+  const t = trayLabels(cfg);
+  const entry = { at: Date.now(), phone: String(name || '').slice(0, 60), text: String(text).slice(0, 2000) };
+  pocketOrders = [...pocketOrderLog(), entry].slice(-ORDERS_KEEP);
+  try {
+    fs.writeFileSync(ordersFile(), JSON.stringify(pocketOrders));
+  } catch (err) {
+    logError(`[capri] her log of orders: ${err.message}`);
+  }
+  mainframe?.refresh();
+  if (cfg.pocketOrderTelegram !== false && cfg.telegram?.chat) phoneSend(t.pocketOrderTold(entry.phone, phone.compose({ line: entry.text }, 'line')), { always: true });
+  const turn = phoneQueue.then(() => askHer('order', text, delta, t.pocketOrderTag));
+  phoneQueue = turn.catch(() => {});
+  return turn;
+}
+
+// her log of orders from her app, oldest first: [{ at, phone, text }]
+const ORDERS_KEEP = 200;
+const ordersFile = () => path.join(app.getPath('userData'), 'orders.json');
+let pocketOrders = null;
+function pocketOrderLog() {
+  if (!pocketOrders) {
+    try {
+      pocketOrders = JSON.parse(fs.readFileSync(ordersFile(), 'utf8'));
+      if (!Array.isArray(pocketOrders)) pocketOrders = [];
+    } catch {
+      pocketOrders = [];
+    }
+  }
+  return pocketOrders;
+}
+
 // a code for a phone to pair with: as text, and as a QR code that opens her page with it
 function pocketPair() {
   if (!pocketLink) return;
@@ -1353,6 +1392,12 @@ function pocketState(cfg, t) {
   return {
     on: Boolean(cfg.pocketOn),
     notes: cfg.pocketNotes !== false, // her notes while you're away
+    orderTelegram: cfg.pocketOrderTelegram !== false,
+    // her log of orders from her app, newest first
+    orders: pocketOrderLog().slice(-15).reverse().map((o) => ({
+      when: new Date(o.at).toLocaleString(resolveLang(cfg.lang), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+      phone: o.phone, text: o.text.length > 160 ? `${o.text.slice(0, 159)}…` : o.text,
+    })),
     away: String(cfg.phoneAway ?? 5), // away: the same as for Telegram
     url: pocketLink ? `${pocketLink.origin}/` : null,
     error,
@@ -1667,7 +1712,9 @@ function registerIpc() {
     chats.set(id, abort);
     let streamed = false;
     // from your phone: Claude Code or Codex only read, whatever Mainframe says for the desktop
-    const cfg = phoneTurns.has(id) ? { ...config.load(), claudeMode: 'default', readOnly: true } : config.load();
+    // an order from her app (after your fingerprint): Claude Code or Codex change files in their folder, nothing more
+    const cfg = id.startsWith('order-') ? { ...config.load(), claudeMode: 'acceptEdits', order: true }
+      : phoneTurns.has(id) ? { ...config.load(), claudeMode: 'default', readOnly: true } : config.load();
     try {
       const send = (text) => {
         streamed = true;

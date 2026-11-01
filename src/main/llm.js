@@ -37,6 +37,10 @@ const CODEX_SANDBOX = { default: 'read-only', acceptEdits: 'workspace-write' };
 // Claude Code's tools when it only reads (from your phone): nothing that changes or runs anything,
 // nothing that reaches out, and no MCP server
 const READ_ONLY_TOOLS = 'Read,Grep,Glob';
+// and for an order from her app on your phone, confirmed with your fingerprint: it may change files in
+// its folder too (edits outside it still ask, and nothing here can answer), but runs nothing, reaches
+// nothing outside, and has no MCP server
+const ORDER_TOOLS = 'Read,Grep,Glob,Edit,Write';
 // the terminal agents: they keep the conversation themselves and really work in a folder
 const isAgent = (id) => ['claude', 'codex'].includes(PROVIDERS[id]?.kind);
 
@@ -172,7 +176,7 @@ function stopClaude({ gently = false } = {}) {
 function claudeServer(cfg, persona) {
   const mode = CLAUDE_MODES.includes(cfg.claudeMode) ? cfg.claudeMode : 'default';
   const cwd = cfg.claudeCwd || os.homedir();
-  const key = JSON.stringify([mode, cwd, Boolean(cfg.readOnly)]);
+  const key = JSON.stringify([mode, cwd, Boolean(cfg.readOnly), Boolean(cfg.order)]);
   if (claude?.key === key) {
     const running = claude;
     agentIdleLater(running, () => claude === running && stopClaude({ gently: true }));
@@ -186,6 +190,7 @@ function claudeServer(cfg, persona) {
     '--permission-mode', mode, '--append-system-prompt-file', quote(personaFile)];
   // from your phone (main.js): it reads, and that's all, whatever your Claude Code settings allow
   if (cfg.readOnly) args.push('--tools', READ_ONLY_TOOLS, '--strict-mcp-config');
+  else if (cfg.order) args.push('--tools', ORDER_TOOLS, '--strict-mcp-config'); // an order from her app (main.js)
   if (!claudeSession) claudeSession = randomUUID();
   args.push(claudeStarted ? '--resume' : '--session-id', claudeSession);
   const child = spawn('claude', args, { cwd, shell: process.platform === 'win32', windowsHide: true });

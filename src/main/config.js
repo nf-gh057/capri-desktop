@@ -48,6 +48,7 @@ const DEFAULTS = {
   pocketOn: false,   // her chat on your phone over Tailscale, a page of hers at this PC's *.ts.net name (pocket.js)
   pocket: null,      // { phones: [{ id (its Tailscale device), name, key (its public key), at, via }] }: the phones paired for it
   pocketNotes: true, // her notes there while you're away (Claude Code needs you, it's done, it crashed, her report)
+  pocketOrderTelegram: true, // each order from her app told on Telegram too (if her bot is paired here)
   updateCheck: true, // she looks for a new version of herself on GitHub (her git clone's origin)
   updateAuto: false, // and updates herself once you've been away a while (else: on your click)
   updateTold: null,  // the new version she last told you about (its commit), so she says it once

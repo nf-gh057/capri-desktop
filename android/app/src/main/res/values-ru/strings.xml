@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wait">Минутку…</string>
+    <string name="offline">Не могу достучаться до твоего ПК. Он включён, Capri и Tailscale запущены?</string>
+    <string name="not_paired">Ещё не сопряжено. На ПК: Mainframe › HOLO › TAILSCALE › Сопрячь телефон. Отсканируй QR-код камерой этого телефона, открой страницу и нажми «Сопрячь приложение Capri».</string>
+</resources>

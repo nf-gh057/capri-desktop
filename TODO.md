@@ -45,7 +45,8 @@ Wspólne dla wszystkich etapów:
   komputerze, więc ich zmianę z innego komputera Capri pokazuje tam, gdzie jesteś, z „Cofnij” (zrobione w 0.4.4-22).
 
 ### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama) (zrobione: rozmowa w 0.4.4-49, `pocket.js`; bez zadań z narzędziami)
-Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z etapem 3 Telegrama.
+Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z etapem 3 Telegrama. (zrobione inaczej
+w 0.4.4-54: zlecenia z jej aplikacji na Androida, każde podpisane po odcisku palca; strona i Telegram tylko rozmawiają)
 - Telefon z aplikacją Tailscale otwiera stronę czatu Capri (PWA) na jej adresie w sieci Tailscale (HTTPS z certyfikatem
   `*.ts.net`): treść nie przechodzi przez żaden obcy serwer.
 - Parowanie telefonu raz, w Mainframe: Capri zapamiętuje jego urządzenie w Tailscale (`whois`) i klucz w przeglądarce.
@@ -75,6 +76,11 @@ Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z 
   (`pocket.js`: podpisane wyzwanie, sesja tylko dla tego urządzenia), więc po stronie Capri bez zmian. Widżet: ostatnia
   kwestia Capri i przycisk „Napisz” otwierający małe okno odpowiedzi (widżety Androida nie mają pola tekstowego).
   Do budowania: Android SDK na PC.
+  (zrobione w 0.4.4-54: aplikacja w `android/` bez bibliotek, parowanie przez stronę (`capri://pair`), odcisk palca przy
+  każdym otwarciu, rozmowa, zlecenia podpisane po odcisku, notki, gdy jest otwarta; log zleceń w Mainframe i na
+  Telegramie. Zostaje niżej: usługa w tle z powiadomieniami, widżet, przejście na inny komputer roju (`pcs`),
+  sprawdzanie przez Capri poświadczenia klucza od Google (Key Attestation: klucz sprzętowy, tylko po odcisku), stały
+  klucz podpisu APK do wydań.)
   - Powiadomienia bez żadnego serwera pośrodku (bez ntfy i UnifiedPush): usługa aplikacji w tle (z widocznym
     powiadomieniem „Capri słucha”) trzyma przez Tailscale lekkie połączenie ze stroną Capri na każdym komputerze roju
     (tym samym strumieniem co strona dziś, `/api/events`), z sygnałem co kilka minut. Wymaga wyłączenia optymalizacji

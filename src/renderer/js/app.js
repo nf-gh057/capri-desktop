@@ -261,9 +261,11 @@ async function boot() {
   // Talking to her (chat.js): "Talk to her" in her menu, or the button when you click her idle.
   const chat = new Chat({ capri, panel, voice, host, brain });
   brain.onTalk = () => chat.start();
-  // what you write her from your phone (main.js lets it through only once unlocked)
-  host.onPhoneChat(async ({ id, text }) => {
-    const answer = await chat.fromPhone(id, String(text)).catch((err) => ({ ok: false, error: err.message }));
+  // what you write her from your phone (main.js lets it through only once unlocked); an order from her app
+  // (`order`: its tag in her chat), confirmed with your fingerprint, as if typed at the PC
+  host.onPhoneChat(async ({ id, text, order }) => {
+    const answer = await (order ? chat.fromDesk(id, String(text), { order: String(order) }) : chat.fromPhone(id, String(text)))
+      .catch((err) => ({ ok: false, error: err.message }));
     host.phoneAnswer({ id, ...answer });
   });
   // what you type in Mainframe's HOLO: the same conversation, answered there

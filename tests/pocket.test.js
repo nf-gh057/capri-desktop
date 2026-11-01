@@ -20,8 +20,8 @@ function page(t, extra = {}) {
     mine: (who) => who.user === 1,
     phones: () => state.phones,
     onPhones: (list) => { state.phones = list; },
-    ask: async (text, { delta }) => {
-      state.asked.push(text);
+    ask: async (text, { delta, order }) => {
+      state.asked.push(order ? `order: ${text}` : text);
       delta('Hel');
       delta('lo');
       return { ok: true, text: 'Hello' };
@@ -54,7 +54,7 @@ async function phoneKey() {
   const keys = await subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
   const jwk = await subtle.exportKey('jwk', keys.publicKey);
   const sign = async (challenge) => Buffer.from(await subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, keys.privateKey, pocket.signed(challenge))).toString('base64url');
-  return { jwk, sign };
+  return { jwk, sign, privateKey: keys.privateKey };
 }
 
 async function paired(t) {
@@ -208,6 +208,46 @@ test('a page back after a while gets the notes it missed, and only those', async
   // a page that says nothing gets nothing old
   const fresh = await heard(await fetch(`${it.origin}/api/events`, { headers: { cookie: it.cookie() }, signal: controller.signal }), 'event: note');
   assert.ok(!fresh.includes('event: note'));
+});
+
+// her app paired (its key, `client: 'app'`) and unlocked: what it signs an order with, after a fingerprint
+async function appPaired(t) {
+  const it = page(t);
+  await it.p.start();
+  const key = await phoneKey();
+  const pair = await it.call('POST', '/api/pair', { code: it.p.startPairing().code, key: key.jwk, client: 'app' });
+  await it.call('POST', '/api/hello', { challenge: pair.json.challenge, sig: await key.sign(pair.json.challenge) });
+  const signOrder = async (challenge, text) => Buffer.from(await subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key.privateKey, pocket.orderSigned(challenge, text))).toString('base64url');
+  return { ...it, key, signOrder };
+}
+
+test('an order from her app: signed on its own, for that order, once', async (t) => {
+  const it = await appPaired(t);
+  let { challenge } = (await it.call('GET', '/api/challenge')).json;
+  // signed for another order: refused, and its challenge spent
+  const wrong = await it.call('POST', '/api/order', { text: 'open Spotify', challenge, sig: await it.signOrder(challenge, 'delete everything') });
+  assert.equal(wrong.json.error, 'badSig');
+  assert.equal((await it.call('POST', '/api/order', { text: 'open Spotify', challenge, sig: await it.signOrder(challenge, 'open Spotify') })).json.error, 'noChallenge');
+  ({ challenge } = (await it.call('GET', '/api/challenge')).json);
+  const ok = await it.call('POST', '/api/order', { text: 'open Spotify', challenge, sig: await it.signOrder(challenge, 'open Spotify') });
+  assert.equal(ok.status, 200);
+  await new Promise((r) => setTimeout(r, 50));
+  assert.deepEqual(it.state.asked, ['order: open Spotify']);
+  // a session's challenge isn't an order's, and an order's isn't a session's
+  const { challenge: hello } = (await it.call('GET', '/api/start')).json;
+  assert.equal((await it.call('POST', '/api/order', { text: 'x', challenge: hello, sig: await it.signOrder(hello, 'x') })).json.error, 'noChallenge');
+  ({ challenge } = (await it.call('GET', '/api/challenge')).json);
+  assert.equal((await it.call('POST', '/api/hello', { challenge, sig: await it.key.sign(challenge) })).json.error, 'noChallenge');
+});
+
+test('no orders from a page in a browser, nor without a session', async (t) => {
+  const it = await paired(t); // paired as her page is: a browser's key
+  const { challenge } = (await it.call('GET', '/api/challenge')).json;
+  const sig = Buffer.from(await subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, it.key.privateKey, pocket.orderSigned(challenge, 'x'))).toString('base64url');
+  assert.equal((await it.call('POST', '/api/order', { text: 'x', challenge, sig })).json.error, 'notApp');
+  it.setCookie('');
+  assert.equal((await it.call('GET', '/api/challenge')).status, 401);
+  assert.deepEqual(it.state.asked, []);
 });
 
 test('no stream without a session', async (t) => {

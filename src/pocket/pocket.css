@@ -150,6 +150,12 @@ textarea.input {
   text-transform: uppercase;
   clip-path: var(--cut);
 }
+.button--wide {
+  display: block;
+  margin: 0 0 12px;
+  text-align: center;
+  text-decoration: none;
+}
 .button:active {
   background: rgba(255, 95, 86, 0.2);
 }

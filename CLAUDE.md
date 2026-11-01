@@ -66,6 +66,13 @@ pracy nad Capri: `docs/ROZWOJ.md`.
 - Telefon (Telegram) nigdy nie zatwierdza zgód Claude Code ani Codexa: przejęty Telegram nie może oznaczać
   wykonania kodu na PC. Rozmowa przez Telegram wymaga kodu TOTP; agenci odpowiadający z telefonu tylko czytają
   (Codex w piaskownicy tylko do odczytu, Claude Code tylko Read/Grep/Glob, bez MCP).
+- Wyjątek, decyzja użytkownika: **jej aplikacja na Androida** (`android/`, przez stronę `pocket.js` w Tailscale) może
+  zlecać działania na PC: Claude Code albo Codex z prawem zapisu tylko w folderze agenta z Mainframe (piaskownica, bez
+  sieci, nigdy pełny dostęp) oraz jej moce (aplikacje, muzyka, przypomnienia). Klucz aplikacji jest w Android Keystore
+  i każde jego użycie wymaga odcisku palca: odcisk przy otwarciu aplikacji (rozmowa, tylko do odczytu), a **każde
+  zlecenie osobno podpisane po odcisku** i sprawdzone przez Capri. Zlecać może tylko klucz aplikacji (nie strona
+  w przeglądarce, nie Telegram). Każde przyjęte zlecenie trafia do logu w Mainframe i (jeśli bot jest sparowany) na
+  Telegram.
 - Tokeny, klucze i sekrety szyfrowane kontem Windows (`setup.sealKey`/`openKey`), nigdy w logach ani w configu
   przekazywanym do nakładki (`rendererConfig`).
 - Rój: inne komputery przysyłają tylko stan, zdarzenia agentów (okrojone) i wspólną pamięć, nigdy polecenia do

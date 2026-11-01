@@ -178,8 +178,36 @@ phone while I'm away** in Mainframe).
 - They carry her line, the project and a bit of what was said (400 characters at most, anything that looks like a key
   blanked out). They never leave your devices.
 
-For now the page shows them only while it's open: a page can't wake your phone without somebody's push server. Her app
-will. Tasks with tools from the phone aren't there yet.
+For now they show only while her page or app is open: nothing wakes your phone without somebody's push server yet.
+
+### Her app on Android, with orders
+
+Her app (`android/`) is her chat from your phone, like her page, with one thing more: **orders**, things she does on your
+PC. That means her powers (opening apps, music, reminders), and Claude Code or Codex changing files in their folder.
+
+- **Your fingerprint opens it.** Her app's key lives in the phone's secure hardware (Android Keystore) and can be used
+  only right after your fingerprint, once per use. Opening the app signs one challenge and gets a session for talking,
+  which only reads, as on her page. Put away, the app locks, and its session ends.
+- **Each order takes your fingerprint again.** Tick **Order**, and her key signs that order, word for word, with a
+  challenge of its own. Capri checks the signature, and does it as if you'd typed it at the PC.
+- **Only her app gives orders.** Her page in a browser and Telegram only talk.
+- **On the PC**, Claude Code gets reading and editing tools only (no shell, no web, no MCP server), and Codex its
+  `workspace-write` sandbox without network, both in the agent folder from Mainframe. Never full access.
+- **Every order is written down** in Mainframe › HOLO › TAILSCALE › **Orders from her app**, marked **ORDER** in her
+  chat. With her Telegram bot paired on this PC, each order is told there too (on by default), so one you didn't give
+  doesn't go unseen.
+
+**Install it**
+
+1. Build it: `cd android`, then `gradlew assembleDebug` (needs Android Studio, for its SDK and Java). The app lands in
+   `android/app/build/outputs/apk/debug/app-debug.apk`.
+2. Put it on your phone: with **Wireless debugging** on (Developer options), `adb pair` and `adb connect` to the phone,
+   then `adb install -r` that file. Or copy the file over and open it (allow installing unknown apps for the file manager).
+3. Pair it: in Mainframe click **Pair a phone** and scan the QR code with the phone's camera. On her page, tap **Pair the
+   Capri app**, then **Pair** in the app, and give it your fingerprint.
+
+Adding a new fingerprint on the phone ends her key: pair the app again. It doesn't notify you in the background yet, and
+has no widget yet (see `TODO.md`).
 
 ### Her swarm
 
@@ -459,6 +487,7 @@ src/main/
   swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
   pocket.js              her page on your phone over Tailscale: who's calling (whois), pairing with a key, sessions
 src/pocket/              that page (HTML, its script and styles, a manifest for the home screen)
+android/                 her app (Kotlin, no libraries): her key in Android Keystore behind your fingerprint, chat, orders
   mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
   screengrab.js / .ps1   bits of the screen in a few ms, for her teleports to tear open (a PowerShell helper, GDI)

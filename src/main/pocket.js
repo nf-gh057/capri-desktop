@@ -13,7 +13,9 @@
 // key, gets nothing. A phone has a key for each page it paired on (a browser keeps one per address: one
 // per PC of her swarm) and one for her app; her swarm shares them all (main.js), so the app pairs once.
 // What the phone can do: talk to her chat, the one on your desktop, without her powers and with Claude
-// Code or Codex only reading (main.js). Never anything else to run. What it gets besides: her notes while
+// Code or Codex only reading (main.js). Her app, and only her app, may give orders besides: each one signed
+// on its own with her app's key, which Android lets it use only after your fingerprint (main.js has her do
+// it, logs it, and tells Telegram). What it gets besides: her notes while
 // you're away (Claude Code needs you, it's done, it crashed), numbered, the ones it missed sent again.
 //
 // Nothing here knows Electron: main.js hands in the certificate, who Tailscale says is calling, the
@@ -73,6 +75,9 @@ class PocketError extends Error {
 
 // What a phone signs to open a session: the challenge, bound to what it's for
 const signed = (challenge) => Buffer.from(`capri-pocket|${challenge}`);
+// What her app signs for an order, after your fingerprint: a challenge of its own and that order, word for
+// word (its SHA-256), so a signature can't be lifted onto another order
+const orderSigned = (challenge, text) => Buffer.from(`capri-pocket-order|${challenge}|${crypto.createHash('sha256').update(String(text)).digest('hex')}`);
 
 // A phone's public key as its browser sends it (JWK, P-256): only its public part, else null
 function publicKey(jwk) {
@@ -149,12 +154,20 @@ function createPocket({
 
   const phoneOf = (node) => phones().find((p) => p.id === node) || null;
 
-  function challenge(node) {
+  // a one-time challenge for this device, for a session (`hello`) or for one order
+  function challenge(node, purpose = 'hello') {
     const now = Date.now();
     for (const [c, ch] of challenges) if (now - ch.at > CHALLENGE_MS) challenges.delete(c);
     const c = crypto.randomBytes(24).toString('base64url');
-    challenges.set(c, { node, at: now });
+    challenges.set(c, { node, at: now, purpose });
     return c;
+  }
+
+  // the challenge given, if it's this device's, for this, and fresh: it works once, right or wrong
+  function spend(device, given, purpose) {
+    const ch = challenges.get(String(given || ''));
+    challenges.delete(String(given || ''));
+    return Boolean(ch && ch.node === device.node && ch.purpose === purpose && Date.now() - ch.at <= CHALLENGE_MS);
   }
 
   // the session this request carries, if it's this device's and the device is still paired
@@ -165,8 +178,9 @@ function createPocket({
     return token;
   }
 
-  // what you sent from your phone, to her, and her answer to every page of that phone open
-  function send(device, text) {
+  // what you sent from your phone, to her, and her answer to every page of that phone open (`order`: an
+  // order from her app, signed after your fingerprint)
+  function send(device, text, order = false) {
     const now = Date.now();
     const times = (sent.get(device.node) || []).filter((at) => now - at < 60000);
     if (times.length >= PER_MINUTE) throw new PocketError('tooMany', 429);
@@ -178,7 +192,7 @@ function createPocket({
       for (const s of streams) if (s.node === device.node) s.res.write(data);
     };
     queue = queue
-      .then(() => ask(text, { node: device.node, delta: (piece) => tell('delta', { text: String(piece) }) }))
+      .then(() => ask(text, { node: device.node, name: device.name, order, delta: (piece) => tell('delta', { text: String(piece) }) }))
       .then((a) => tell('answer', a?.ok ? { ok: true, text: String(a.text || '') } : { ok: false, error: String(a?.error || '…') }))
       .catch((err) => tell('answer', { ok: false, error: String(err?.message || '…') }));
     return { id };
@@ -217,9 +231,7 @@ function createPocket({
     // the challenge signed with one of this phone's keys: a session for it
     'POST /api/hello': (device, body, res) => {
       const keys = phones().filter((p) => p.id === device.node);
-      const ch = challenges.get(String(body?.challenge || ''));
-      challenges.delete(String(body?.challenge || '')); // a challenge works once, right or wrong
-      if (!keys.length || !ch || ch.node !== device.node || Date.now() - ch.at > CHALLENGE_MS) throw new PocketError('noChallenge');
+      if (!spend(device, body?.challenge, 'hello') || !keys.length) throw new PocketError('noChallenge');
       if (!keys.some((p) => verify(p.key, signed(body.challenge), body.sig))) throw new PocketError('badSig');
       const token = crypto.randomBytes(32).toString('base64url');
       sessions.set(token, { node: device.node, until: Date.now() + SESSION_MS });
@@ -235,6 +247,23 @@ function createPocket({
       const text = typeof body?.text === 'string' ? body.text.trim() : '';
       if (!text || text.length > MAX_TEXT) throw new PocketError('badText', 400);
       return send(device, text);
+    },
+    // a challenge for one order (her app signs it with the order, after your fingerprint)
+    'GET /api/challenge': (device, _body, _res, req) => {
+      session(req, device);
+      return { challenge: challenge(device.node, 'order') };
+    },
+    // an order from her app: only a key her app made (not a page in a browser) may give one, each signed on
+    // its own, after your fingerprint; then she does it, as if you'd typed it at the PC
+    'POST /api/order': (device, body, _res, req) => {
+      session(req, device);
+      const text = typeof body?.text === 'string' ? body.text.trim() : '';
+      if (!text || text.length > MAX_TEXT) throw new PocketError('badText', 400);
+      const keys = phones().filter((p) => p.id === device.node && p.via === 'app');
+      if (!keys.length) throw new PocketError('notApp');
+      if (!spend(device, body?.challenge, 'order')) throw new PocketError('noChallenge');
+      if (!keys.some((p) => verify(p.key, orderSigned(body.challenge, text), body.sig))) throw new PocketError('badSig');
+      return send(device, text, true);
     },
     'POST /api/bye': (device, _body, res, req) => {
       sessions.delete(session(req, device));
@@ -379,4 +408,4 @@ function createPocket({
   };
 }
 
-module.exports = { createPocket, publicKey, phoneRecord, verify, signed, PocketError, PORT, PAIR_MS, PAIR_TRIES, MAX_TEXT };
+module.exports = { createPocket, publicKey, phoneRecord, verify, signed, orderSigned, PocketError, PORT, PAIR_MS, PAIR_TRIES, MAX_TEXT };

@@ -325,6 +325,12 @@ function pocket(s, t) {
         ]
         : row(null, button(t.pocketPair, 'pocketPair', null, { class: 'grow is-on' })),
       el('p', { class: 'note' }, t.pocketSteps)),
+    // what her app had her do, each order confirmed with your fingerprint: newest first
+    k.url && section(t.pocketOrders,
+      k.orders.length
+        ? k.orders.map((o) => el('p', { class: 'note' }, el('span', { class: 'code' }, `${o.when} · ${o.phone}`), ` ${o.text}`))
+        : el('p', { class: 'note' }, t.pocketOrdersNone),
+      check(t.pocketOrderTelegram, k.orderTelegram, 'pocketOrderTelegram')),
   ];
 }
 

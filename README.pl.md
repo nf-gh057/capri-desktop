@@ -184,8 +184,39 @@ obok **Jej wiadomości na telefonie, gdy mnie nie ma** w Mainframe).
 - Niosą jej kwestię, projekt i kawałek tego, co padło (najwyżej 400 znaków, z zamazanym wszystkim, co wygląda na klucz).
   Nie opuszczają twoich urządzeń.
 
-Na razie strona pokazuje je tylko, gdy jest otwarta: strona nie obudzi telefonu bez czyjegoś serwera push. Jej aplikacja
-to zrobi. Zadań z narzędziami z telefonu jeszcze nie ma.
+Na razie widać je tylko, gdy jej strona albo aplikacja jest otwarta: na razie nic nie obudzi telefonu bez czyjegoś
+serwera push.
+
+### Jej aplikacja na Androida, ze zleceniami
+
+Jej aplikacja (`android/`) to rozmowa z nią z telefonu, jak na jej stronie, z jedną rzeczą więcej: **zleceniami**, czyli
+tym, co Capri robi na twoim komputerze. Chodzi o jej moce (otwieranie aplikacji, muzyka, przypomnienia) oraz Claude Code
+albo Codex zmieniające pliki w swoim folderze.
+
+- **Otwiera ją twój odcisk palca.** Klucz aplikacji jest w bezpiecznym sprzęcie telefonu (Android Keystore) i da się go
+  użyć tylko zaraz po odcisku palca, raz na użycie. Otwarcie aplikacji podpisuje jedno wyzwanie i daje sesję do rozmowy,
+  która tylko czyta, jak na jej stronie. Odłożona aplikacja się blokuje, a jej sesja kończy.
+- **Każde zlecenie to znów twój odcisk.** Zaznacz **Zlecenie**, a jej klucz podpisze to zlecenie, słowo w słowo, z własnym
+  wyzwaniem. Capri sprawdza podpis i robi to, jakbyś napisał to przy komputerze.
+- **Zlecenia daje tylko jej aplikacja.** Jej strona w przeglądarce i Telegram tylko rozmawiają.
+- **Na komputerze** Claude Code dostaje tylko narzędzia do czytania i edycji (bez powłoki, sieci i serwerów MCP), a Codex
+  swoją piaskownicę `workspace-write` bez sieci, oba w folderze agenta z Mainframe. Nigdy pełny dostęp.
+- **Każde zlecenie jest zapisane** w Mainframe › HOLO › TAILSCALE › **Zlecenia z jej aplikacji**, a w jej czacie oznaczone
+  jako **ZLECENIE**. Gdy jej bot na Telegramie jest sparowany na tym komputerze, każde zlecenie trafia też tam
+  (domyślnie włączone), więc takie, którego nie dałeś, nie przejdzie niezauważone.
+
+**Instalacja**
+
+1. Zbuduj ją: `cd android`, potem `gradlew assembleDebug` (potrzebne Android Studio, dla jego SDK i Javy). Aplikacja
+   ląduje w `android/app/build/outputs/apk/debug/app-debug.apk`.
+2. Wgraj ją na telefon: z włączonym **Debugowaniem bezprzewodowym** (Opcje programisty) `adb pair` i `adb connect` do
+   telefonu, potem `adb install -r` tego pliku. Albo skopiuj plik na telefon i go otwórz (pozwól menedżerowi plików
+   instalować nieznane aplikacje).
+3. Sparuj ją: w Mainframe kliknij **Sparuj telefon** i zeskanuj kod QR aparatem telefonu. Na jej stronie dotknij
+   **Sparuj aplikację Capri**, potem **Sparuj** w aplikacji, i przyłóż palec.
+
+Dodanie nowego odcisku palca w telefonie kończy jej klucz: sparuj aplikację ponownie. Nie powiadamia jeszcze w tle i nie ma
+jeszcze widżetu (zob. `TODO.md`).
 
 ### Rój
 
@@ -470,6 +501,7 @@ src/main/
   swarm.js               rój: parowanie komputerów, szyfrowane wiadomości między nimi, przy którym jesteś
   pocket.js              jej strona na telefonie przez Tailscale: kto się łączy (whois), parowanie kluczem, sesje
 src/pocket/              ta strona (HTML, jej skrypt i style, manifest do ekranu głównego)
+android/                 jej aplikacja (Kotlin, bez bibliotek): klucz w Android Keystore za odciskiem palca, czat, zlecenia
   mind.js                jej wspólny umysł: to, co wie na wszystkich komputerach, wymieniane i scalane (wyspa nadrabia)
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
   screengrab.js / .ps1   kawałki ekranu w kilka ms, do rozdarcia przy teleporcie (pomocnik w PowerShellu, GDI)

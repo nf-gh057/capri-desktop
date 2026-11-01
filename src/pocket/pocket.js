@@ -4,6 +4,7 @@
 // her chat: the one on your desktop, her answer coming in as she writes it.
 
 const $ = (id) => document.getElementById(id);
+const APP = 'io.github.nfgh057.capri'; // her app on Android (android/)
 let t = {};
 let keys = null;    // this phone's key pair (CryptoKey objects, as IndexedDB keeps them)
 let events = null;  // her answers as they come (EventSource)
@@ -224,6 +225,15 @@ async function boot() {
   show('pair');
   if (code && start.pairing) {
     $('code').value = code;
+    // on Android, her app may be the one to pair: the code goes to it, and only to it (its package)
+    if (/Android/i.test(navigator.userAgent)) {
+      const link = $('pairApp');
+      link.href = `intent://pair?u=${encodeURIComponent(location.origin)}&c=${encodeURIComponent(code)}#Intent;scheme=capri;package=${APP};end`;
+      link.textContent = t.pairApp || 'Capri';
+      link.hidden = false;
+      $('pairGo').textContent = t.pairBrowser || t.pair || 'OK';
+      return;
+    }
     await pair(code);
   }
 }

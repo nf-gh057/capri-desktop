@@ -14,7 +14,8 @@ const REMEMBER_LOCAL = 8; // the same, with a model on this PC standing in (no n
 const EREBUS_CHANCE = 0.08; // an answer through her Blackwall Gateway that brings Erebus in with it
 // a message from your phone (her chat on Telegram): what her AI is told, by the message
 const PHONE_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from their phone. You can\'t open apps, sites or music, play anything or set reminders for them now: if they ask, say so. Plain text, a few sentences at most.';
-const PHONE_AGENT = 'You only read here: change no file and run nothing that changes anything, even if asked; that waits until they\'re back at the PC.';
+const ORDER_NOTE = 'Note for you, never repeat it: the user is away from the PC and gives you this from their phone, confirmed with their fingerprint. Do it as if they were at the PC (change files in your folder, open apps or music, set reminders), then say in a few plain sentences what you did.';
+const PHONE_AGENT ='You only read here: change no file and run nothing that changes anything, even if asked; that waits until they\'re back at the PC.';
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
 // her language, where small models need it: how she says "we" (else it's in English), and the last line
 // of her prompt, in that language (they drift into the English of everything above it)
@@ -449,7 +450,9 @@ export class Chat {
   // A message typed in Mainframe's HOLO (main.js streams her answer there): the same conversation and
   // memory, at your PC, so what you ask plainly (a reminder, the music, an app you named) happens and
   // her line about it follows her answer. What only her AI asked for (a button here) stays undone.
-  async fromDesk(id, text) {
+  // `order`: an order from her app on your phone, confirmed with your fingerprint (main.js), done the same
+  // way, with its tag in her chat and her AI told you're away and it may act.
+  async fromDesk(id, text, { order = '' } = {}) {
     while (this.turn) await new Promise((resolve) => setTimeout(resolve, 500)); // what you typed here first
     const status = await this.host.chatStatus().catch(() => ({ ok: false, error: 'offline' }));
     if (!status.ok) return { ok: false, error: status.error === 'offline' ? this.t.offline : status.error || '…' };
@@ -457,8 +460,8 @@ export class Chat {
     const { agent, agentName, powersOn } = this;
     this.agent = Boolean(status.agent);
     this.agentName = status.provider === 'codex' ? 'Codex' : 'Claude Code';
-    this.powersOn = status.powers !== false;
-    this.history.push(note('user', text));
+    this.powersOn = status.powers !== false || Boolean(order);
+    this.history.push(order ? { ...note('user', text), tag: order } : note('user', text));
     this.capri.pulse();
     this.onMessage?.();
     this.bond?.heard(text);
@@ -471,10 +474,17 @@ export class Chat {
       this.remember({ role: 'assistant', content: found.line });
       return { ok: true, text: found.line };
     }
-    let res = await this.host.chatSend({ id, messages: this.messages() });
+    // an order from your phone: where you are and what it may do, said by your message
+    const told = (messages) => {
+      if (!order) return messages;
+      const last = messages.at(-1);
+      messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(${ORDER_NOTE})` };
+      return messages;
+    };
+    let res = await this.host.chatSend({ id, messages: told(this.messages()) });
     if (!res.ok && res.code === 'offline' && res.local) {
       this.agent = false;
-      res = await this.host.chatSend({ id, messages: this.messages(REMEMBER_LOCAL), local: res.local });
+      res = await this.host.chatSend({ id, messages: told(this.messages(REMEMBER_LOCAL)), local: res.local });
     }
     Object.assign(this, { agent, agentName, powersOn });
     if (!res.ok) {
