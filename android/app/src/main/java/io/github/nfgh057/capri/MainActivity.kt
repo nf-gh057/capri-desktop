@@ -329,10 +329,11 @@ class MainActivity : Activity() {
                     if (m.has("line")) note(m, false) else bubble(m.optString("role") == "user", m.optString("content"))
                 }
                 pending?.let { log.addView(it.second) }
-                // her widget: the last thing she said, from her chat as it is now (said elsewhere too)
-                all.sortedBy { it.optLong("at") }.lastOrNull { it.has("line") || it.optString("role") == "assistant" }?.let { m ->
-                    Widget.show(this, if (m.has("line")) listOf(m.optString("project"), m.optString("line")).filter { it.isNotEmpty() }.joinToString(" · ") else clean(m.optString("content")))
-                }
+                // her widget: your last words with her, from her chat as it is now (said elsewhere too)
+                Widget.set(this, all.sortedBy { it.optLong("at") }.map { m ->
+                    if (m.has("line")) false to listOf(m.optString("project"), m.optString("line")).filter { it.isNotEmpty() }.joinToString(" · ")
+                    else (m.optString("role") == "user") to (if (m.optString("role") == "user") m.optString("content") else clean(m.optString("content")))
+                }.filter { it.second.isNotBlank() }, word("you", ""))
                 down()
             }
         }
@@ -368,13 +369,13 @@ class MainActivity : Activity() {
                 pending = null
                 send.isEnabled = true
                 view.text = if (data.optBoolean("ok")) clean(data.optString("text")) else "${word("failed", "")} ${data.optString("error")}"
-                if (data.optBoolean("ok")) Widget.show(this, clean(data.optString("text")))
+                if (data.optBoolean("ok")) Widget.add(this, false, clean(data.optString("text")))
             }
             "note" -> if (notes.none { it.optString("id") == id }) {
                 notes.add(data)
                 prefs.edit().putLong("since", data.optLong("at")).apply()
                 note(data, true)
-                Widget.show(this, listOf(data.optString("project"), data.optString("line")).filter { it.isNotEmpty() }.joinToString(" · "))
+                Widget.add(this, false, listOf(data.optString("project"), data.optString("line")).filter { it.isNotEmpty() }.joinToString(" · "))
             }
         }
         down()
@@ -440,6 +441,7 @@ class MainActivity : Activity() {
                     fingerprint(word("confirmTitle", "Order"), "→ $name: ${words.take(110)}") { signer ->
                         send.isEnabled = false
                         bubble(true, "${word("order", "Order")} → $name: $words")
+                        Widget.add(this, true, "→ $name: $words")
                         val view = bubble(false, word("thinking", "…"))
                         down()
                         work.execute {
@@ -451,7 +453,7 @@ class MainActivity : Activity() {
                                 val a = done.getOrNull()
                                 view.text = when {
                                     a == null -> "$name: ${word("offline", getString(R.string.offline))}"
-                                    a.optBoolean("ok") -> "$name: ${clean(a.optString("text"))}".also { Widget.show(this, it) }
+                                    a.optBoolean("ok") -> "$name: ${clean(a.optString("text"))}".also { Widget.add(this, false, it) }
                                     else -> "$name: ${word("failed", "")} ${a.optString("error")}"
                                 }
                                 down()
@@ -466,6 +468,7 @@ class MainActivity : Activity() {
     private fun posted(id: Result<String>, words: String, isOrder: Boolean) = runOnUiThread {
         id.onSuccess {
             bubble(true, if (isOrder) "${word("order", "Order")}: $words" else words)
+            Widget.add(this, true, words)
             val view = bubble(false, word("thinking", "…"))
             view.tag = "wait"
             pending = it to view

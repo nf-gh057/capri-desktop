@@ -1,42 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Her widget: her latest words in yellow on dark, "Write" in red under them, as in Mainframe -->
+<!-- Her widget, as calls in her game: your last words with her (hers red on the left, yours green on the right) on
+     the home screen as it is (no background), and under them MSG, her name in a red call box, to write to her -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_back"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="6dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:letterSpacing="0.15"
-        android:text="CAPRI"
-        android:textColor="#FF5F56"
-        android:textSize="12sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widget_text"
+    <LinearLayout
+        android:id="@+id/widget_log"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="4dp"
         android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="4"
-        android:textColor="#F2E750"
-        android:textSize="14sp" />
+        android:gravity="bottom"
+        android:orientation="vertical" />
 
     <TextView
-        android:id="@+id/widget_write"
+        android:id="@+id/widget_msg"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="end"
+        android:layout_marginStart="14dp"
         android:layout_marginTop="6dp"
-        android:background="@drawable/widget_button"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="6dp"
-        android:textColor="#FF5F56"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.08"
+        android:shadowColor="#CC000000"
+        android:shadowRadius="4"
+        android:text="MSG"
+        android:textColor="#FFE8392D"
+        android:textSize="22sp" />
+
+    <LinearLayout
+        android:id="@+id/widget_write"
+        android:layout_width="wrap_content"
+        android:layout_height="46dp"
+        android:layout_marginTop="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="8dp"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_msg_bar" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_msg_frame"
+            android:gravity="center_vertical"
+            android:minWidth="190dp"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="30dp">
+
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="28dp"
+                android:src="@drawable/widget_msg_icon" />
+
+            <TextView
+                android:id="@+id/widget_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:fontFamily="sans-serif-condensed"
+                android:text="Capri"
+                android:textColor="#FFE8392D"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

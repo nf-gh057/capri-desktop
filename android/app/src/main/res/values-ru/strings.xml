@@ -12,6 +12,6 @@
     <string name="listening_text">Её сообщения, когда тебя нет у ПК</string>
     <string name="channel_listen">Прослушивание в фоне</string>
     <string name="channel_notes">Её сообщения</string>
-    <string name="widget_write">Написать</string>
+    <string name="widget_you">Ты</string>
     <string name="widget_empty">Пока ничего от неё.</string>
 </resources>

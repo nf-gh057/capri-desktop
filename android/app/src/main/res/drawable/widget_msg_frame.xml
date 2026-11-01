@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the MSG button's frame, as her game's call box: a red outline, its bottom right corner cut, dark inside -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="44dp"
+    android:viewportWidth="200"
+    android:viewportHeight="44">
+    <path
+        android:fillColor="#CC120A0C"
+        android:strokeColor="#FFE8392D"
+        android:strokeWidth="1.5"
+        android:pathData="M1,1H199V31L187,43H1Z" />
+</vector>

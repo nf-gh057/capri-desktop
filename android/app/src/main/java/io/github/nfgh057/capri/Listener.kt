@@ -109,7 +109,7 @@ class Listener : Service() {
         prefs.edit().putString("seen", (seen + id).takeLast(50).joinToString(",")).putLong("since", n.optLong("at")).apply()
         val title = n.optString("project").ifEmpty { "Capri" }
         val text = listOf(n.optString("line"), n.optString("quote")).filter { it.isNotEmpty() }.joinToString("\n")
-        Widget.show(this, "$title · ${n.optString("line")}")
+        Widget.add(this, false, "$title · ${n.optString("line")}")
         if (appOpen) return
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val shown = Notification.Builder(this, NOTES)

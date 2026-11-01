@@ -13,6 +13,6 @@
     <string name="listening_text">Her notes while you’re away from your PCs</string>
     <string name="channel_listen">Listening in the background</string>
     <string name="channel_notes">Her notes</string>
-    <string name="widget_write">Write</string>
+    <string name="widget_you">You</string>
     <string name="widget_empty">Nothing from her yet.</string>
 </resources>

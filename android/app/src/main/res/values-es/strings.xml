@@ -12,6 +12,6 @@
     <string name="listening_text">Sus mensajes cuando no estás frente a tus PC</string>
     <string name="channel_listen">Escucha en segundo plano</string>
     <string name="channel_notes">Sus mensajes</string>
-    <string name="widget_write">Escribir</string>
+    <string name="widget_you">Tú</string>
     <string name="widget_empty">Nada de ella todavía.</string>
 </resources>
