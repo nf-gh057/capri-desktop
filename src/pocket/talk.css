@@ -1,0 +1,170 @@
+/* ------------------------------------------------------------------
+   Her chat's look, one for everywhere: Mainframe's HOLO and her page on
+   your phone (both link this file), her app and widget (android/, the
+   same colours and shapes, drawn for Android). As calls in her game:
+   her in red on the left, you in green on the right, Erebus in the
+   Blackwall's crimson; a square with a ring by each name; a see-through
+   bubble in a neon outline, its top right corner cut, at most 80 % of
+   the middle column; and her HUD bar to write in, after a prompt.
+   Needs --cut, --font-display, --font-mono and --text-2 from the page.
+------------------------------------------------------------------- */
+
+:root {
+  --capri: #ff5f56;      /* her (android: colors.xml capri) */
+  --capri-deep: #e8392d; /* her frames */
+  --you: #57e389;        /* you */
+  --erebus: #ff1f4b;     /* Erebus, the Blackwall's crimson */
+}
+
+/* one message in three columns no line shows: her square, the words, yours */
+.chat-row {
+  --who: var(--capri);
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 8px;
+  align-items: start;
+}
+.chat-row--you {
+  --who: var(--you);
+}
+.chat-row--erebus {
+  --who: var(--erebus);
+}
+.chat-row__face {
+  width: 34px;
+  height: 34px;
+}
+.chat-row--you .chat-row__mid {
+  text-align: right;
+}
+.chat-row__name {
+  margin: 0 0 3px;
+  color: var(--who);
+  font: 600 12px/1.2 var(--font-display);
+  letter-spacing: 0.06em;
+}
+.chat-row__tag {
+  margin: 0 6px;
+  color: var(--text-2);
+  font: 400 10px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.chat-row__at {
+  margin-left: 6px;
+  color: var(--text-2);
+  font: 400 10px/1 var(--font-mono);
+  letter-spacing: 0;
+}
+
+/* the bubble: a wash of the speaker's colour, a neon outline, the words in a lighter shade */
+.msg {
+  position: relative;
+  display: inline-block;
+  max-width: 80%;
+  padding: 7px 12px 6px;
+  border: 1px solid var(--who);
+  background: color-mix(in srgb, var(--who) 15%, transparent);
+  color: color-mix(in srgb, var(--who) 35%, #fff);
+  text-align: left;
+  clip-path: var(--cut);
+}
+/* its cut corner closed: the clip takes the border's corner with it, so the corner's edge is drawn here */
+.msg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(to bottom left, transparent calc(50% - 1px), var(--edge, var(--who)) calc(50% - 1px),
+    var(--edge, var(--who)) calc(50% + 1px), transparent calc(50% + 1px));
+  pointer-events: none;
+}
+.msg__text {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* what else she said (Claude, Codex, a reminder…), and your prompts to them: dimmer, no wash */
+.msg--line {
+  --edge: color-mix(in srgb, var(--who) 45%, transparent);
+  border-color: var(--edge);
+  background: transparent;
+  color: color-mix(in srgb, var(--who) 55%, #c8b8b6);
+}
+.msg--line.is-error {
+  --edge: var(--capri);
+  border-color: var(--capri);
+  color: var(--capri);
+}
+/* Erebus talking through her: thicker, glowing in from its frame */
+.chat-row--erebus .msg {
+  border-width: 2px;
+  background: rgba(255, 31, 75, 0.1);
+  box-shadow: inset 0 0 18px rgba(255, 31, 75, 0.35);
+  color: #ff8fa6;
+}
+.msg__quote {
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid currentColor;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg.is-streaming {
+  border-style: dashed;
+}
+
+/* her HUD bar: her frame with its ends cut (drawn whole, at any width), a prompt as in a terminal, buttons */
+.hud {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 10px solid transparent;
+  border-image: url('hud-frame.svg') 10 fill / 10px stretch;
+  padding: 0 2px;
+}
+.hud__prompt {
+  flex: none;
+  color: var(--you);
+  font: 500 13px/1 var(--font-mono);
+  white-space: nowrap;
+}
+.hud__prompt b {
+  color: var(--capri);
+  font-weight: 500;
+}
+.hud__input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #f3e9e8;
+  font: 400 13px/1.4 var(--font-mono);
+  caret-color: var(--you);
+  resize: none;
+}
+.hud__btn {
+  flex: none;
+  width: 40px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.hud__btn img {
+  display: block;
+  width: 40px;
+  height: 32px;
+}
+.hud__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

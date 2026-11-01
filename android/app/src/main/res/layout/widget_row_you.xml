@@ -23,12 +23,12 @@
             android:id="@+id/row_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-condensed"
+            android:fontFamily="@font/chakra_petch_semibold"
             android:shadowColor="#CC000000"
             android:shadowRadius="4"
             android:textColor="#FF57E389"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textSize="13sp"
+            />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -51,16 +51,14 @@
                     android:id="@+id/row_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/widget_bubble_you"
+                    android:background="@drawable/bubble_you"
                     android:ellipsize="end"
-                    android:fontFamily="sans-serif-condensed"
+                    android:fontFamily="@font/jetbrains_mono"
                     android:maxLines="3"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="5dp"
                     android:shadowColor="#E6000000"
                     android:shadowRadius="4"
                     android:textColor="#FFC9F7D4"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

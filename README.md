@@ -522,6 +522,7 @@ src/main/
   pocket.js              her page on your phone over Tailscale: who's calling (whois), pairing with a key, sessions
   attest.js              Google's attestation of her app's key, checked (attest-roots.json: Google's roots)
 src/pocket/              that page (HTML, its script and styles, a manifest for the home screen)
+  talk.css               her chat's look, shared by Mainframe's HOLO and that page (her app and widget draw the same)
 android/                 her app (Kotlin, no libraries): her key in Android Keystore behind your fingerprint, chat, orders
   mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
@@ -529,6 +530,7 @@ android/                 her app (Kotlin, no libraries): her key in Android Keys
 src/renderer/js/
   mainframe.js           Mainframe's page: its tabs, HOLO
   talk.js                what she says of her own, in her words: when, how often, and kept in her chat
+tools/build-ninepatch.py her chat's frames for Android (bubbles, HUD bar) as 9-patch images, cut corners drawn whole
 tools/build-poses.py     her pose drawings from generated pictures: keyed, her colours, placed on her sprite (POSES)
 ```
 

@@ -16,4 +16,5 @@
     <string name="widget_empty">Пока ничего от неё.</string>
     <string name="widget_call">Поговорить с ней</string>
     <string name="widget_write">Написать ей</string>
+    <string name="voice_soon">Голосом с ней: скоро.</string>
 </resources>

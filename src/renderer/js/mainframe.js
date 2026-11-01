@@ -392,7 +392,7 @@ function system(s, t) {
 }
 
 // HOLO, like her game's messages: who's there down the left (her, your phone), the conversation on the
-// right: her chat and everything else she said, her in yellow on the left, you in cyan on the right
+// right: her chat and everything else she said, her in red on the left, you in green on the right
 const unTagged = (text) => String(text).replace(/\[\[[^\]]*\]\]/g, '').trim(); // [[open: …]], as her chat hides them
 
 function when(at) {
@@ -401,31 +401,44 @@ function when(at) {
   return new Intl.DateTimeFormat(state.lang, today ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
 }
 
-// who it's from on top: "> CAPRI" what she said, "< YOU" (your name, as she calls you) what you sent,
-// "→ CODEX" if not to her
-function head(you, to, ...more) {
-  return el('p', { class: 'msg__head' },
-    el('span', { class: 'msg__who' }, you ? `< ${state.capri.userName || state.t.holoYou}` : '> CAPRI'),
-    to ? ` → ${to}` : '',
-    more.filter(Boolean).map((part) => ` · ${part}`).join(''));
+// One message as calls in her game (talk.css): who it's from, her square on the left or yours on the right,
+// a tag (what she said it about, where it went) and when, over its bubble
+const FACES = { capri: '../pocket/face-capri.svg', you: '../pocket/face-you.svg', erebus: '../pocket/face-erebus.svg' };
+function talkRow(who, bubble, { tag = '', at = 0 } = {}) {
+  const you = who === 'you';
+  const face = el('img', { class: 'chat-row__face', src: FACES[who], alt: '' });
+  const name = who === 'erebus' ? 'EREBUS' : you ? state.capri.userName || state.t.holoYou : 'Capri';
+  const head = el('p', { class: 'chat-row__name' }, name, tag && el('span', { class: 'chat-row__tag' }, tag), at ? el('span', { class: 'chat-row__at' }, when(at)) : null);
+  return el('div', { class: `chat-row chat-row--${who}` }, you ? el('span') : face, el('div', { class: 'chat-row__mid' }, head, bubble), you ? face : el('span'));
 }
 
+const bubble = (cls, ...children) => el('div', { class: `msg ${cls}` }, ...children);
+const words = (text) => el('p', { class: 'msg__text' }, text);
+
 function message(m) {
-  const at = m.at ? el('span', { class: 'msg__at' }, when(m.at)) : null;
   // in her chat too: what you sent Claude Code or Codex (`to`), when she said something of her own about it
-  if (m.role === 'user') return el('div', { class: `msg msg--you ${m.to ? 'msg--line' : ''}` }, head(true, m.to, m.tag), el('p', { class: 'msg__text' }, m.content), at);
-  if (m.role === 'assistant') return el('div', { class: 'msg msg--her' }, head(false), el('p', { class: 'msg__text' }, unTagged(m.content)), at);
+  const to = (m) => [m.to && `→ ${m.to}`, m.tag].filter(Boolean).join(' · ');
+  if (m.role === 'user') return talkRow('you', bubble(m.to ? 'msg--line' : '', words(m.content)), { tag: to(m), at: m.at });
+  if (m.role === 'assistant') return talkRow('capri', bubble('', words(unTagged(m.content))), { at: m.at });
   // your prompt to Claude Code or Codex first, then what she said about it (from before 0.4.4-31: her
   // line about your prompt, with it clipped under it)
   const asked = m.asked || (m.kind === 'work' && m.tag && m.quote) || '';
   return [
-    asked && el('div', { class: 'msg msg--you msg--line' }, head(true, m.to, m.tag), el('p', { class: 'msg__text' }, asked), at),
-    m.line && el('div', { class: `msg msg--her msg--line is-${m.kind || 'info'} ${m.erebus ? 'msg--erebus' : ''}` },
-      head(false, null, m.badge, !asked && m.tag),
-      el('p', { class: 'msg__text' }, m.line),
-      m.quote && !asked && el('p', { class: 'msg__quote' }, m.quote),
-      asked ? '' : at),
+    asked && talkRow('you', bubble('msg--line', words(asked)), { tag: to(m), at: m.at }),
+    m.line && talkRow(m.erebus ? 'erebus' : 'capri',
+      bubble(`msg--line is-${m.kind || 'info'}`, words(m.line), m.quote && !asked && el('p', { class: 'msg__quote' }, m.quote)),
+      { tag: [m.badge, !asked && m.tag].filter(Boolean).join(' · '), at: asked ? 0 : m.at }),
   ];
+}
+
+// her HUD bar to write in (talk.css): a prompt as in a terminal ("n@capri:~$"), the line, and send
+function hud(input, go, busy) {
+  const you = String(state.capri.userName || 'you').toLowerCase().replace(/\s+/g, '');
+  return el('div', { class: 'hud' },
+    el('span', { class: 'hud__prompt', 'aria-hidden': 'true' }, `${you}@`, el('b', {}, 'capri'), ':~$'),
+    input,
+    el('button', { type: 'button', class: 'hud__btn', title: state.t.holoSend, 'aria-label': state.t.holoSend, disabled: busy, onclick: go },
+      el('img', { src: '../pocket/send.svg', alt: '' })));
 }
 
 function holo(s, t) {
@@ -447,12 +460,12 @@ function holo(s, t) {
     !all.length && !pending && el('p', { class: 'note log__empty' }, t.holoEmpty),
     all.map(message),
     pending && [
-      el('div', { class: 'msg msg--you' }, head(true), el('p', { class: 'msg__text' }, h.turn.text)),
-      el('div', { class: 'msg msg--her is-streaming' }, head(false), el('p', { class: 'msg__text' }, unTagged(h.turn.answer) || '…')),
+      talkRow('you', bubble('', words(h.turn.text))),
+      talkRow('capri', bubble('is-streaming', words(unTagged(h.turn.answer) || '…'))),
     ]);
   log.addEventListener('scroll', () => { stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30; });
   const input = el('input', {
-    type: 'text', class: 'input grow', placeholder: t.holoPlaceholder, 'aria-label': t.holoPlaceholder,
+    type: 'text', class: 'hud__input', 'aria-label': t.holoPlaceholder,
     autocomplete: 'off', spellcheck: true, 'data-keep': 'holo', disabled: Boolean(h.turn),
   });
   const go = () => {
@@ -466,8 +479,7 @@ function holo(s, t) {
   return el('div', { class: 'holo' }, list,
     el('div', { class: 'holo__talk' },
       log,
-      el('p', { class: 'reply__label' }, t.holoReply),
-      el('div', { class: 'reply' }, input, el('button', { type: 'button', class: 'button is-on', disabled: Boolean(h.turn), onclick: go }, t.holoSend))));
+      hud(input, go, Boolean(h.turn))));
 }
 
 const PAGES = {

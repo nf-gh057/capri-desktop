@@ -187,14 +187,18 @@ function forgetChats() {
 // capri://app/...        -> files of this repo
 // capri://usersounds/... -> the user's own sound overrides
 function serveProtocol() {
-  protocol.handle('capri', (request) => {
+  protocol.handle('capri', async (request) => {
     const url = new URL(request.url);
     const base = url.host === 'usersounds' ? userSoundsDir() : ROOT;
     const target = path.resolve(base, '.' + decodeURIComponent(url.pathname));
     if (target !== base && !target.startsWith(base + path.sep)) {
       return new Response('forbidden', { status: 403 });
     }
-    return net.fetch(pathToFileURL(target).toString());
+    // never kept: a style or script changed on disk (an update, a dev's edit) is what a reload shows
+    const res = await net.fetch(pathToFileURL(target).toString());
+    const headers = new Headers(res.headers);
+    headers.set('cache-control', 'no-store');
+    return new Response(res.body, { status: res.status, headers });
   });
 }
 
@@ -1296,6 +1300,7 @@ async function runSyncPocket() {
         // (only those answering now: a PC that's off or gone has no page to go to)
         pcs: () => (hive?.state().peers || []).filter((p) => p.online && p.pocket).map((p) => ({ name: p.name, url: p.pocket, active: p.active })),
         here: () => (hive ? hive.state().here : true),
+        online: () => 1 + (hive?.state().peers.filter((p) => p.online).length || 0),
         // an order naming another PC of your swarm: her app sends it there itself (the swarm never carries one)
         route: (text) => {
           const target = orderTarget(text);

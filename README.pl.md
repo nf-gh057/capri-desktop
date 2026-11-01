@@ -538,6 +538,7 @@ src/main/
   pocket.js              jej strona na telefonie przez Tailscale: kto się łączy (whois), parowanie kluczem, sesje
   attest.js              poświadczenie klucza jej aplikacji od Google, sprawdzane (attest-roots.json: certyfikaty Google)
 src/pocket/              ta strona (HTML, jej skrypt i style, manifest do ekranu głównego)
+  talk.css               wygląd jej czatu, wspólny dla HOLO w Mainframe i tej strony (aplikacja i widżet rysują to samo)
 android/                 jej aplikacja (Kotlin, bez bibliotek): klucz w Android Keystore za odciskiem palca, czat, zlecenia
   mind.js                jej wspólny umysł: to, co wie na wszystkich komputerach, wymieniane i scalane (wyspa nadrabia)
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
@@ -545,6 +546,7 @@ android/                 jej aplikacja (Kotlin, bez bibliotek): klucz w Android 
 src/renderer/js/
   mainframe.js           strona Mainframe: zakładki, HOLO
   talk.js                to, co mówi sama, własnymi słowami: kiedy, jak często, zapisane w jej czacie
+tools/build-ninepatch.py ramki jej czatu dla Androida (dymki, listwa HUD) jako obrazy 9-patch, z całymi ściętymi rogami
 tools/build-poses.py     jej pozy z wygenerowanych obrazków: wycięte, w jej kolorach, ułożone na jej sprite (POSES)
 ```
 

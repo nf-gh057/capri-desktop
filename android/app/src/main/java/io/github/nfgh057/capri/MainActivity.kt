@@ -18,14 +18,16 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.text.InputType
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -55,13 +57,18 @@ class MainActivity : Activity() {
     private lateinit var log: LinearLayout
     private lateinit var scroll: ScrollView
     private lateinit var input: EditText
-    private lateinit var order: CheckBox
-    private lateinit var send: Button
+    private lateinit var orderBtn: ImageButton
+    private var orderOn = false // what you send next is an order (the bolt on her bar)
+    private lateinit var send: ImageButton
+    private lateinit var promptView: TextView
+    private val mono by lazy { resources.getFont(R.font.jetbrains_mono) }
+    private val chakra by lazy { resources.getFont(R.font.chakra_petch_semibold) }
 
     private val bg = Color.rgb(11, 10, 15)
     private val red = Color.rgb(255, 95, 86)
     private val yellow = Color.rgb(242, 231, 80)
     private val cyan = Color.rgb(94, 246, 255)
+    private val green = Color.rgb(87, 227, 137)
     private val dim = Color.rgb(170, 150, 150)
 
     override fun onCreate(state: Bundle?) {
@@ -154,6 +161,7 @@ class MainActivity : Activity() {
                 start.onSuccess { s ->
                     t = s.optJSONObject("t") ?: JSONObject()
                     remember(api.origin, s)
+                    Widget.online(this, s.optInt("online", 0))
                     // this PC doesn't know her app's key (yet): said so, and the others to go to
                     if (!s.optBoolean("paired")) return@runOnUiThread say(getString(R.string.unknown_here, s.optString("name")), getString(R.string.other_pc)) { elsewhere(api.origin) }
                     say(word("unlockSub", ""), word("unlock", "Unlock")) { unlock() }
@@ -286,9 +294,10 @@ class MainActivity : Activity() {
 
     private fun open() {
         unlocked = true
-        order.text = word("order", "Order")
-        input.hint = word("placeholder", "")
-        send.text = word("send", "Send")
+        orderBtn.contentDescription = word("order", "Order")
+        input.contentDescription = word("placeholder", "")
+        send.contentDescription = word("send", "Send")
+        prompt()
         message.visibility = View.GONE
         action.visibility = View.GONE
         chat.visibility = View.VISIBLE
@@ -389,8 +398,8 @@ class MainActivity : Activity() {
         val words = text.trim()
         if (words.isEmpty()) return
         input.setText("")
-        val isOrder = order.isChecked
-        order.isChecked = false
+        val isOrder = orderOn
+        order(false)
         val api = api ?: return
         send.isEnabled = false
         if (!isOrder) {
@@ -499,7 +508,7 @@ class MainActivity : Activity() {
             text = "CAPRI"
             setTextColor(red)
             textSize = 18f
-            typeface = Typeface.DEFAULT_BOLD
+            typeface = chakra
             letterSpacing = 0.15f
             setPadding(dp(16), dp(12), dp(16), dp(10))
         }
@@ -507,28 +516,41 @@ class MainActivity : Activity() {
         action = Button(this).apply { visibility = View.GONE; setTextColor(red); setBackgroundColor(Color.rgb(40, 18, 20)) }
         log = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(8), dp(12), dp(8)) }
         scroll = ScrollView(this).apply { addView(log); isFillViewport = true }
+        // her HUD bar, as in Mainframe's HOLO (talk.css): a prompt as in a terminal, the line, and order, talk, send
+        promptView = TextView(this).apply { typeface = mono; textSize = 13f }
         input = EditText(this).apply {
             setTextColor(Color.WHITE)
-            setHintTextColor(dim)
+            typeface = mono
+            textSize = 13f
+            background = null
+            setPadding(dp(6), dp(6), dp(4), dp(6))
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             maxLines = 5
             imeOptions = EditorInfo.IME_ACTION_SEND
         }
-        order = CheckBox(this).apply { setTextColor(yellow); buttonTintList = android.content.res.ColorStateList.valueOf(yellow) }
-        send = Button(this).apply { setTextColor(red); setBackgroundColor(Color.rgb(40, 18, 20)); setOnClickListener { sendText(input.text.toString()) } }
+        fun icon(drawable: Int, click: () -> Unit) = ImageButton(this).apply {
+            setImageResource(drawable)
+            background = null
+            setPadding(0, 0, 0, 0)
+            setOnClickListener { click() }
+        }
+        orderBtn = icon(R.drawable.btn_order) { order(!orderOn) }
+        val talk = icon(R.drawable.widget_btn_call) { Toast.makeText(this, getString(R.string.voice_soon), Toast.LENGTH_SHORT).show() }
+        talk.contentDescription = getString(R.string.widget_call)
+        send = icon(R.drawable.btn_send) { sendText(input.text.toString()) }
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), dp(4), dp(12), dp(8))
+            setBackgroundResource(R.drawable.hud_frame)
+            addView(promptView)
             addView(input, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
-            addView(send, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+            for (b in listOf(orderBtn, talk, send)) addView(b, LinearLayout.LayoutParams(dp(40), dp(32)).apply { marginStart = dp(6) })
         }
         chat = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
             addView(scroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
-            addView(order, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(12) })
-            addView(bar)
+            addView(bar, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { setMargins(dp(8), dp(4), dp(8), dp(8)) })
         }
         // her name and the PC on the left, her app's version on the right
         val version = TextView(this).apply {
@@ -560,31 +582,44 @@ class MainActivity : Activity() {
         action.setOnClickListener { onClick?.invoke() }
     }
 
-    private fun box(color: Int, fill: Int) = GradientDrawable().apply { setStroke(dp(1), color); setColor(fill) }
-
-    // one message: hers in yellow on the left, yours in cyan on the right, as in Mainframe's HOLO
-    private fun bubble(you: Boolean, text: String): TextView {
-        val view = TextView(this).apply {
+    // One message as calls in her game, the same as on her widget and in Mainframe's HOLO: hers red on the left,
+    // yours green on the right, each under its name with its square, in a bubble at most 80 % of the middle
+    // (widget_row_*.xml); its words, to change as her answer comes
+    private fun bubble(you: Boolean, text: String, tag: String = ""): TextView {
+        val row = layoutInflater.inflate(if (you) R.layout.widget_row_you else R.layout.widget_row_capri, log, false)
+        row.findViewById<TextView>(R.id.row_name).text = listOf(if (you) word("you", "YOU") else "Capri", tag).filter { it.isNotEmpty() }.joinToString("  ")
+        val words = row.findViewById<TextView>(R.id.row_text).apply {
             this.text = if (you) text else clean(text)
-            textSize = 15f
-            setTextColor(if (you) cyan else yellow)
-            background = box(if (you) cyan else yellow, if (you) Color.argb(18, 94, 246, 255) else Color.argb(13, 242, 231, 80))
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            maxLines = Int.MAX_VALUE // all of it here, not three lines as on her widget
+            textSize = 14f
             setTextIsSelectable(true)
         }
-        log.addView(view, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            gravity = if (you) Gravity.END else Gravity.START
-            setMargins(if (you) dp(48) else 0, dp(5), if (you) 0 else dp(48), dp(5))
-        })
-        return view
+        log.addView(row)
+        return words
     }
 
-    // one of her notes while you were away: dimmer, its project on top
+    // one of her notes while you were away: dimmer, no wash, its project by her name
     private fun note(n: JSONObject, fresh: Boolean) {
-        val text = listOf(n.optString("project"), n.optString("line"), n.optString("quote")).filter { it.isNotEmpty() }.joinToString("\n")
-        val view = bubble(false, text)
-        view.background = box(Color.argb(115, 242, 231, 80), Color.TRANSPARENT)
+        val text = listOf(n.optString("line"), n.optString("quote")).filter { it.isNotEmpty() }.joinToString("\n")
+        val view = bubble(false, text, n.optString("project").uppercase())
+        view.setBackgroundResource(R.drawable.bubble_line_capri)
         if (fresh) down()
+    }
+
+    // the bolt on her bar: what you send next is an order (your fingerprint for it), lit up yellow
+    private fun order(on: Boolean) {
+        orderOn = on
+        orderBtn.setImageResource(if (on) R.drawable.btn_order_on else R.drawable.btn_order)
+    }
+
+    // the prompt before the line, as in a terminal: "n@capri:~$", you in green, her in red
+    private fun prompt() {
+        val you = word("you", "you").lowercase().replace(Regex("\\s+"), "")
+        promptView.text = SpannableStringBuilder().apply {
+            append("$you@", ForegroundColorSpan(green), 0)
+            append("capri", ForegroundColorSpan(red), 0)
+            append(":~$", ForegroundColorSpan(green), 0)
+        }
     }
 
     private fun clean(text: String) = text.replace(Regex("\\[\\[[^\\]]*]]"), "").trim() // [[open: …]], as her chat hides them

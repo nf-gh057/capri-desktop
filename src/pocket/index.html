@@ -14,6 +14,7 @@
   <link rel="icon" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="stylesheet" href="/pocket.css">
+  <link rel="stylesheet" href="/talk.css">
   <script src="/pocket.js" defer></script>
 </head>
 <body>
@@ -35,9 +36,11 @@
     </section>
     <section class="talk" id="chat" hidden>
       <div class="log" id="log" aria-live="polite"></div>
-      <form class="say" id="say">
-        <textarea class="input" id="text" rows="1" maxlength="4000" required></textarea>
-        <button class="button" id="send" type="submit"></button>
+      <!-- her HUD bar: a prompt as in a terminal, the line, send (talk.css) -->
+      <form class="hud say" id="say">
+        <span class="hud__prompt" id="prompt" aria-hidden="true"></span>
+        <textarea class="hud__input" id="text" rows="1" maxlength="4000" required></textarea>
+        <button class="hud__btn" id="send" type="submit"><img src="/send.svg" alt=""></button>
       </form>
     </section>
     <p class="status" id="status" hidden></p>

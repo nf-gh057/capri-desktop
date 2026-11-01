@@ -40,6 +40,13 @@ class Widget : AppWidgetProvider() {
             set(context, said(context) + (you to text))
         }
 
+        // how many PCs of your swarm answer now (her PC says, when her app or her service asks), for LNK//02
+        fun online(context: Context, count: Int) {
+            if (count <= 0 || prefs(context).getInt("online", -1) == count) return
+            prefs(context).edit().putInt("online", count).apply()
+            redraw(context)
+        }
+
         private fun said(context: Context): List<Pair<Boolean, String>> {
             val list = runCatching { JSONArray(prefs(context).getString("widgetLog", "[]")) }.getOrDefault(JSONArray())
             return (0 until list.length()).map { list.getJSONObject(it) }.map { it.optBoolean("you") to it.optString("text") }
@@ -75,6 +82,8 @@ class Widget : AppWidgetProvider() {
                     for ((mine, text) in said.takeLast(6)) views.addView(R.id.widget_log, row(mine, text))
                     views.setOnClickPendingIntent(R.id.widget_log, open)
                 }
+                val online = prefs(context).getInt("online", -1)
+                views.setTextViewText(R.id.widget_lnk, if (online > 0) "LNK//%02d".format(online) else "LNK//--")
                 views.setOnClickPendingIntent(R.id.widget_write, open)
                 // talking to her: her app for now; her voice, with the microphone, is to come (TODO.md)
                 val talk = Intent(context, MainActivity::class.java).putExtra("talk", true)

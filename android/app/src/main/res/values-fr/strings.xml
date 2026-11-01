@@ -16,4 +16,5 @@
     <string name="widget_empty">Rien d’elle pour l’instant.</string>
     <string name="widget_call">Lui parler</string>
     <string name="widget_write">Lui écrire</string>
+    <string name="voice_soon">Lui parler à voix haute : bientôt.</string>
 </resources>

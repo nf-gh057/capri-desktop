@@ -108,8 +108,7 @@ body {
   font-size: 13px;
 }
 
-.row,
-.say {
+.row {
   display: flex;
   gap: 8px;
   margin: 0 0 12px;
@@ -179,62 +178,32 @@ textarea.input {
   padding: 14px 16px;
   overscroll-behavior: contain;
 }
+/* her HUD bar under her chat (talk.css), on the page's edges */
 .say {
   flex: none;
-  margin: 0;
-  padding: 10px 16px 12px;
-  border-top: 1px solid var(--line);
-  align-items: flex-end;
+  margin: 0 10px 10px;
+}
+.say .hud__input {
+  max-height: 160px;
 }
 
-.msg {
-  --who: var(--yellow);
-  align-self: flex-start;
-  max-width: 86%;
-  padding: 9px 13px 8px;
-  border: 1px solid var(--yellow);
-  background: rgba(242, 231, 80, 0.05);
-  color: var(--yellow);
-  clip-path: var(--cut);
+/* Every cut corner closed: a clip-path takes the border's corner with it, so its edge is drawn on top, in the
+   frame's own colour (--edge) */
+.card,
+.button {
+  position: relative;
 }
-.msg--you {
-  --who: var(--cyan);
-  align-self: flex-end;
-  border-color: var(--cyan);
-  background: var(--cyan-wash);
-  color: var(--cyan);
+.card::after,
+.button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(to bottom left, transparent calc(50% - 1px), var(--edge) calc(50% - 1px), var(--edge) calc(50% + 1px),
+    transparent calc(50% + 1px));
+  pointer-events: none;
 }
-.msg.is-pending {
-  opacity: 0.75;
-}
-.msg.is-error {
-  --who: var(--red);
-  border-color: var(--red);
-  color: var(--red);
-}
-/* one of her notes while you were away: a dimmer box, a bit of what was said under it */
-.msg--note {
-  border-color: rgba(242, 231, 80, 0.45);
-  background: transparent;
-}
-.msg__quote {
-  margin: 6px 0 0;
-  padding-left: 8px;
-  border-left: 2px solid rgba(242, 231, 80, 0.35);
-  color: var(--text-2);
-  font-size: 13px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.msg__head {
-  margin: 0 0 4px;
-  color: var(--who);
-  font: 600 11px/1.2 var(--font-display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.msg__text {
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
+.card { --edge: var(--line); }
+.button { --edge: var(--red); }

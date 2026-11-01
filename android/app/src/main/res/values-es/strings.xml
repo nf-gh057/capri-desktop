@@ -16,4 +16,5 @@
     <string name="widget_empty">Nada de ella todavía.</string>
     <string name="widget_call">Hablar con ella</string>
     <string name="widget_write">Escribirle</string>
+    <string name="voice_soon">Hablar con ella por voz: muy pronto.</string>
 </resources>

@@ -329,17 +329,6 @@ body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-/* the line along its cut corner (the border stops where the corner is cut) */
-.card::after {
-  content: '';
-  position: absolute;
-  top: 5px;
-  right: -3px;
-  width: 17px;
-  height: 2px;
-  background: var(--red-dim);
-  transform: rotate(45deg);
-}
 .headline {
   margin: 0 0 4px;
   color: var(--cyan);
@@ -677,101 +666,11 @@ body {
 .log__empty {
   margin: auto;
 }
-/* one message: hers in yellow on the left, yours in cyan on the right */
-.msg {
-  max-width: min(640px, 78%);
-  padding: 10px 14px 8px;
-  border: 1px solid var(--yellow);
-  background: rgba(242, 231, 80, 0.05);
-  color: var(--yellow);
-  clip-path: var(--cut);
+/* HOLO's HUD bar under her chat (talk.css): a little room above it */
+.holo__talk .hud {
+  margin-top: 10px;
 }
-.msg--you {
-  align-self: flex-end;
-  border-color: var(--cyan);
-  background: var(--cyan-wash);
-  color: var(--cyan);
-}
-.msg__text {
-  margin: 0;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-/* what else she said (Claude, Codex, a reminder…): a dimmer box, its kind and project on top */
-.msg--line {
-  border-color: rgba(242, 231, 80, 0.45);
-  background: transparent;
-}
-.msg--line.is-error {
-  border-color: var(--red);
-  color: var(--red);
-}
-/* Erebus talking through her: the Blackwall's crimson, glowing in from its frame */
-.msg.msg--line.msg--erebus {
-  border: 2px solid #ff1f4b;
-  background: rgba(255, 31, 75, 0.1);
-  box-shadow: inset 0 0 18px rgba(255, 31, 75, 0.35);
-  color: #ff8fa6;
-  --who: #ff1f4b;
-}
-/* your prompt to Claude Code or Codex: yours, but not to her */
-.msg--you.msg--line {
-  border-color: rgba(94, 246, 255, 0.45);
-}
-.msg__head {
-  margin: 0 0 4px;
-  color: var(--text-2);
-  font: 600 10px/1.2 var(--font-display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-/* "> YOU", "< CAPRI": who it's from, in the message's colour */
-.msg__who {
-  color: var(--who);
-  font-family: var(--font-mono);
-}
-.msg {
-  --who: var(--yellow);
-}
-.msg--you {
-  --who: var(--cyan);
-}
-.msg--line.is-error {
-  --who: var(--red);
-}
-.msg--you .msg__head {
-  text-align: right;
-}
-.msg__quote {
-  margin: 6px 0 0;
-  padding-left: 8px;
-  border-left: 2px solid currentColor;
-  color: var(--text-2);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.msg__at {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-2);
-  font-size: 10px;
-  text-align: right;
-}
-.msg.is-streaming {
-  border-style: dashed;
-}
-.reply__label {
-  margin: 10px 0 6px;
-  color: var(--red);
-  font: 700 11px/1 var(--font-display);
-  letter-spacing: 0.12em;
-}
-.reply {
-  display: flex;
-  gap: 8px;
-}
-.reply .input:disabled {
+.hud__input:disabled {
   opacity: 0.5;
 }
 
@@ -793,3 +692,32 @@ body {
     display: none;
   }
 }
+
+/* Every cut corner closed: a clip-path takes the border's corner with it, so its edge is drawn on top, in the
+   frame's own colour (--edge) */
+.tab,
+.legend__item,
+.contact {
+  position: relative;
+}
+.tab::after,
+.legend__item::after,
+.card::after,
+.tip::after,
+.contact::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(to bottom left, transparent calc(50% - 1px), var(--edge) calc(50% - 1px), var(--edge) calc(50% + 1px),
+    transparent calc(50% + 1px));
+  pointer-events: none;
+}
+.tab { --edge: transparent; }
+.tab.is-on { --edge: var(--red); }
+.legend__item, .tip { --edge: var(--yellow); }
+.card { --edge: var(--red-dim); }
+.contact { --edge: var(--line); }
+.contact.is-on { --edge: var(--red); }

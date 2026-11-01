@@ -89,7 +89,9 @@ class Listener : Service() {
             val here = Api(all[turn % all.size])
             api = here
             val heard = runCatching {
-                val challenge = here.get("/api/listen").getString("challenge")
+                val asked = here.get("/api/listen")
+                val challenge = asked.getString("challenge")
+                Widget.online(this, asked.optInt("online", 0)) // how many PCs of your swarm answer: on her widget
                 here.post("/api/listen", JSONObject().put("challenge", challenge).put("sig", Keys.signListen(challenge)))
                 pause = 5_000L
                 here.listen(prefs.getLong("since", System.currentTimeMillis()), { running }) { event, data -> if (event == "note") note(data) }

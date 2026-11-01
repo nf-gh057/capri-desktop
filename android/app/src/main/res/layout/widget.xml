@@ -38,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="44dp"
         android:layout_marginTop="4dp"
-        android:background="@drawable/widget_bar"
+        android:background="@drawable/hud_frame"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="12dp"
@@ -49,15 +49,17 @@
             android:layout_height="18dp"
             android:src="@drawable/widget_bar_glyphs" />
 
+        <!-- how many PCs of your swarm answer: LNK//02 -->
         <TextView
+            android:id="@+id/widget_lnk"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:fontFamily="monospace"
+            android:fontFamily="@font/jetbrains_mono"
             android:letterSpacing="0.1"
-            android:text="LNK//07"
-            android:textColor="#99E8392D"
-            android:textSize="8sp" />
+            android:text="LNK//--"
+            android:textColor="#D9E8392D"
+            android:textSize="10sp" />
 
         <FrameLayout
             android:layout_width="0dp"

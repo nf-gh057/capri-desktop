@@ -93,8 +93,11 @@ function words() {
   $('pairTip').textContent = t.pairTip || '';
   $('code').placeholder = t.code || '';
   $('pairGo').textContent = t.pair || 'OK';
-  $('text').placeholder = t.placeholder || '';
-  $('send').textContent = t.send || '>';
+  $('text').setAttribute('aria-label', t.placeholder || '');
+  $('send').title = t.send || '';
+  $('send').setAttribute('aria-label', t.send || '');
+  // the prompt before the line, as in a terminal: "n@capri:~$"
+  $('prompt').replaceChildren(`${String(t.you || 'you').toLowerCase().replace(/\s+/g, '')}@`, Object.assign(document.createElement('b'), { textContent: 'capri' }), ':~$');
 }
 
 function pairError(text) {
@@ -111,39 +114,34 @@ function when(at) {
   return new Intl.DateTimeFormat(t.lang || undefined, today ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
 }
 
-// one message: hers in yellow on the left, yours in cyan on the right, as in Mainframe's HOLO
+// one message as calls in her game, as in Mainframe's HOLO (talk.css): hers red on the left, yours green on
+// the right, each under its name with its square, in a bubble at most 80 % of the middle
+function row(you, bubbleClass, text, { tag = '', at = 0, quote = '' } = {}) {
+  const make = (tag, cls, content) => Object.assign(document.createElement(tag), cls ? { className: cls } : {}, content !== undefined ? { textContent: content } : {});
+  const face = make('img', 'chat-row__face');
+  face.src = you ? '/face-you.svg' : '/face-capri.svg';
+  face.alt = '';
+  const head = make('p', 'chat-row__name', you ? t.you || 'YOU' : 'Capri');
+  if (tag) head.append(make('span', 'chat-row__tag', tag));
+  if (at) head.append(make('span', 'chat-row__at', when(at)));
+  const box = make('div', `msg ${bubbleClass}`);
+  box.append(make('p', 'msg__text', text));
+  if (quote) box.append(make('p', 'msg__quote', quote));
+  const mid = make('div', 'chat-row__mid');
+  mid.append(head, box);
+  const el = make('div', `chat-row chat-row--${you ? 'you' : 'capri'}`);
+  el.append(you ? make('span') : face, mid, you ? face : make('span'));
+  return el;
+}
+
 function bubble(role, text, at) {
   const you = role === 'user';
-  const box = document.createElement('div');
-  box.className = `msg ${you ? 'msg--you' : 'msg--her'}`;
-  const head = document.createElement('p');
-  head.className = 'msg__head';
-  head.textContent = `${you ? `< ${t.you || 'YOU'}` : '> CAPRI'}${at ? ` · ${when(at)}` : ''}`;
-  const body = document.createElement('p');
-  body.className = 'msg__text';
-  body.textContent = you ? text : unTagged(text);
-  box.append(head, body);
-  return box;
+  return row(you, '', you ? text : unTagged(text), { at });
 }
 
 // one of her notes (Claude Code needs you, it's done…): dimmer, its project on top, a bit of what was said under it
 function noteBubble(n) {
-  const box = document.createElement('div');
-  box.className = 'msg msg--note';
-  const head = document.createElement('p');
-  head.className = 'msg__head';
-  head.textContent = ['> CAPRI', n.project, when(n.at)].filter(Boolean).join(' · ');
-  const body = document.createElement('p');
-  body.className = 'msg__text';
-  body.textContent = n.line;
-  box.append(head, body);
-  if (n.quote) {
-    const quote = document.createElement('p');
-    quote.className = 'msg__quote';
-    quote.textContent = n.quote;
-    box.append(quote);
-  }
-  return box;
+  return row(false, 'msg--line', n.line, { tag: n.project, at: n.at, quote: n.quote });
 }
 
 function scrollDown() {
@@ -267,7 +265,7 @@ function listen() {
     $('send').disabled = false;
     if (d.ok) done.el.replaceWith(bubble('assistant', d.text, Date.now()));
     else {
-      done.el.classList.add('is-error');
+      done.el.querySelector('.msg').classList.add('msg--line', 'is-error');
       done.el.querySelector('.msg__text').textContent = `${t.failed || ''} ${d.error}`;
     }
     scrollDown();
@@ -284,7 +282,7 @@ async function say(text) {
     const { id } = await api('POST', '/api/send', { text });
     $('log').append(bubble('user', text, Date.now()));
     const el = bubble('assistant', t.thinking || '…');
-    el.classList.add('is-pending');
+    el.querySelector('.msg').classList.add('is-streaming');
     pending = { id, el, text: '' };
     $('log').append(el);
     scrollDown();

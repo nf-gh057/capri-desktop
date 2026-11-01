@@ -53,6 +53,13 @@ const FILES = {
   // her face, for the phone's home screen (Chrome installs her as an app with both sizes)
   '/icon-192.png': ['icon-192.png', 'image/png'],
   '/icon-512.png': ['icon-512.png', 'image/png'],
+  // her chat's look, the same as Mainframe's HOLO (talk.css): its squares, its HUD bar, its send button
+  '/talk.css': ['talk.css', 'text/css; charset=utf-8'],
+  '/face-capri.svg': ['face-capri.svg', 'image/svg+xml'],
+  '/face-you.svg': ['face-you.svg', 'image/svg+xml'],
+  '/face-erebus.svg': ['face-erebus.svg', 'image/svg+xml'],
+  '/hud-frame.svg': ['hud-frame.svg', 'image/svg+xml'],
+  '/send.svg': ['send.svg', 'image/svg+xml'],
 };
 
 const HEADERS = {
@@ -136,11 +143,11 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 // { ok, text } or { ok: false, error }, `delta(text)` as it's written; `history()`: her chat so far,
 // [{ role, content, at }]; `labels()`: the page's words, in her language; `name()`: this PC's; `pcs()`: her
 // page on the other PCs of her swarm that answer now, [{ name, url, active }]; `here()`: whether she's on
-// this one; `route(text)`: which PC an order is for. `remember`: how long what Tailscale said of an address is
-// kept (ms).
+// this one; `route(text)`: which PC an order is for; `online()`: how many PCs of your swarm answer now, this
+// one too. `remember`: how long what Tailscale said of an address is kept (ms).
 function createPocket({
   host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
-  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true, route = () => ({ here: true }), roots,
+  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true, route = () => ({ here: true }), roots, online = () => 1,
 }) {
   const who = new Map();        // address -> { at, it }
   const challenges = new Map(); // challenge -> { node, at }
@@ -249,7 +256,7 @@ function createPocket({
       const paired = Boolean(phoneOf(device.node));
       return {
         name: name(), device: device.name, paired, pairing: Boolean(pair && pair.until > Date.now()),
-        challenge: paired ? challenge(device.node) : null, t: labels(), pcs: pcs(), here: here(),
+        challenge: paired ? challenge(device.node) : null, t: labels(), pcs: pcs(), here: here(), online: online(),
       };
     },
     // this phone, with the code shown in Mainframe and the public half of the key its browser (or her
@@ -334,7 +341,7 @@ function createPocket({
     // chat, no orders, no answers)
     'GET /api/listen': (device) => {
       if (!phones().some((p) => p.id === device.node && p.listen)) throw new PocketError('noListenKey');
-      return { challenge: challenge(device.node, 'listen') };
+      return { challenge: challenge(device.node, 'listen'), online: online() }; // (how many PCs answer: her widget's LNK)
     },
     'POST /api/listen': (device, body, res) => {
       const keys = phones().filter((p) => p.id === device.node && p.listen);
