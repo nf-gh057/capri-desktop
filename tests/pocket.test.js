@@ -250,6 +250,18 @@ test('no orders from a page in a browser, nor without a session', async (t) => {
   assert.deepEqual(it.state.asked, []);
 });
 
+test('a session that ends (the app locked) ends its stream too', async (t) => {
+  const it = await paired(t);
+  const controller = new AbortController();
+  t.after(() => controller.abort());
+  const stream = await fetch(`${it.origin}/api/events`, { headers: { cookie: it.cookie() }, signal: controller.signal });
+  const reader = stream.body.getReader();
+  await reader.read(); // her hello
+  assert.equal((await it.call('POST', '/api/bye', {})).status, 200);
+  const next = await Promise.race([reader.read(), new Promise((r) => setTimeout(() => r('still open'), 1000))]);
+  assert.equal(next.done, true);
+});
+
 test('no stream without a session', async (t) => {
   const it = page(t);
   await it.p.start();

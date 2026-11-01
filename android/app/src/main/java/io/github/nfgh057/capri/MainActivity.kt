@@ -184,9 +184,11 @@ class MainActivity : Activity() {
     private fun lock() {
         if (!unlocked) return
         unlocked = false
+        listening++
         pending = null
         val api = api ?: return
         work.execute {
+            api.hangUp() // (closing it is network work: not on the screen's thread)
             runCatching { api.post("/api/bye", JSONObject()) }
             api.cookie = null
         }
@@ -224,17 +226,23 @@ class MainActivity : Activity() {
     }
 
     // her answers and notes, as long as she's unlocked; the session gone (her PC restarted): unlocked again
+    // Only the newest listener hears her: one from before the app was put away and opened again stops at
+    // once (else both would put each piece of her answer in, and her words would come out twice, mixed).
+    @Volatile private var listening = 0
+
     private fun listen() {
         val api = api ?: return
+        val mine = ++listening
+        val live = { unlocked && listening == mine }
         Thread {
-            while (unlocked) {
+            while (live()) {
                 val since = prefs.getLong("since", System.currentTimeMillis().also { prefs.edit().putLong("since", it).apply() })
-                val status = runCatching { api.listen(since, { unlocked }) { event, data -> runOnUiThread { heard(event, data) } } }.getOrDefault(0)
-                if (status == 401 && unlocked) {
+                val status = runCatching { api.listen(since, live) { event, data -> runOnUiThread { if (live()) heard(event, data) } } }.getOrDefault(0)
+                if (status == 401 && live()) {
                     runOnUiThread { unlocked = false; unlock() }
                     return@Thread
                 }
-                if (unlocked) Thread.sleep(3000)
+                if (live()) Thread.sleep(3000)
             }
         }.start()
     }

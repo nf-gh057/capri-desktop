@@ -189,7 +189,7 @@ function createPocket({
     const id = crypto.randomUUID();
     const tell = (kind, body) => {
       const data = `event: ${kind}\ndata: ${JSON.stringify({ id, ...body })}\n\n`;
-      for (const s of streams) if (s.node === device.node) s.res.write(data);
+      for (const s of streams) if (s.node === device.node && sessions.has(s.token)) s.res.write(data); // only live sessions
     };
     queue = queue
       .then(() => ask(text, { node: device.node, name: device.name, order, delta: (piece) => tell('delta', { text: String(piece) }) }))
@@ -265,8 +265,11 @@ function createPocket({
       if (!keys.some((p) => verify(p.key, orderSigned(body.challenge, text), body.sig))) throw new PocketError('badSig');
       return send(device, text, true);
     },
+    // the app locked, or the page left: its session ends, and its streams with it
     'POST /api/bye': (device, _body, res, req) => {
-      sessions.delete(session(req, device));
+      const token = session(req, device);
+      sessions.delete(token);
+      for (const s of streams) if (s.token === token) { s.res.end(); streams.delete(s); }
       res.setHeader('set-cookie', `${COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${tls ? '; Secure' : ''}`);
       return { ok: true };
     },
@@ -278,13 +281,13 @@ function createPocket({
   // her answers and her notes as they come, for as long as the page is open; first the notes after the
   // last one it saw (`since`, or what the browser says when it comes back: Last-Event-ID), if it says
   function listen(device, req, res) {
-    session(req, device);
+    const token = session(req, device);
     const asked = new URL(req.url, 'http://x').searchParams.get('since');
     const since = Number(req.headers['last-event-id']) || Number(asked) || 0;
     res.writeHead(200, { ...HEADERS, 'content-type': 'text/event-stream; charset=utf-8', connection: 'keep-alive' });
     res.write(': hello\n\n');
     if (since > 0) for (const n of notes) if (n.at > since) res.write(noteEvent(n));
-    const s = { node: device.node, res };
+    const s = { node: device.node, res, token };
     streams.add(s);
     req.on('close', () => streams.delete(s));
   }

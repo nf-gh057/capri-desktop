@@ -13,6 +13,13 @@ class Api(val origin: String) {
     class Failed(val status: Int, message: String) : Exception(message)
 
     @Volatile var cookie: String? = null
+    @Volatile private var stream: HttpURLConnection? = null // her answers' stream, while one is open
+
+    // the stream closed now (her app locked), not when it next hears something
+    fun hangUp() {
+        stream?.disconnect()
+        stream = null
+    }
 
     private fun open(path: String): HttpURLConnection {
         val conn = URL(origin + path).openConnection() as HttpURLConnection
@@ -56,6 +63,7 @@ class Api(val origin: String) {
     fun listen(since: Long, running: () -> Boolean, on: (String, JSONObject) -> Unit): Int {
         val conn = open("/api/events?since=$since")
         conn.readTimeout = 60_000 // she says something every 20 s
+        stream = conn
         try {
             if (conn.responseCode != 200) return conn.responseCode
             BufferedReader(InputStreamReader(conn.inputStream)).use { reader ->
@@ -76,6 +84,7 @@ class Api(val origin: String) {
             }
             return 200
         } finally {
+            if (stream === conn) stream = null
             conn.disconnect()
         }
     }
