@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- one of yours in her widget's chat: your name on top, on the right, your words before your green square -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/row"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="6dp"
+    android:paddingBottom="6dp"
     android:gravity="end"
     android:orientation="vertical">
 
@@ -34,7 +35,7 @@
             android:ellipsize="end"
             android:fontFamily="sans-serif-condensed"
             android:gravity="end"
-            android:maxLines="3"
+            android:maxLines="2"
             android:shadowColor="#E6000000"
             android:shadowRadius="4"
             android:textColor="#FF57E389"

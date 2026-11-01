@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,7 +21,7 @@ class Widget : AppWidgetProvider() {
     }
 
     companion object {
-        private const val KEEP = 3 // the last words shown
+        private const val KEEP = 20 // the last words kept: two in view, the others above them
 
         private fun prefs(context: Context) = context.getSharedPreferences("capri", Context.MODE_PRIVATE)
 
@@ -51,17 +53,28 @@ class Widget : AppWidgetProvider() {
             val said = said(context).ifEmpty { listOf(false to context.getString(R.string.widget_empty)) }
             val you = prefs(context).getString("you", null)?.takeIf { it.isNotBlank() } ?: context.getString(R.string.widget_you)
             val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+            fun row(mine: Boolean, text: String) = RemoteViews(context.packageName, if (mine) R.layout.widget_row_you else R.layout.widget_row_capri).apply {
+                setTextViewText(R.id.row_name, if (mine) you else "Capri")
+                setTextViewText(R.id.row_text, text)
+            }
             for (id in ids) {
                 val views = RemoteViews(context.packageName, R.layout.widget)
-                views.removeAllViews(R.id.widget_log)
-                for ((mine, text) in said) {
-                    val row = RemoteViews(context.packageName, if (mine) R.layout.widget_row_you else R.layout.widget_row_capri)
-                    row.setTextViewText(R.id.row_name, if (mine) you else "Capri")
-                    row.setTextViewText(R.id.row_text, text)
-                    views.addView(R.id.widget_log, row)
+                if (Build.VERSION.SDK_INT >= 31) {
+                    // a list that scrolls: the newest at the bottom, older ones above with a finger; a tap opens her app
+                    val items = RemoteViews.RemoteCollectionItems.Builder().setViewTypeCount(2)
+                    said.forEachIndexed { i, (mine, text) -> items.addItem(i.toLong(), row(mine, text).apply { setOnClickFillInIntent(R.id.row, Intent()) }) }
+                    views.setRemoteAdapter(R.id.widget_list, items.build())
+                    val tap = PendingIntent.getActivity(context, 1, Intent(context, MainActivity::class.java), PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                    views.setPendingIntentTemplate(R.id.widget_list, tap)
+                } else {
+                    // (Android 11: the last two, as they are)
+                    views.setViewVisibility(R.id.widget_list, View.GONE)
+                    views.setViewVisibility(R.id.widget_log, View.VISIBLE)
+                    views.removeAllViews(R.id.widget_log)
+                    for ((mine, text) in said.takeLast(2)) views.addView(R.id.widget_log, row(mine, text))
+                    views.setOnClickPendingIntent(R.id.widget_log, open)
                 }
                 views.setOnClickPendingIntent(R.id.widget_write, open)
-                views.setOnClickPendingIntent(R.id.widget_log, open)
                 manager.updateAppWidget(id, views)
             }
         }

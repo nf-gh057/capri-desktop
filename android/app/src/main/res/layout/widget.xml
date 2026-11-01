@@ -8,13 +8,29 @@
     android:orientation="vertical"
     android:padding="6dp">
 
+    <!-- room above: the home screen shows through -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- your words with her, two in view, the newest at the bottom; older ones above, with a finger (Android 12+) -->
+    <ListView
+        android:id="@+id/widget_list"
+        android:layout_width="match_parent"
+        android:layout_height="142dp"
+        android:divider="@null"
+        android:scrollbars="none"
+        android:stackFromBottom="true"
+        android:transcriptMode="alwaysScroll" />
+
+    <!-- (Android 11: the last two, as they are) -->
     <LinearLayout
         android:id="@+id/widget_log"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="bottom"
-        android:orientation="vertical" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone" />
 
     <!-- MSG over the call box, from its left, as CALL in her game -->
     <LinearLayout

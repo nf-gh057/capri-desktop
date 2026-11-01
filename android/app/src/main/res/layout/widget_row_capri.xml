@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- one of hers in her widget's chat: her name on top, her red square, her words next to it -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/row"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="6dp"
+    android:paddingBottom="6dp"
     android:orientation="vertical">
 
     <TextView
@@ -37,7 +38,7 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:fontFamily="sans-serif-condensed"
-            android:maxLines="3"
+            android:maxLines="2"
             android:shadowColor="#E6000000"
             android:shadowRadius="4"
             android:textColor="#FFFF5F56"
