@@ -24,7 +24,7 @@ wszystko, co opisuje, jest też w tym forku.
 Prawy klik na niej › **Mainframe**. Okno jak menu z gry: zmienisz mu rozmiar, zmaksymalizujesz je i zadokujesz do
 krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na której byłeś.
 
-![Mainframe › HOLO: jej czat, twoje wiadomości po prawej, jej po lewej](docs/fork/mainframe-holo.png)
+![Mainframe › HOLO: jej czat jak połączenia w grze, jej wiadomości na czerwono po lewej, twoje na zielono po prawej, i jej pasek do pisania](docs/fork/mainframe-holo.png)
 
 - **U góry**, jak poziom i street cred w grze: jej poziom, synchronizacja z tobą i dni razem. Pośrodku są zakładki. Po
   prawej, jak zdrowie i pieniądze w grze: model odpowiadający w jej czacie i AI, którego pilnuje (SPOCZYNEK, gdy tylko
@@ -34,7 +34,7 @@ krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na 
 
 | Zakładka | Co w niej jest |
 |---|---|
-| **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Najstarsze na górze, najnowsze na dole; `>` oznacza to, co przyszło od niej, `<` to, co piszesz ty, pod twoim imieniem (ENGRAMS › Twoje imię), także twoje polecenia dla Claude albo Codexa, przed jej komentarzem do nich. Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM**: twój telefon. |
+| **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Najstarsze na górze, najnowsze na dole, jak połączenia w grze: jej wiadomości na czerwono po lewej, pod jej kwadratem, a twoje na zielono po prawej, pod twoim imieniem (ENGRAMS › Twoje imię), także twoje polecenia dla Claude albo Codexa, przed jej komentarzem do nich. Piszesz po znaku zachęty jak w terminalu (`n@capri:~$`). Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM** i **TAILSCALE**: twój telefon. |
 | **NETWATCH** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex) i co pokazuje czat. Asystent, którego pilnuje w terminalu, i jego hooki. Gdy w czacie odpowiada Claude Code albo Codex: jego folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka). |
 | **ENGRAMS** | Wasza więź, twoje imię (jak cię nazywa i jak jesteś podpisany w HOLO), jej persona, przypomnienia i to, co pamięta, z komputerem, na którym to powiedziałeś. |
 | **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa) i jej rój. |
@@ -129,6 +129,9 @@ wpisywania za każdym razem.
 
 ![Mainframe › HOLO › TAILSCALE ze sparowanym telefonem i kodem QR dla kolejnego, obok jej strona na telefonie](docs/fork/pocket.png)
 
+Jej strona, aplikacja i widżet wyglądają jak HOLO: jej czat jak połączenia w grze, jej wiadomości na czerwono, twoje na
+zielono, i jej pasek ze znakiem zachęty jak w terminalu.
+
 **Konfiguracja**
 
 1. Zainstaluj Tailscale na tym komputerze (`install.ps1 -Tailscale`) i na telefonie (App Store albo Google Play)
@@ -170,7 +173,7 @@ komputerze znają wszystkie, a odłączenie go na którymkolwiek odłącza go ws
 połowy jego kluczy, więc nic tajnego nie opuszcza żadnego komputera.
 
 Przeglądarka trzyma jednak jeden klucz na adres. Dlatego stronę sparuj raz na każdym komputerze, do którego chcesz
-wchodzić z telefonu. Jej aplikacja, kiedy powstanie, sparuje się raz dla wszystkich.
+wchodzić z telefonu. Jej aplikacja paruje się raz dla wszystkich (niżej).
 
 **Jej wiadomości, gdy cię nie ma**
 
@@ -195,7 +198,7 @@ albo Codex zmieniające pliki w swoim folderze.
 - **Otwiera ją twój odcisk palca.** Klucz aplikacji jest w bezpiecznym sprzęcie telefonu (Android Keystore) i da się go
   użyć tylko zaraz po odcisku palca, raz na użycie. Otwarcie aplikacji podpisuje jedno wyzwanie i daje sesję do rozmowy,
   która tylko czyta, jak na jej stronie. Odłożona aplikacja się blokuje, a jej sesja kończy.
-- **Każde zlecenie to znów twój odcisk.** Zaznacz **Zlecenie**, a jej klucz podpisze to zlecenie, słowo w słowo, z własnym
+- **Każde zlecenie to znów twój odcisk.** Stuknij błyskawicę na jej pasku (zapala się na żółto) i wyślij, a jej klucz podpisze to zlecenie, słowo w słowo, z własnym
   wyzwaniem. Capri sprawdza podpis i robi to, jakbyś napisał to przy komputerze.
 - **Zlecenia daje tylko jej aplikacja.** Jej strona w przeglądarce i Telegram tylko rozmawiają.
 - **Klucz aplikacji poświadcza Google.** Przy parowaniu bezpieczny sprzęt telefonu podpisuje łańcuch certyfikatów
@@ -248,8 +251,10 @@ komputerami. To, co zrobiła, wraca razem z jej odpowiedzią („Legion: Chrome:
 - Za pierwszym razem Android poprosi o zgodę na jej powiadomienia i na działanie bez ograniczeń baterii. Bez tego
   wiadomości przyjdą przy najbliższym wybudzeniu telefonu, z kilkuminutowym opóźnieniem.
 - Na zablokowanym telefonie powiadomienie pokazuje, że napisała, ale nie co.
-- **Jej widżet** (przytrzymaj ekran główny › Widżety › Capri) pokazuje ostatnie, co powiedziała: odpowiedź albo
-  wiadomość. **Napisz** otwiera aplikację, jak zawsze po twoim odcisku palca.
+- **Jej widżet** (przytrzymaj ekran główny › Widżety › Capri) pokazuje jej czat jak aplikacja: tyle ostatnich wiadomości,
+  ile się zmieści, odpowiedzi i wiadomości spod nieobecności, najstarsze znikają u góry. **LNK//02** na jego pasku to
+  liczba twoich komputerów, na których Capri teraz odpowiada. Dymek otwiera aplikację, jak zawsze po twoim odcisku
+  palca; słuchawka będzie do rozmowy z nią, gdy dostanie do tego głos.
 
 Dodanie nowego odcisku palca w telefonie kończy jej klucz: sparuj aplikację ponownie. Wersja aplikacji jest w jej prawym
 górnym rogu.
@@ -341,14 +346,14 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   o konstrukt (Capri się przebija, glitche, ekran rozdarty wokół niej, wyciekające z niej czerwone dane). Okno, którym
   się zajmuje, płonie tak, jak Blackwall pali ludzi: uderza w nie czerwony słup, robi się czarno-czerwone, miga
   i rozdziera się. Erebus mówi, chłodno i z wyższością. Potem jej LÓD go wyrzuca; złapanie jej też. W tym czasie jej
-  twarz w dymku jest jego, a to, co mówi, trafia też do HOLO, w czerwonej ramce. Przy ograniczonych animacjach nic
+  twarz w dymku jest jego, a to, co mówi, trafia też do HOLO, na czerwono pod jego własnym kwadratem. Przy ograniczonych animacjach nic
   z tego; odznacz *Erebus może ją opętać* w Mainframe › RELIC, żeby go nie wpuszczać.
 
 ![Znudzona: ręka na biodrze, skrzyżowane ręce, zabawa pazurami, siad po turecku w powietrzu](docs/fork/poses.png)
 
 ![Teleport nad edytorem kodu: ekran rozdarty tam, gdzie znika, słup, przez który przechodzi, i znowu rozdarcie tam, gdzie ląduje](docs/fork/teleport.png)
 
-![Erebus ją ma: jego twarz w jej dymku i przekreślone jej imię; w HOLO jego kwestie w czerwonej ramce](docs/fork/erebus.png)
+![Erebus ją ma: jego twarz w jej dymku i przekreślone jej imię; w HOLO jego kwestie pod jego własnym kwadratem](docs/fork/erebus.png)
 
 ### Drobniejsze rzeczy
 

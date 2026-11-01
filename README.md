@@ -24,7 +24,7 @@ everything it describes is in this fork too.
 Right-click her › **Mainframe**. A window like her game's menus: you can resize it, maximize it and snap it, and it
 remembers where you left it, its size and the tab you were on.
 
-![Mainframe › HOLO: her chat, your messages on the right, hers on the left](docs/fork/mainframe-holo.png)
+![Mainframe › HOLO: her chat as calls in her game, hers in red on the left, yours in green on the right, and her bar to write in](docs/fork/mainframe-holo.png)
 
 - **At the top**, like a game's level and street cred: her level, her sync with you and your days together. In the
   middle are the tabs. At the right, like a game's health and money: the model answering her chat, and the AI she watches
@@ -34,7 +34,7 @@ remembers where you left it, its size and the tab you were on.
 
 | Tab | What's in it |
 |---|---|
-| **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Oldest on top, newest at the bottom; `>` marks what came from her, `<` what you sent, under your name (ENGRAMS › Your name), your prompts to Claude or Codex too, before what she said about them. Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM**: your phone. |
+| **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Oldest on top, newest at the bottom, like calls in her game: hers in red on the left, under her square, and yours in green on the right, under your name (ENGRAMS › Your name), your prompts to Claude or Codex too, before what she said about them. You write after a prompt as in a terminal (`n@capri:~$`). Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM** and **TAILSCALE**: your phone. |
 | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows. The assistant she watches in your terminal, and its hooks. With Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**, her own powers with it (apps, sites, music). |
 | **ENGRAMS** | Your bond, your name (what she calls you, and you in HOLO), her persona, her reminders, and what she remembers, with the PC it was said on. |
 | **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts, how chatty she is) and her swarm. |
@@ -126,6 +126,9 @@ code to type each time.
 
 ![Mainframe › HOLO › TAILSCALE with a phone paired and a QR code for another, and her page on the phone](docs/fork/pocket.png)
 
+Her page, her app and her widget look like HOLO: her chat as calls in her game, hers in red, yours in green, and her
+bar with a prompt as in a terminal.
+
 **Setting it up**
 
 1. Install Tailscale on this PC (`install.ps1 -Tailscale`) and on your phone (App Store or Google Play), and sign in on
@@ -163,8 +166,8 @@ Each PC has a page of its own, at its own address, and all of them share her one
 to all of them, and unpairing it on any of them unpairs it everywhere. Only the public halves of its keys go across, so
 nothing secret leaves a PC.
 
-A browser keeps one key per address, though. So pair her page once on each PC you want to reach from the phone. Her app,
-when it comes, will pair once for all of them.
+A browser keeps one key per address, though. So pair her page once on each PC you want to reach from the phone. Her app
+pairs once for all of them (below).
 
 **Her notes while you're away**
 
@@ -188,7 +191,7 @@ PC. That means her powers (opening apps, music, reminders), and Claude Code or C
 - **Your fingerprint opens it.** Her app's key lives in the phone's secure hardware (Android Keystore) and can be used
   only right after your fingerprint, once per use. Opening the app signs one challenge and gets a session for talking,
   which only reads, as on her page. Put away, the app locks, and its session ends.
-- **Each order takes your fingerprint again.** Tick **Order**, and her key signs that order, word for word, with a
+- **Each order takes your fingerprint again.** Tap the bolt on her bar (it lights up yellow) and send, and her key signs that order, word for word, with a
   challenge of its own. Capri checks the signature, and does it as if you'd typed it at the PC.
 - **Only her app gives orders.** Her page in a browser and Telegram only talk.
 - **Google vouches for her app's key.** When the app pairs, the phone's secure hardware signs a certificate chain for the
@@ -238,8 +241,10 @@ switch. Her swarm still never carries an order from one PC to another. What she 
 - The first time, Android asks to allow her notifications and to let her run unrestricted on battery. Without that,
   notes come with the phone's next wake-up, minutes late.
 - On a locked phone, a notification shows that she wrote, not what.
-- **Her widget** (hold the home screen › Widgets › Capri) shows the last thing she said, an answer or a note. **Write**
-  opens the app, behind your fingerprint as always.
+- **Her widget** (hold the home screen › Widgets › Capri) shows her chat as her app does: as many of the last messages as
+  fit, answers and notes, the oldest fading out at the top. **LNK//02** on its bar counts your PCs with Capri answering
+  now. The speech bubble opens the app, behind your fingerprint as always; the handset will be for talking to her, once she
+  has a voice for it.
 
 Adding a new fingerprint on the phone ends her key: pair the app again. The app's version is in its top right corner.
 
@@ -327,14 +332,14 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   through, glitches, the screen torn around her, red data leaking out of her). The window she deals with gets burnt
   the way the Blackwall burns people: struck by a red column, black and red, strobing and torn. He talks, cold and
   superior. Then her ICE throws him out; grabbing her does too. Meanwhile her face in her panel is his, and what he
-  says goes to HOLO too, framed in red. With reduced motion, none of it; untick *Erebus can take her over* in
+  says goes to HOLO too, in red under his own square. With reduced motion, none of it; untick *Erebus can take her over* in
   Mainframe › RELIC to keep him out.
 
 ![Bored: a hand on her hip, her arms crossed, fiddling with her claws, sitting cross-legged in the air](docs/fork/poses.png)
 
 ![A teleport across a code editor: the screen torn where she leaves, the column she goes through, torn again where she lands](docs/fork/teleport.png)
 
-![Erebus has her: his face in her panel and her name struck out; in HOLO, his lines framed in red](docs/fork/erebus.png)
+![Erebus has her: his face in her panel and her name struck out; in HOLO, his lines under his own square](docs/fork/erebus.png)
 
 ### Smaller things
 

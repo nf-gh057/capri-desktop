@@ -408,7 +408,8 @@ function talkRow(who, bubble, { tag = '', at = 0 } = {}) {
   const you = who === 'you';
   const face = el('img', { class: 'chat-row__face', src: FACES[who], alt: '' });
   const name = who === 'erebus' ? 'EREBUS' : you ? state.capri.userName || state.t.holoYou : 'Capri';
-  const head = el('p', { class: 'chat-row__name' }, name, tag && el('span', { class: 'chat-row__tag' }, tag), at ? el('span', { class: 'chat-row__at' }, when(at)) : null);
+  if (tag === name) tag = ''; // his badge is his name: once is enough
+  const head = el('p', { class: 'chat-row__name' }, name, tag && el('span',{ class: 'chat-row__tag' }, tag), at ? el('span', { class: 'chat-row__at' }, when(at)) : null);
   return el('div', { class: `chat-row chat-row--${who}` }, you ? el('span') : face, el('div', { class: 'chat-row__mid' }, head, bubble), you ? face : el('span'));
 }
 
