@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Her widget, as calls in her game: your last words with her (hers red on the left, yours green on the right) on
-     the home screen as it is (no background), and under them MSG, her name in a red call box, to write to her -->
+     the home screen as it is (no background), and under them, on the right, MSG, her name in a red call box, to
+     write to her -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -19,7 +20,8 @@
         android:id="@+id/widget_msg"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="14dp"
+        android:layout_gravity="end"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="6dp"
         android:fontFamily="sans-serif-condensed"
         android:letterSpacing="0.08"
@@ -33,6 +35,7 @@
         android:id="@+id/widget_write"
         android:layout_width="wrap_content"
         android:layout_height="46dp"
+        android:layout_gravity="end"
         android:layout_marginTop="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
@@ -48,10 +51,10 @@
             android:layout_marginStart="4dp"
             android:background="@drawable/widget_msg_frame"
             android:gravity="center_vertical"
-            android:minWidth="190dp"
+            android:minWidth="140dp"
             android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingEnd="30dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="22dp">
 
             <ImageView
                 android:layout_width="34dp"
@@ -62,7 +65,7 @@
                 android:id="@+id/widget_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="18dp"
+                android:layout_marginStart="12dp"
                 android:fontFamily="sans-serif-condensed"
                 android:text="Capri"
                 android:textColor="#FFE8392D"

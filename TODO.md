@@ -70,6 +70,9 @@ w 0.4.4-54: zlecenia z jej aplikacji na Androida, każde podpisane po odcisku pa
   daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
 - Animacja (gałąź `anim/poses`): Capri w trybie mini co jakiś czas otwiera jedno oko i spod przymrużonej powieki
   obserwuje, co się aktualnie dzieje na ekranie.
+- Capri zaczepia cię na telefonie, gdy nie ma cię przy komputerze: sama z siebie, jak jej uwagi na pulpicie
+  (`talk.js`), wiadomość do jej aplikacji (powiadomienie, widżet) albo na Telegram. Z umiarem (kilka razy dziennie
+  najwyżej, nie w nocy), ustawiane w Mainframe; wysyła komputer, na którym jest, gdy nie ma cię przy żadnym.
 - Aplikacja na Androida z widżetem rozmowy: natywna (Kotlin, w repo `android/`), APK instalowany ręcznie i podpisany
   kluczem, który zostaje u użytkownika (bez Sklepu Play). Parowanie tym samym kodem QR z Mainframe, klucz w Android
   Keystore (sprzętowy, nie do wyciągnięcia, opcjonalnie odblokowywany odciskiem palca), ten sam protokół co jej strona
