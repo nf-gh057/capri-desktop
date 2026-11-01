@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Capri</string>
+    <string name="app_name" translatable="false">Capri</string>
     <string name="wait">One moment…</string>
     <string name="offline">Can’t reach your PC. Is it on, with Capri and Tailscale running?</string>
     <string name="not_paired">Not paired yet. On your PC: Mainframe › HOLO › TAILSCALE › Pair a phone. Scan the QR code with this phone’s camera, open the page, and tap “Pair the Capri app”.</string>
     <string name="pick_pc">Which PC?</string>
     <string name="she_is_here">she’s here</string>
-    <string name="unknown_here">%1$s doesn’t know her app yet. With her swarm on on both PCs, it learns it from the others within a minute; or pair her app again.</string>
+    <string name="unknown_here">%1$s doesn’t know her app yet. With her swarm turned on for both PCs, it learns it from the others within a minute; or pair her app again.</string>
     <string name="other_pc">Another PC</string>
     <string name="others_silent">No other PC answers now.</string>
+    <string name="listening_title">Capri is listening</string>
+    <string name="listening_text">Her notes while you’re away from your PCs</string>
+    <string name="channel_listen">Listening in the background</string>
+    <string name="channel_notes">Her notes</string>
+    <string name="widget_write">Write</string>
+    <string name="widget_empty">Nothing from her yet.</string>
 </resources>

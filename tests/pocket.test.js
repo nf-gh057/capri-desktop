@@ -263,6 +263,32 @@ test('her app on another PC sends an order here directly: signed, no session, he
   assert.equal(again.json.error, 'noChallenge'); // played again: no
 });
 
+test('her app\'s listening key: given once unlocked, it hears her notes and nothing else', async (t) => {
+  const it = await appPaired(t);
+  const listen = await phoneKey();
+  const full = it.cookie();
+  it.setCookie('');
+  assert.equal((await it.call('POST', '/api/listen-key', { key: listen.jwk })).status, 401); // only from a session your fingerprint opened
+  it.setCookie(full);
+  assert.equal((await it.call('POST', '/api/listen-key', { key: listen.jwk })).status, 200);
+  assert.ok(it.state.phones[0].listen && !('d' in it.state.phones[0].listen));
+  it.setCookie('');
+  const { challenge } = (await it.call('GET', '/api/listen')).json;
+  assert.equal((await it.call('POST', '/api/listen', { challenge, sig: await it.key.sign(challenge) })).json.error, 'badSig'); // not the listening key
+  const { challenge: c2 } = (await it.call('GET', '/api/listen')).json;
+  const sig = Buffer.from(await subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, listen.privateKey, pocket.listenSigned(c2))).toString('base64url');
+  assert.equal((await it.call('POST', '/api/listen', { challenge: c2, sig })).status, 200);
+  // a notes-only session: no chat, no history, no orders' challenges for it to read her answers with
+  assert.equal((await it.call('GET', '/api/history')).status, 401);
+  assert.equal((await it.call('POST', '/api/send', { text: 'hi' })).status, 401);
+  const controller = new AbortController();
+  t.after(() => controller.abort());
+  const stream = await fetch(`${it.origin}/api/events`, { headers: { cookie: it.cookie() }, signal: controller.signal });
+  assert.equal(stream.status, 200);
+  it.p.note({ id: 'n9', at: Date.now(), line: 'Codex is done' });
+  assert.match(await heard(stream, 'event: note'), /"line":"Codex is done"/);
+});
+
 test('which PC an order is for: asked with a session only', async (t) => {
   const it = await appPaired(t);
   assert.deepEqual((await it.call('POST', '/api/route', { text: 'Chrome' })).json, { here: true });

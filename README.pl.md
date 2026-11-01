@@ -184,8 +184,7 @@ obok **Jej wiadomości na telefonie, gdy mnie nie ma** w Mainframe).
 - Niosą jej kwestię, projekt i kawałek tego, co padło (najwyżej 400 znaków, z zamazanym wszystkim, co wygląda na klucz).
   Nie opuszczają twoich urządzeń.
 
-Na razie widać je tylko, gdy jej strona albo aplikacja jest otwarta: na razie nic nie obudzi telefonu bez czyjegoś
-serwera push.
+Jej strona pokazuje je, gdy jest otwarta; jej aplikacja pokazuje je jako powiadomienia, nawet gdy jest zamknięta (niżej).
 
 ### Jej aplikacja na Androida, ze zleceniami
 
@@ -227,8 +226,22 @@ tam zlecenie, jak zawsze po twoim odcisku palca. Tamten komputer zna klucz aplik
 nie potrzebuje u niego sesji, więc nie trzeba niczego przełączać. Rój nadal nigdy nie przekazuje zleceń między
 komputerami. To, co zrobiła, wraca razem z jej odpowiedzią („Legion: Chrome: odpalam.”).
 
-Dodanie nowego odcisku palca w telefonie kończy jej klucz: sparuj aplikację ponownie. Nie powiadamia jeszcze w tle i nie ma
-jeszcze widżetu (zob. `TODO.md`).
+**Jej wiadomości w tle i jej widżet**
+
+- Jej wiadomości, gdy nie ma cię przy żadnym komputerze, przychodzą jako powiadomienia, nawet przy zamkniętej aplikacji.
+  Nie bierze w tym udziału żaden serwer push. Jej usługa (widoczna jako „Capri słucha”) trzyma przez Tailscale lekkie
+  połączenie z jej stroną na jednym z twoich komputerów, a gdy ten nie odpowiada, z innym.
+- Loguje się drugim kluczem aplikacji, też w bezpiecznym sprzęcie telefonu, który nie wymaga odcisku palca. Ten klucz
+  słyszy jej wiadomości i nic poza tym: ani rozmowy, ani zleceń. Aplikacja przekazuje go komputerom dopiero po
+  odblokowaniu twoim odciskiem.
+- Za pierwszym razem Android poprosi o zgodę na jej powiadomienia i na działanie bez ograniczeń baterii. Bez tego
+  wiadomości przyjdą przy najbliższym wybudzeniu telefonu, z kilkuminutowym opóźnieniem.
+- Na zablokowanym telefonie powiadomienie pokazuje, że napisała, ale nie co.
+- **Jej widżet** (przytrzymaj ekran główny › Widżety › Capri) pokazuje ostatnie, co powiedziała: odpowiedź albo
+  wiadomość. **Napisz** otwiera aplikację, jak zawsze po twoim odcisku palca.
+
+Dodanie nowego odcisku palca w telefonie kończy jej klucz: sparuj aplikację ponownie. Wersja aplikacji jest w jej prawym
+górnym rogu.
 
 ### Rój
 

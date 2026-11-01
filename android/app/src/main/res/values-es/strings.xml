@@ -8,4 +8,10 @@
     <string name="unknown_here">%1$s aún no conoce su app. Con el enjambre activado en ambos PC, la conoce por los demás en un minuto; o empareja su app de nuevo.</string>
     <string name="other_pc">Otro PC</string>
     <string name="others_silent">Ningún otro PC responde ahora.</string>
+    <string name="listening_title">Capri escucha</string>
+    <string name="listening_text">Sus mensajes cuando no estás frente a tus PC</string>
+    <string name="channel_listen">Escucha en segundo plano</string>
+    <string name="channel_notes">Sus mensajes</string>
+    <string name="widget_write">Escribir</string>
+    <string name="widget_empty">Nada de ella todavía.</string>
 </resources>

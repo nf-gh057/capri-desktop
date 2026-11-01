@@ -78,7 +78,7 @@ w 0.4.4-54: zlecenia z jej aplikacji na Androida, każde podpisane po odcisku pa
   Do budowania: Android SDK na PC.
   (zrobione w 0.4.4-54: aplikacja w `android/` bez bibliotek, parowanie przez stronę (`capri://pair`), odcisk palca przy
   każdym otwarciu, rozmowa, zlecenia podpisane po odcisku, notki, gdy jest otwarta; log zleceń w Mainframe i na
-  Telegramie; wybór komputera roju w 0.4.4-57. Zostaje niżej: usługa w tle z powiadomieniami, widżet,
+  Telegramie; wybór komputera roju w 0.4.4-57; usługa w tle z powiadomieniami i widżet w 0.4.4-61. Zostaje niżej:
   sprawdzanie przez Capri poświadczenia klucza od Google (Key Attestation: klucz sprzętowy, tylko po odcisku), stały
   klucz podpisu APK do wydań.)
   - Powiadomienia bez żadnego serwera pośrodku (bez ntfy i UnifiedPush): usługa aplikacji w tle (z widocznym

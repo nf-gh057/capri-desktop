@@ -178,7 +178,7 @@ phone while I'm away** in Mainframe).
 - They carry her line, the project and a bit of what was said (400 characters at most, anything that looks like a key
   blanked out). They never leave your devices.
 
-For now they show only while her page or app is open: nothing wakes your phone without somebody's push server yet.
+Her page shows them while it's open; her app shows them as notifications even when it's closed (below).
 
 ### Her app on Android, with orders
 
@@ -217,8 +217,21 @@ always. That PC knows the app's key through her swarm, and a signed order needs 
 switch. Her swarm still never carries an order from one PC to another. What she did comes back with her answer
 ("Legion: Chrome: on it.").
 
-Adding a new fingerprint on the phone ends her key: pair the app again. It doesn't notify you in the background yet, and
-has no widget yet (see `TODO.md`).
+**Her notes in the background, and her widget**
+
+- Her notes while you're away from all your PCs come as notifications, even with the app closed. No push server is
+  involved. A service of hers (shown as "Capri is listening") holds a light stream to her page on one of your PCs, or
+  another one if that one's away, over Tailscale.
+- It signs in with a second key of the app's, also in the phone's secure hardware, which needs no fingerprint. That key
+  hears her notes and nothing else: no chat, no orders. The app gives it to your PCs only after your fingerprint has opened
+  it.
+- The first time, Android asks to allow her notifications and to let her run unrestricted on battery. Without that,
+  notes come with the phone's next wake-up, minutes late.
+- On a locked phone, a notification shows that she wrote, not what.
+- **Her widget** (hold the home screen › Widgets › Capri) shows the last thing she said, an answer or a note. **Write**
+  opens the app, behind your fingerprint as always.
+
+Adding a new fingerprint on the phone ends her key: pair the app again. The app's version is in its top right corner.
 
 ### Her swarm
 

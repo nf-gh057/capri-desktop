@@ -77,6 +77,8 @@ class PocketError extends Error {
 const signed = (challenge) => Buffer.from(`capri-pocket|${challenge}`);
 // What her app signs for an order, after your fingerprint: a challenge of its own and that order, word for
 // word (its SHA-256), so a signature can't be lifted onto another order
+// What her app's listening key signs, in the background, to hear her notes and nothing else
+const listenSigned = (challenge) => Buffer.from(`capri-pocket-listen|${challenge}`);
 const orderSigned = (challenge, text) => Buffer.from(`capri-pocket-order|${challenge}|${crypto.createHash('sha256').update(String(text)).digest('hex')}`);
 
 // A phone's public key as its browser sends it (JWK, P-256): only its public part, else null
@@ -106,7 +108,8 @@ function phoneRecord(p) {
   const key = publicKey(p?.key);
   if (!key || typeof p.id !== 'string' || !p.id || p.id.length > 100 || !Number.isFinite(p.at)) return null;
   const via = typeof p.via === 'string' && p.via.length <= 200 ? p.via : null;
-  return { id: p.id, name: String(p.name || p.id).slice(0, 60), key, at: p.at, ...(via && { via }) };
+  const listen = via === 'app' ? publicKey(p.listen) : null; // her app's key for listening in the background
+  return { id: p.id, name: String(p.name || p.id).slice(0, 60), key, at: p.at, ...(via && { via }), ...(listen && { listen }) };
 }
 
 const same = (a, b) => {
@@ -183,11 +186,20 @@ function createPocket({
   };
 
   // the session this request carries, if it's this device's and the device is still paired
-  function session(req, device) {
+  // (`notes`: a session of her app's listening key does too, for her notes only)
+  function session(req, device, notes = false) {
     const token = cookie(req);
     const s = token && sessions.get(token);
     if (!s || s.until < Date.now() || s.node !== device.node || !phoneOf(device.node)) throw new PocketError('noSession', 401);
+    if (s.notes && !notes) throw new PocketError('noSession', 401);
     return token;
+  }
+
+  // a session for her notes only, its cookie set
+  function notesSession(device, res) {
+    const token = crypto.randomBytes(32).toString('base64url');
+    sessions.set(token, { node: device.node, until: Date.now() + SESSION_MS, notes: true });
+    res.setHeader('set-cookie', `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MS / 1000}${tls ? '; Secure' : ''}`);
   }
 
   // what you sent from your phone, to her, and her answer to every page of that phone open (`order`: an
@@ -201,7 +213,7 @@ function createPocket({
     const id = crypto.randomUUID();
     const tell = (kind, body) => {
       const data = `event: ${kind}\ndata: ${JSON.stringify({ id, ...body })}\n\n`;
-      for (const s of streams) if (s.node === device.node && sessions.has(s.token)) s.res.write(data); // only live sessions
+      for (const s of streams) if (s.node === device.node && sessions.has(s.token) && !s.notes) s.res.write(data); // only live ones, not for notes only
     };
     const done = queue
       .then(() => ask(text, { node: device.node, name: device.name, order, delta: (piece) => tell('delta', { text: String(piece) }) }))
@@ -285,6 +297,30 @@ function createPocket({
       const { id, done } = send(device, text, true);
       return live(req, device) ? { id } : { id, ...(await done) };
     },
+    // Her app's listening key (made with no fingerprint needed, for her service in the background): given
+    // once she's unlocked with your fingerprint, kept with her app's key (her swarm carries it too)
+    'POST /api/listen-key': (device, body, _res, req) => {
+      session(req, device);
+      const listen = publicKey(body?.key);
+      if (!listen) throw new PocketError('badKey', 400);
+      const list = phones();
+      if (!list.some((p) => p.id === device.node && p.via === 'app')) throw new PocketError('notApp');
+      onPhones(list.map((p) => (p.id === device.node && p.via === 'app' ? { ...p, listen } : p)));
+      return { ok: true };
+    },
+    // a challenge for that key, and its signature: a session that hears her notes, and nothing else (no
+    // chat, no orders, no answers)
+    'GET /api/listen': (device) => {
+      if (!phones().some((p) => p.id === device.node && p.listen)) throw new PocketError('noListenKey');
+      return { challenge: challenge(device.node, 'listen') };
+    },
+    'POST /api/listen': (device, body, res) => {
+      const keys = phones().filter((p) => p.id === device.node && p.listen);
+      if (!spend(device, body?.challenge, 'listen') || !keys.length) throw new PocketError('noChallenge');
+      if (!keys.some((p) => verify(p.listen, listenSigned(body.challenge), body.sig))) throw new PocketError('badSig');
+      notesSession(device, res);
+      return { ok: true };
+    },
     // which PC of your swarm an order is for: this one ({ here: true }), or another, and her page there
     // ({ name, url }, url null if it doesn't answer now)
     'POST /api/route': (device, body, _res, req) => {
@@ -307,13 +343,13 @@ function createPocket({
   // her answers and her notes as they come, for as long as the page is open; first the notes after the
   // last one it saw (`since`, or what the browser says when it comes back: Last-Event-ID), if it says
   function listen(device, req, res) {
-    const token = session(req, device);
+    const token = session(req, device, true);
     const asked = new URL(req.url, 'http://x').searchParams.get('since');
     const since = Number(req.headers['last-event-id']) || Number(asked) || 0;
     res.writeHead(200, { ...HEADERS, 'content-type': 'text/event-stream; charset=utf-8', connection: 'keep-alive' });
     res.write(': hello\n\n');
     if (since > 0) for (const n of notes) if (n.at > since) res.write(noteEvent(n));
-    const s = { node: device.node, res, token };
+    const s = { node: device.node, res, token, notes: Boolean(sessions.get(token)?.notes) };
     streams.add(s);
     req.on('close', () => streams.delete(s));
   }
@@ -328,7 +364,7 @@ function createPocket({
     notes.push(n);
     notes.sort((a, b) => a.at - b.at);
     while (notes.length > NOTES || (notes.length && Date.now() - notes[0].at > NOTES_MS)) notes.shift();
-    for (const s of streams) s.res.write(noteEvent(n));
+    for (const s of streams) if (sessions.has(s.token)) s.res.write(noteEvent(n));
     return true;
   }
 
@@ -437,4 +473,4 @@ function createPocket({
   };
 }
 
-module.exports = { createPocket, publicKey, phoneRecord, verify, signed, orderSigned, PocketError, PORT, PAIR_MS, PAIR_TRIES, MAX_TEXT };
+module.exports = { createPocket, publicKey, phoneRecord, verify, signed, orderSigned, listenSigned, PocketError, PORT, PAIR_MS, PAIR_TRIES, MAX_TEXT };

@@ -51,6 +51,40 @@ object Keys {
         return mapOf("kty" to "EC", "crv" to "P-256", "x" to b64(fixed(point.affineX)), "y" to b64(fixed(point.affineY)))
     }
 
+    // Her listening key: in the same secure hardware, never read out, but usable without your fingerprint, for
+    // her service in the background to hear her notes. It opens nothing else on your PCs: no chat, no orders.
+    private const val LISTEN = "capri-listen"
+
+    fun hasListen(): Boolean = store().containsAlias(LISTEN)
+
+    fun makeListen(): Map<String, String> {
+        store().deleteEntry(LISTEN)
+        fun spec(strongBox: Boolean) = KeyGenParameterSpec.Builder(LISTEN, KeyProperties.PURPOSE_SIGN)
+            .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+            .setDigests(KeyProperties.DIGEST_SHA256)
+            .setIsStrongBoxBacked(strongBox)
+            .build()
+        val gen = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, STORE)
+        val pair = try {
+            gen.initialize(spec(true))
+            gen.generateKeyPair()
+        } catch (e: StrongBoxUnavailableException) {
+            gen.initialize(spec(false))
+            gen.generateKeyPair()
+        }
+        val point = (pair.public as ECPublicKey).w
+        return mapOf("kty" to "EC", "crv" to "P-256", "x" to b64(fixed(point.affineX)), "y" to b64(fixed(point.affineY)))
+    }
+
+    fun signListen(challenge: String): String {
+        val signature = Signature.getInstance("SHA256withECDSA").apply { initSign(store().getKey(LISTEN, null) as PrivateKey) }
+        return sign(signature, "capri-pocket-listen|$challenge")
+    }
+
+    fun forgetListen() {
+        store().deleteEntry(LISTEN)
+    }
+
     // ready to sign, once your fingerprint lets it (BiometricPrompt's CryptoObject)
     fun signer(): Signature = Signature.getInstance("SHA256withECDSA").apply {
         initSign(store().getKey(ALIAS, null) as PrivateKey)

@@ -8,4 +8,10 @@
     <string name="unknown_here">%1$s jeszcze nie zna jej aplikacji. Przy włączonym roju na obu komputerach dowie się od pozostałych w ciągu minuty; albo sparuj aplikację ponownie.</string>
     <string name="other_pc">Inny komputer</string>
     <string name="others_silent">Żaden inny komputer teraz nie odpowiada.</string>
+    <string name="listening_title">Capri słucha</string>
+    <string name="listening_text">Jej wiadomości, gdy nie ma cię przy komputerach</string>
+    <string name="channel_listen">Słuchanie w tle</string>
+    <string name="channel_notes">Jej wiadomości</string>
+    <string name="widget_write">Napisz</string>
+    <string name="widget_empty">Jeszcze nic od niej.</string>
 </resources>

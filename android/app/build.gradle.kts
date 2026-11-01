@@ -11,8 +11,8 @@ android {
         // Android 11: a key only your fingerprint unlocks, for each use (setUserAuthenticationParameters)
         minSdk = 30
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.5"
+        versionCode = 6
+        versionName = "0.6"
     }
 
     buildTypes {

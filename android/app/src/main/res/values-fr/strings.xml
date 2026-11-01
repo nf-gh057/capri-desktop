@@ -8,4 +8,10 @@
     <string name="unknown_here">%1$s ne connaît pas encore son app. Avec l’essaim activé sur les deux PC, il l’apprend des autres en une minute ; ou appaire son app à nouveau.</string>
     <string name="other_pc">Un autre PC</string>
     <string name="others_silent">Aucun autre PC ne répond.</string>
+    <string name="listening_title">Capri écoute</string>
+    <string name="listening_text">Ses messages quand tu es loin de tes PC</string>
+    <string name="channel_listen">Écoute en arrière-plan</string>
+    <string name="channel_notes">Ses messages</string>
+    <string name="widget_write">Écrire</string>
+    <string name="widget_empty">Rien d’elle pour l’instant.</string>
 </resources>

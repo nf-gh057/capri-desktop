@@ -1,14 +1,19 @@
 package io.github.nfgh057.capri
 
 import android.app.Activity
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.PowerManager
+import android.provider.Settings
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.hardware.biometrics.BiometricManager
 import android.hardware.biometrics.BiometricPrompt
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.security.keystore.KeyPermanentlyInvalidatedException
@@ -72,12 +77,14 @@ class MainActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
+        Listener.appOpen = true
         if (pairing == null) unlock()
     }
 
     // put away: locked, the session ended on her PC too
     override fun onStop() {
         super.onStop()
+        Listener.appOpen = false
         lock()
     }
 
@@ -283,6 +290,31 @@ class MainActivity : Activity() {
         chat.visibility = View.VISIBLE
         history()
         listen()
+        background()
+    }
+
+    // Her listening key, given to her PC now that your fingerprint opened her app (her swarm carries it to
+    // the others), then her service in the background; and, once, what Android asks for it to work: showing
+    // notifications, and not being put to sleep with the phone (else her notes come minutes late)
+    private fun background() {
+        val api = api ?: return
+        work.execute {
+            val key = prefs.getString("listenKey", null)?.takeIf { Keys.hasListen() }
+                ?: JSONObject(Keys.makeListen() as Map<*, *>).toString().also { prefs.edit().putString("listenKey", it).apply() }
+            val given = runCatching { api.post("/api/listen-key", JSONObject().put("key", JSONObject(key))) }.isSuccess
+            runOnUiThread {
+                if (!given) return@runOnUiThread
+                Listener.start(this)
+                val mayNotify = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                if (!mayNotify && !prefs.getBoolean("askedNotify", false)) {
+                    prefs.edit().putBoolean("askedNotify", true).apply()
+                    requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+                } else if (!getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName) && !prefs.getBoolean("askedBattery", false)) {
+                    prefs.edit().putBoolean("askedBattery", true).apply()
+                    runCatching { startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))) }
+                }
+            }
+        }
     }
 
     private fun history() {
@@ -332,11 +364,13 @@ class MainActivity : Activity() {
                 pending = null
                 send.isEnabled = true
                 view.text = if (data.optBoolean("ok")) clean(data.optString("text")) else "${word("failed", "")} ${data.optString("error")}"
+                if (data.optBoolean("ok")) Widget.show(this, clean(data.optString("text")))
             }
             "note" -> if (notes.none { it.optString("id") == id }) {
                 notes.add(data)
                 prefs.edit().putLong("since", data.optLong("at")).apply()
                 note(data, true)
+                Widget.show(this, listOf(data.optString("project"), data.optString("line")).filter { it.isNotEmpty() }.joinToString(" · "))
             }
         }
         down()
@@ -479,7 +513,20 @@ class MainActivity : Activity() {
             addView(order, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(12) })
             addView(bar)
         }
-        root.addView(head)
+        // her name and the PC on the left, her app's version on the right
+        val version = TextView(this).apply {
+            text = "v" + runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
+            setTextColor(dim)
+            textSize = 12f
+            setPadding(dp(8), dp(12), dp(16), dp(10))
+        }
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(head, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            addView(version, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        }
+        root.addView(top)
         root.addView(message)
         root.addView(action, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { setMargins(dp(16), 0, dp(16), 0) })
         root.addView(chat, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))

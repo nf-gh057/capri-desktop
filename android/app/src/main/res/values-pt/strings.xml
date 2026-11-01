@@ -8,4 +8,10 @@
     <string name="unknown_here">%1$s ainda não conhece o app dela. Com o enxame ligado nos dois PCs, ele aprende com os outros em um minuto; ou pareie o app de novo.</string>
     <string name="other_pc">Outro PC</string>
     <string name="others_silent">Nenhum outro PC responde agora.</string>
+    <string name="listening_title">A Capri está ouvindo</string>
+    <string name="listening_text">As mensagens dela quando você está longe dos PCs</string>
+    <string name="channel_listen">Ouvindo em segundo plano</string>
+    <string name="channel_notes">As mensagens dela</string>
+    <string name="widget_write">Escrever</string>
+    <string name="widget_empty">Nada dela ainda.</string>
 </resources>
