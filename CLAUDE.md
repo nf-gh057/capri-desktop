@@ -71,7 +71,9 @@ pracy nad Capri: `docs/ROZWOJ.md`.
   sieci, nigdy pełny dostęp) oraz jej moce (aplikacje, muzyka, przypomnienia). Klucz aplikacji jest w Android Keystore
   i każde jego użycie wymaga odcisku palca: odcisk przy otwarciu aplikacji (rozmowa, tylko do odczytu), a **każde
   zlecenie osobno podpisane po odcisku** i sprawdzone przez Capri. Zlecać może tylko klucz aplikacji (nie strona
-  w przeglądarce, nie Telegram). Każde przyjęte zlecenie trafia do logu w Mainframe i (jeśli bot jest sparowany) na
+  w przeglądarce, nie Telegram), i tylko taki, który poświadcza Google (Key Attestation, `attest.js`: klucz
+  sprzętowy, tylko po odcisku, za każdym razem, zrobiony dla tego parowania). Klucz podpisu APK jest poza repo
+  (`%USERPROFILE%\.capri\android`), nigdy w nim. Każde przyjęte zlecenie trafia do logu w Mainframe i (jeśli bot jest sparowany) na
   Telegram.
 - Tokeny, klucze i sekrety szyfrowane kontem Windows (`setup.sealKey`/`openKey`), nigdy w logach ani w configu
   przekazywanym do nakładki (`rendererConfig`).

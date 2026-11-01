@@ -191,6 +191,10 @@ PC. That means her powers (opening apps, music, reminders), and Claude Code or C
 - **Each order takes your fingerprint again.** Tick **Order**, and her key signs that order, word for word, with a
   challenge of its own. Capri checks the signature, and does it as if you'd typed it at the PC.
 - **Only her app gives orders.** Her page in a browser and Telegram only talk.
+- **Google vouches for her app's key.** When the app pairs, the phone's secure hardware signs a certificate chain for the
+  key, up to Google's attestation root, made for that pairing's code. Every PC checks the chain itself: that the key
+  lives in the phone's secure hardware, that it works only right after a fingerprint, and each time, and, when pairing,
+  that it was made for this pairing. Orders come only from a key it vouches for. Mainframe says so next to the phone.
 - **On the PC**, Claude Code gets reading and editing tools only (no shell, no web, no MCP server), and Codex its
   `workspace-write` sandbox without network, both in the agent folder from Mainframe. Never full access.
 - **Every order is written down** in Mainframe › HOLO › TAILSCALE › **Orders from her app**, marked **ORDER** in her
@@ -199,8 +203,14 @@ PC. That means her powers (opening apps, music, reminders), and Claude Code or C
 
 **Install it**
 
-1. Build it: `cd android`, then `gradlew assembleDebug` (needs Android Studio, for its SDK and Java). The app lands in
-   `android/app/build/outputs/apk/debug/app-debug.apk`.
+1. Build it: `cd android`, then `gradlew assembleRelease` (needs Android Studio, for its SDK and Java). The app lands in
+   `android/app/build/outputs/apk/release/app-release.apk`.
+   - It's signed with her app's own key, from `%USERPROFILE%\.capri\android\signing.properties` and the keystore next
+     to it (or the file `CAPRI_SIGNING` points at). Every new version installs over the last only with the same key,
+     so **keep a copy of that folder**. Without it, the build is signed with the PC's debug key.
+   - To make such a key, run keytool from Android Studio's `jbr\bin` (`-genkeypair -storetype PKCS12 -keyalg RSA
+     -keysize 3072 -validity 10000 -alias capri`), then write `storeFile`, `storePassword`, `keyAlias` and
+     `keyPassword` into that file.
 2. Put it on your phone: with **Wireless debugging** on (Developer options), `adb pair` and `adb connect` to the phone,
    then `adb install -r` that file. Or copy the file over and open it (allow installing unknown apps for the file manager).
 3. Pair it: in Mainframe click **Pair a phone** and scan the QR code with the phone's camera. On her page, tap **Pair the
@@ -510,6 +520,7 @@ src/main/
   totp.js                the code from your authenticator app that unlocks her chat on Telegram
   swarm.js               her swarm: pairing your PCs, sealed messages between them, which one you're at
   pocket.js              her page on your phone over Tailscale: who's calling (whois), pairing with a key, sessions
+  attest.js              Google's attestation of her app's key, checked (attest-roots.json: Google's roots)
 src/pocket/              that page (HTML, its script and styles, a manifest for the home screen)
 android/                 her app (Kotlin, no libraries): her key in Android Keystore behind your fingerprint, chat, orders
   mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)

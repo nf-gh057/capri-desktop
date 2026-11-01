@@ -32,6 +32,7 @@ import android.widget.TextView
 import android.widget.Toast
 import org.json.JSONArray
 import org.json.JSONObject
+import java.security.MessageDigest
 import java.security.Signature
 import java.util.concurrent.Executors
 
@@ -120,8 +121,11 @@ class MainActivity : Activity() {
         say(getString(R.string.wait))
         work.execute {
             val made = runCatching {
-                val key = JSONObject(Keys.make() as Map<*, *>)
-                candidate.post("/api/pair", JSONObject().put("code", code.replace("-", "")).put("key", key).put("client", "app")).getString("challenge")
+                // the key made for this pairing (its code's SHA-256 in Google's attestation of it), and that attestation
+                val typed = code.uppercase().replace(Regex("[^A-Z0-9]"), "")
+                val key = JSONObject(Keys.make(MessageDigest.getInstance("SHA-256").digest(typed.toByteArray())) as Map<*, *>)
+                val chain = JSONArray(Keys.attestation())
+                candidate.post("/api/pair", JSONObject().put("code", typed).put("key", key).put("client", "app").put("attestation", chain)).getString("challenge")
             }
             runOnUiThread {
                 made.onSuccess { challenge ->
@@ -476,7 +480,13 @@ class MainActivity : Activity() {
             send.isEnabled = true
             input.setText(words)
             val why = (e as? Api.Failed)?.message
-            bubble(false, if (why == "tooMany") word("tooMany", "") else if (why == "notApp") word("notApp", "") else word("offline", getString(R.string.offline)))
+            // (her app's key paired before her PCs checked Google's attestation of it: pair her app again)
+            bubble(false, when {
+                why == "tooMany" -> word("tooMany", "")
+                why == "notApp" -> word("notApp", "")
+                why == "notAttested" -> word("lost", getString(R.string.not_paired))
+                else -> word("offline", getString(R.string.offline))
+            })
         }
         down()
     }

@@ -2,8 +2,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { webcrypto } = require('node:crypto');
+const crypto = require('node:crypto');
+const { webcrypto } = crypto;
 const pocket = require('../src/main/pocket');
+// made-up attestation chains (tests/fixtures/make-attest.js), from a root of their own, for the code below
+const made = require('./fixtures/attest.json');
+const CODE = 'ABCDE23456';
 
 const { subtle } = webcrypto;
 let nextPort = 47950;
@@ -15,7 +19,7 @@ function page(t, extra = {}) {
   const origin = `http://127.0.0.1:${port}`;
   const state = { who: { node: 'phone-1', name: 'pixel', user: 1, os: 'android' }, phones: [], asked: [] };
   const p = pocket.createPocket({
-    port, origins: [origin], remember: 0, dir: path.join(__dirname, '..', 'src', 'pocket'),
+    port, origins: [origin], remember: 0, dir: path.join(__dirname, '..', 'src', 'pocket'), roots: [made.root],
     whois: async () => state.who,
     mine: (who) => who.user === 1,
     phones: () => state.phones,
@@ -212,15 +216,51 @@ test('a page back after a while gets the notes it missed, and only those', async
 });
 
 // her app paired (its key, `client: 'app'`) and unlocked: what it signs an order with, after a fingerprint
+// her app's key as one of the made-up chains says it is: its public half, its chain, and signing with it
+function appKey(which = 'good') {
+  const c = made.cases[which];
+  const sign = (data) => crypto.sign('sha256', Buffer.from(data), { key: c.key, dsaEncoding: 'ieee-p1363' }).toString('base64url');
+  return { jwk: c.jwk, chain: c.chain, sign: async (challenge) => sign(pocket.signed(challenge)), signRaw: sign };
+}
+
 async function appPaired(t) {
   const it = page(t);
   await it.p.start();
-  const key = await phoneKey();
-  const pair = await it.call('POST', '/api/pair', { code: it.p.startPairing().code, key: key.jwk, client: 'app' });
+  const key = appKey();
+  const pair = await it.call('POST', '/api/pair', { code: it.p.startPairing(CODE).code, key: key.jwk, client: 'app', attestation: key.chain });
   await it.call('POST', '/api/hello', { challenge: pair.json.challenge, sig: await key.sign(pair.json.challenge) });
-  const signOrder = async (challenge, text) => Buffer.from(await subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key.privateKey, pocket.orderSigned(challenge, text))).toString('base64url');
+  const signOrder = async (challenge, text) => key.signRaw(pocket.orderSigned(challenge, text));
   return { ...it, key, signOrder };
 }
+
+test('her app pairs only with a key Google\'s attestation vouches for, made for this pairing', async (t) => {
+  const it = page(t);
+  await it.p.start();
+  const tries = [
+    [{ key: appKey().jwk }, 'notAttested:noChain'],
+    [{ key: appKey('software').jwk, attestation: appKey('software').chain }, 'notAttested:software'],
+    [{ key: appKey('noAuth').jwk, attestation: appKey('noAuth').chain }, 'notAttested:noFingerprint'],
+    [{ key: appKey('forAWhile').jwk, attestation: appKey('forAWhile').chain }, 'notAttested:notEachTime'],
+    [{ key: appKey('otherChallenge').jwk, attestation: appKey('otherChallenge').chain }, 'notAttested:otherChallenge'],
+    [{ key: appKey('software').jwk, attestation: appKey().chain }, 'notAttested:otherKey'],
+  ];
+  for (const [body, error] of tries) {
+    const res = await it.call('POST', '/api/pair', { code: it.p.startPairing(CODE).code, client: 'app', ...body });
+    assert.equal(res.json.error, error);
+  }
+  assert.equal(it.state.phones.length, 0);
+  const ok = await it.call('POST', '/api/pair', { code: it.p.startPairing(CODE).code, client: 'app', key: appKey().jwk, attestation: appKey().chain });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(it.state.phones[0].attestation, appKey().chain);
+});
+
+test('no orders from her app\'s key without its attestation (as an older pairing has it)', async (t) => {
+  const it = await appPaired(t);
+  delete it.state.phones[0].attestation;
+  it.state.phones[0] = { ...it.state.phones[0], key: { ...it.state.phones[0].key } }; // (checked again, as a new record)
+  const { challenge } = (await it.call('GET', '/api/challenge')).json;
+  assert.equal((await it.call('POST', '/api/order', { text: 'x', challenge, sig: await it.signOrder(challenge, 'x') })).json.error, 'notAttested');
+});
 
 test('an order from her app: signed on its own, for that order, once', async (t) => {
   const it = await appPaired(t);
@@ -344,10 +384,10 @@ test('a phone keeps a key for each place it paired (a page on each PC, her app),
   const it = page(t);
   await it.p.start();
   const browser = await phoneKey();
-  const app = await phoneKey();
+  const app = appKey();
   const elsewhere = await phoneKey();
   await it.call('POST', '/api/pair', { code: it.p.startPairing().code, key: browser.jwk });
-  await it.call('POST', '/api/pair', { code: it.p.startPairing().code, key: app.jwk, client: 'app' });
+  await it.call('POST', '/api/pair', { code: it.p.startPairing(CODE).code, key: app.jwk, client: 'app', attestation: app.chain });
   assert.deepEqual(it.state.phones.map((p) => p.via), [it.origin, 'app']);
   // as another PC of her swarm passes it on: the same phone, paired on that PC's page
   it.state.phones.push({ ...it.state.phones[0], key: pocket.publicKey(elsewhere.jwk), via: 'https://laptop.tail1234.ts.net:47825' });

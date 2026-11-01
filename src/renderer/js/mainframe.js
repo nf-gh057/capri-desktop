@@ -314,7 +314,7 @@ function pocket(s, t) {
       ]),
     k.url && section(t.pocketPhones,
       !k.phones.length && el('p', { class: 'note' }, t.pocketNone),
-      k.phones.map((p) => row(null, el('span', { class: 'grow reminder' }, `${p.name} · ${p.since}`),
+      k.phones.map((p) => row(null, el('span', { class: 'grow reminder' }, [p.name, p.since, p.app].filter(Boolean).join(' · ')),
         button('✕', 'pocketForget', p.id, { title: t.pocketForget }))),
       k.invite
         ? [

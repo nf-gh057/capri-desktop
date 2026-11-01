@@ -44,17 +44,6 @@ Wspólne dla wszystkich etapów:
   nie uruchomi niczego na pozostałych bezpośrednio; wspólna persona i wspomnienia trafiają jednak do agentów na każdym
   komputerze, więc ich zmianę z innego komputera Capri pokazuje tam, gdzie jesteś, z „Cofnij” (zrobione w 0.4.4-22).
 
-### Etap 5: rozmowa z Capri przez Tailscale (zamiast Telegrama) (zrobione: rozmowa w 0.4.4-49, `pocket.js`; bez zadań z narzędziami)
-Zostaje: zadania z narzędziami potwierdzane odciskiem palca (passkey), razem z etapem 3 Telegrama. (zrobione inaczej
-w 0.4.4-54: zlecenia z jej aplikacji na Androida, każde podpisane po odcisku palca; strona i Telegram tylko rozmawiają)
-- Telefon z aplikacją Tailscale otwiera stronę czatu Capri (PWA) na jej adresie w sieci Tailscale (HTTPS z certyfikatem
-  `*.ts.net`): treść nie przechodzi przez żaden obcy serwer.
-- Parowanie telefonu raz, w Mainframe: Capri zapamiętuje jego urządzenie w Tailscale (`whois`) i klucz w przeglądarce.
-  Obce urządzenie z tej samej sieci Tailscale nie wejdzie, nawet z twojego konta.
-- Bez kodów TOTP do rozmowy: dostęp wymaga fizycznie tego telefonu (odblokowanego, z zalogowanym Tailscale), a nie
-  konta, które da się przejąć zdalnie. Do zadań z narzędziami (jak etap 3 Telegrama): potwierdzenie odciskiem palca
-  (passkey, WebAuthn) zamiast kodu.
-
 ## Do zrobienia
 
 - Głos klonowany z postaci z anime albo z własnego nagrania.
@@ -77,31 +66,10 @@ w 0.4.4-54: zlecenia z jej aplikacji na Androida, każde podpisane po odcisku pa
 - Capri zaczepia cię na telefonie, gdy nie ma cię przy komputerze: sama z siebie, jak jej uwagi na pulpicie
   (`talk.js`), wiadomość do jej aplikacji (powiadomienie, widżet) albo na Telegram. Z umiarem (kilka razy dziennie
   najwyżej, nie w nocy), ustawiane w Mainframe; wysyła komputer, na którym jest, gdy nie ma cię przy żadnym.
-- Aplikacja na Androida z widżetem rozmowy: natywna (Kotlin, w repo `android/`), APK instalowany ręcznie i podpisany
-  kluczem, który zostaje u użytkownika (bez Sklepu Play). Parowanie tym samym kodem QR z Mainframe, klucz w Android
-  Keystore (sprzętowy, nie do wyciągnięcia, opcjonalnie odblokowywany odciskiem palca), ten sam protokół co jej strona
-  (`pocket.js`: podpisane wyzwanie, sesja tylko dla tego urządzenia), więc po stronie Capri bez zmian. Widżet: ostatnia
-  kwestia Capri i przycisk „Napisz” otwierający małe okno odpowiedzi (widżety Androida nie mają pola tekstowego).
-  Do budowania: Android SDK na PC.
-  (zrobione w 0.4.4-54: aplikacja w `android/` bez bibliotek, parowanie przez stronę (`capri://pair`), odcisk palca przy
-  każdym otwarciu, rozmowa, zlecenia podpisane po odcisku, notki, gdy jest otwarta; log zleceń w Mainframe i na
-  Telegramie; wybór komputera roju w 0.4.4-57; usługa w tle z powiadomieniami i widżet w 0.4.4-61. Zostaje niżej:
-  sprawdzanie przez Capri poświadczenia klucza od Google (Key Attestation: klucz sprzętowy, tylko po odcisku), stały
-  klucz podpisu APK do wydań.)
-  - Powiadomienia bez żadnego serwera pośrodku (bez ntfy i UnifiedPush): usługa aplikacji w tle (z widocznym
-    powiadomieniem „Capri słucha”) trzyma przez Tailscale lekkie połączenie ze stroną Capri na każdym komputerze roju
-    (tym samym strumieniem co strona dziś, `/api/events`), z sygnałem co kilka minut. Wymaga wyłączenia optymalizacji
-    baterii dla aplikacji (jak dla ntfy i Tailscale); bez tego w głębokim uśpieniu telefonu z opóźnieniem.
-  - Wysyła tylko komputer, na którym Capri jest teraz (rój już go wybiera; zdarzenia z innych tam trafiają), gdy nie ma
-    cię przy żadnym komputerze roju (jak Telegram). Gdy ten PC zniknie, w ~12 s przejmuje inny. Każde powiadomienie ma
-    numer: aplikacja pokazuje je raz, a komputer trzyma ostatnie i dosyła przegapione po zmianie sieci. (zrobione po
-    stronie Capri w 0.4.4-53: zdarzenie `note` w `/api/events` z `id:` = czas, dosyłanie przez `?since=` albo
-    Last-Event-ID, rodzaj `pocket` w roju; strona pokazuje je, gdy jest otwarta)
-  - Parowanie raz dla całego roju: komputery wymieniają przez rój tylko publiczną połowę klucza telefonu i jego
-    urządzenie w Tailscale (nic tajnego, więc przejęcie jednego komputera nie daje dostępu do telefonu); aplikacja
-    dostaje od niego adresy pozostałych komputerów. (zrobione po stronie Capri w 0.4.4-52: klucze telefonu we wspólnej
-    pamięci roju, po jednym na miejsce parowania, `client: 'app'` dla aplikacji, adresy w `/api/start` jako `pcs`; strona
-    w przeglądarce i tak paruje się osobno z każdym komputerem, bo przeglądarka trzyma klucz osobno dla każdego adresu)
+- Jej aplikacja na Androida (`android/`), co zostało:
+  - Capri sprawdza poświadczenie klucza aplikacji od Google (Key Attestation): klucz sprzętowy, tylko po odcisku palca,
+    za każdym razem, zrobiony do tego parowania; zlecenia tylko od tak potwierdzonego klucza. (zrobione w 0.4.4-69)
+  - Stały klucz podpisu APK, poza repozytorium, u użytkownika. (zrobione w 0.4.4-69: `%USERPROFILE%\.caprindroid`)
   - Zapasowo, opcjonalnie: FCM albo UnifiedPush, dla telefonów, które mimo wyłączonej optymalizacji baterii zabijają
     aplikacje w tle (niektóre Xiaomi, Huawei); treść szyfrowana kluczem telefonu (RFC 8291), więc pośrednik widzi tylko
-    szyfr, czas i rozmiar. Bez powiadomień widżet odświeża się po wysłaniu, po otwarciu aplikacji i co ~15 min.
+    szyfr, czas i rozmiar.

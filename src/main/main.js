@@ -27,6 +27,7 @@ const phone = require('./phone');
 const totp = require('./totp');
 const swarm = require('./swarm');
 const pocket = require('./pocket');
+const attest = require('./attest');
 const update = require('./update');
 const { createMind } = require('./mind');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
@@ -1446,9 +1447,15 @@ function pocketState(cfg, t) {
     tailscale: pocketError === 'noTailscale',
     invite: pocketInvite && pocketLink?.pairing() ? pocketInvite : null, // until it's used, cancelled or runs out
     // each phone once, however many keys it has (a page on each PC, her app), since it first paired
-    phones: [...new Map((cfg.pocket?.phones || []).slice().sort((a, b) => b.at - a.at).map((p) => [p.id, p])).values()].map(({ id, name, at }) => ({
-      id, name, since: new Date(at).toLocaleDateString(resolveLang(cfg.lang), { day: 'numeric', month: 'short', year: 'numeric' }),
-    })),
+    phones: [...new Map((cfg.pocket?.phones || []).slice().sort((a, b) => b.at - a.at).map((p) => [p.id, p])).values()].map(({ id, name, at }) => {
+      // its app, if paired: its key vouched for by Google's attestation (it may give orders), or not (pair again)
+      const app = (cfg.pocket?.phones || []).filter((p) => p.id === id && p.via === 'app');
+      const vouched = app.some((p) => p.attestation && attest.check(p.attestation, p.key).ok);
+      return {
+        id, name, since: new Date(at).toLocaleDateString(resolveLang(cfg.lang), { day: 'numeric', month: 'short', year: 'numeric' }),
+        app: !app.length ? null : vouched ? t.pocketAppVouched : t.pocketAppNotVouched,
+      };
+    }),
   };
 }
 

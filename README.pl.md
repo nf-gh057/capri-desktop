@@ -198,6 +198,11 @@ albo Codex zmieniające pliki w swoim folderze.
 - **Każde zlecenie to znów twój odcisk.** Zaznacz **Zlecenie**, a jej klucz podpisze to zlecenie, słowo w słowo, z własnym
   wyzwaniem. Capri sprawdza podpis i robi to, jakbyś napisał to przy komputerze.
 - **Zlecenia daje tylko jej aplikacja.** Jej strona w przeglądarce i Telegram tylko rozmawiają.
+- **Klucz aplikacji poświadcza Google.** Przy parowaniu bezpieczny sprzęt telefonu podpisuje łańcuch certyfikatów
+  klucza, aż do certyfikatu głównego poświadczeń Google, zrobiony dla kodu tego parowania. Każdy komputer sprawdza ten
+  łańcuch sam: że klucz jest w bezpiecznym sprzęcie telefonu, że działa tylko zaraz po odcisku palca i za każdym razem,
+  a przy parowaniu, że powstał właśnie do niego. Zlecenia przychodzą tylko od tak poświadczonego klucza. Mainframe
+  mówi o tym przy telefonie.
 - **Na komputerze** Claude Code dostaje tylko narzędzia do czytania i edycji (bez powłoki, sieci i serwerów MCP), a Codex
   swoją piaskownicę `workspace-write` bez sieci, oba w folderze agenta z Mainframe. Nigdy pełny dostęp.
 - **Każde zlecenie jest zapisane** w Mainframe › HOLO › TAILSCALE › **Zlecenia z jej aplikacji**, a w jej czacie oznaczone
@@ -206,8 +211,14 @@ albo Codex zmieniające pliki w swoim folderze.
 
 **Instalacja**
 
-1. Zbuduj ją: `cd android`, potem `gradlew assembleDebug` (potrzebne Android Studio, dla jego SDK i Javy). Aplikacja
-   ląduje w `android/app/build/outputs/apk/debug/app-debug.apk`.
+1. Zbuduj ją: `cd android`, potem `gradlew assembleRelease` (potrzebne Android Studio, dla jego SDK i Javy). Aplikacja
+   ląduje w `android/app/build/outputs/apk/release/app-release.apk`.
+   - Jest podpisana własnym kluczem aplikacji, z `%USERPROFILE%\.capri\android\signing.properties` i magazynu kluczy
+     obok niego (albo z pliku, który wskazuje `CAPRI_SIGNING`). Każda nowa wersja zainstaluje się na poprzedniej tylko
+     z tym samym kluczem, więc **zrób kopię tego folderu**. Bez niego budowanie podpisze aplikację kluczem testowym
+     komputera.
+   - Taki klucz zrobisz keytoolem z `jbr\bin` Android Studio (`-genkeypair -storetype PKCS12 -keyalg RSA -keysize 3072
+     -validity 10000 -alias capri`); potem wpisz `storeFile`, `storePassword`, `keyAlias` i `keyPassword` do tego pliku.
 2. Wgraj ją na telefon: z włączonym **Debugowaniem bezprzewodowym** (Opcje programisty) `adb pair` i `adb connect` do
    telefonu, potem `adb install -r` tego pliku. Albo skopiuj plik na telefon i go otwórz (pozwól menedżerowi plików
    instalować nieznane aplikacje).
@@ -525,6 +536,7 @@ src/main/
   totp.js                kod z aplikacji uwierzytelniającej, który odblokowuje rozmowę przez Telegram
   swarm.js               rój: parowanie komputerów, szyfrowane wiadomości między nimi, przy którym jesteś
   pocket.js              jej strona na telefonie przez Tailscale: kto się łączy (whois), parowanie kluczem, sesje
+  attest.js              poświadczenie klucza jej aplikacji od Google, sprawdzane (attest-roots.json: certyfikaty Google)
 src/pocket/              ta strona (HTML, jej skrypt i style, manifest do ekranu głównego)
 android/                 jej aplikacja (Kotlin, bez bibliotek): klucz w Android Keystore za odciskiem palca, czat, zlecenia
   mind.js                jej wspólny umysł: to, co wie na wszystkich komputerach, wymieniane i scalane (wyspa nadrabia)

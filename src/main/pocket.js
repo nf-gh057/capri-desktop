@@ -26,6 +26,7 @@ const https = require('node:https');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const attest = require('./attest');
 
 const PORT = 47825;
 const PAIR_MS = 10 * 60 * 1000;       // how long a pairing code works
@@ -109,7 +110,12 @@ function phoneRecord(p) {
   if (!key || typeof p.id !== 'string' || !p.id || p.id.length > 100 || !Number.isFinite(p.at)) return null;
   const via = typeof p.via === 'string' && p.via.length <= 200 ? p.via : null;
   const listen = via === 'app' ? publicKey(p.listen) : null; // her app's key for listening in the background
-  return { id: p.id, name: String(p.name || p.id).slice(0, 60), key, at: p.at, ...(via && { via }), ...(listen && { listen }) };
+  // what Google's attestation said of her app's key (its chain, base64 DER): every PC checks it for itself
+  const chain = via === 'app' && Array.isArray(p.attestation) && p.attestation.length <= 6
+    && p.attestation.every((c) => typeof c === 'string' && c.length <= 8192) ? p.attestation : null;
+  return {
+    id: p.id, name: String(p.name || p.id).slice(0, 60), key, at: p.at, ...(via && { via }), ...(listen && { listen }), ...(chain && { attestation: chain }),
+  };
 }
 
 const same = (a, b) => {
@@ -134,7 +140,7 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 // kept (ms).
 function createPocket({
   host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
-  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true, route = () => ({ here: true }),
+  ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true, route = () => ({ here: true }), roots,
 }) {
   const who = new Map();        // address -> { at, it }
   const challenges = new Map(); // challenge -> { node, at }
@@ -158,6 +164,16 @@ function createPocket({
   }
 
   const phoneOf = (node) => phones().find((p) => p.id === node) || null;
+
+  // whether her app's key is one Google's attestation vouches for (its chain checked here, whichever PC it was
+  // paired on; the challenge only that one knew), kept per key
+  const vouched = new Map();
+  function attested(p) {
+    if (!p.attestation) return false;
+    const id = `${p.key.x}.${p.key.y}`;
+    if (!vouched.has(id)) vouched.set(id, attest.check(p.attestation, p.key, null, roots).ok);
+    return vouched.get(id);
+  }
 
   // a one-time challenge for this device, for a session (`hello`) or for one order
   function challenge(node, purpose = 'hello') {
@@ -247,13 +263,19 @@ function createPocket({
         pair.tries += 1;
         throw new PocketError('badCode');
       }
+      // her app's key: only as Google's attestation says it is, made for this pairing (its code), in the phone's
+      // secure hardware, usable only right after a fingerprint, each time (attest.js)
+      const via = body?.client === 'app' ? 'app' : req.headers.origin;
+      if (via === 'app') {
+        const made = attest.check(body?.attestation, key, crypto.createHash('sha256').update(pair.code).digest(), roots);
+        if (!made.ok) throw new PocketError(`notAttested:${made.why}`);
+      }
       // the same device paired again from the same place (its key lost: the page cleared, the app put in
       // again) takes its place; its keys from elsewhere (another PC's page, her app) stay
-      const via = body?.client === 'app' ? 'app' : req.headers.origin;
       const others = phones().filter((p) => p.id !== device.node || (p.via || origins[0]) !== via);
       if (others.length >= MAX_KEYS) throw new PocketError('tooManyPhones');
       pair = null;
-      onPhones([...others, { id: device.node, name: device.name, key, at: Date.now(), via }]);
+      onPhones([...others, { id: device.node, name: device.name, key, at: Date.now(), via, ...(via === 'app' && { attestation: body.attestation }) }]);
       for (const [token, s] of sessions) if (s.node === device.node) sessions.delete(token);
       return { ok: true, challenge: challenge(device.node) };
     },
@@ -290,8 +312,8 @@ function createPocket({
     'POST /api/order': async (device, body, _res, req) => {
       const text = typeof body?.text === 'string' ? body.text.trim() : '';
       if (!text || text.length > MAX_TEXT) throw new PocketError('badText', 400);
-      const keys = phones().filter((p) => p.id === device.node && p.via === 'app');
-      if (!keys.length) throw new PocketError('notApp');
+      const keys = phones().filter((p) => p.id === device.node && p.via === 'app' && attested(p));
+      if (!keys.length) throw new PocketError(phones().some((p) => p.id === device.node && p.via === 'app') ? 'notAttested' : 'notApp');
       if (!spend(device, body?.challenge, 'order')) throw new PocketError('noChallenge');
       if (!keys.some((p) => verify(p.key, orderSigned(body.challenge, text), body.sig))) throw new PocketError('badSig');
       const { id, done } = send(device, text, true);
@@ -452,8 +474,9 @@ function createPocket({
   }
 
   // a code for a phone to pair with, shown in Mainframe: "ABCDE-FGHJK"
-  function startPairing() {
-    const code = Array.from(crypto.randomBytes(10), (b) => ALPHABET[b % ALPHABET.length]).join('');
+  // (`given`: a code of the tests' own, for an attestation made for it)
+  function startPairing(given = null) {
+    const code = given || Array.from(crypto.randomBytes(10), (b) => ALPHABET[b % ALPHABET.length]).join('');
     pair = { code, until: Date.now() + PAIR_MS, tries: 0 };
     return { code, text: `${code.slice(0, 5)}-${code.slice(5)}`, until: pair.until };
   }

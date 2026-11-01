@@ -28,10 +28,12 @@ object Keys {
         store().deleteEntry(ALIAS)
     }
 
-    // a new key (the old one gone): its public half, as her page's browser sends one (JWK, P-256)
-    fun make(): Map<String, String> {
+    // a new key (the old one gone): its public half, as her page's browser sends one (JWK, P-256). `challenge`:
+    // what Google's attestation of it says it was made for (her PC checks it: this pairing's code)
+    fun make(challenge: ByteArray): Map<String, String> {
         forget()
         fun spec(strongBox: Boolean) = KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_SIGN)
+            .setAttestationChallenge(challenge)
             .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
             .setDigests(KeyProperties.DIGEST_SHA256)
             .setUserAuthenticationRequired(true)
@@ -86,6 +88,11 @@ object Keys {
     }
 
     // ready to sign, once your fingerprint lets it (BiometricPrompt's CryptoObject)
+    // Google's attestation of her key: its certificate chain, from the phone's secure hardware up to a Google
+    // root (base64 DER, the key's own first)
+    fun attestation(): List<String> =
+        store().getCertificateChain(ALIAS).orEmpty().map { Base64.encodeToString(it.encoded, Base64.NO_WRAP) }
+
     fun signer(): Signature = Signature.getInstance("SHA256withECDSA").apply {
         initSign(store().getKey(ALIAS, null) as PrivateKey)
     }
