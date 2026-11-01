@@ -211,6 +211,10 @@ Capri is on it. When other PCs answer too, ▾ next to it lists them (only those
 chat there, with your fingerprint. If the PC it talks to doesn't answer and exactly one other does, it goes there by
 itself; with several, it asks. Her app pairs once: the other PCs of her swarm know its key.
 
+An order can be just an app's name ("Chrome"), and may name the PC ("Chrome on Legion"): sent to Legion, it opens Chrome
+there; sent to another PC, she doesn't do it and tells you to pick Legion (▾). What she did comes back with her answer
+("Chrome: on it.").
+
 Adding a new fingerprint on the phone ends her key: pair the app again. It doesn't notify you in the background yet, and
 has no widget yet (see `TODO.md`).
 

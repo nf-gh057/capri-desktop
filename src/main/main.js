@@ -1197,14 +1197,15 @@ async function phoneUnlock(typed, message) {
 // Your message from your phone to her chat (chat.js fromPhone, in the overlay): her answer, { ok, text }
 // or { ok: false, error }. `kind`: 'phone' (Telegram) or 'pocket' (her page over Tailscale), and Claude
 // Code or Codex only read for it (chat:send); or 'order' (her app, after your fingerprint: chat.js fromDesk,
-// as typed at the PC, `tag` on it in her chat). `delta`: her answer as it's written, piece by piece.
-function askHer(kind, text, delta = null, tag = '') {
+// as typed at the PC, `tag` on it in her chat, `act`: what she does, the PC's name left out). `delta`: her
+// answer as it's written, piece by piece.
+function askHer(kind, text, delta = null, tag = '', act = '') {
   if (!overlay) return Promise.resolve({ ok: false, error: 'offline' });
   const id = `${kind}-${randomUUID()}`;
   return new Promise((resolve) => {
     phoneTurns.set(id, resolve);
     if (delta) pocketDeltas.set(id, delta);
-    overlay.webContents.send('phone:chat', { id, text, ...(kind === 'order' && { order: tag || 'ORDER' }) });
+    overlay.webContents.send('phone:chat', { id, text, ...(kind === 'order' && { order: tag || 'ORDER', act: act || text }) });
     setTimeout(() => {
       chats.get(id)?.abort();
       resolve({ ok: false, error: 'timeout' });
@@ -1344,6 +1345,10 @@ function pocketAsk(text, delta) {
 function pocketOrder(text, name, delta) {
   const cfg = config.load();
   const t = trayLabels(cfg);
+  // "Chrome on Legion": an order naming another PC of her swarm isn't done here (her app goes there: ▾);
+  // naming this one, the name's left out of what she does
+  const target = orderTarget(text);
+  if (target.elsewhere) return Promise.resolve({ ok: true, text: t.pocketOrderElsewhere(target.elsewhere) });
   const entry = { at: Date.now(), phone: String(name || '').slice(0, 60), text: String(text).slice(0, 2000) };
   pocketOrders = [...pocketOrderLog(), entry].slice(-ORDERS_KEEP);
   try {
@@ -1353,9 +1358,29 @@ function pocketOrder(text, name, delta) {
   }
   mainframe?.refresh();
   if (cfg.pocketOrderTelegram !== false && cfg.telegram?.chat) phoneSend(t.pocketOrderTold(entry.phone, phone.compose({ line: entry.text }, 'line')), { always: true });
-  const turn = phoneQueue.then(() => askHer('order', text, delta, t.pocketOrderTag));
+  const turn = phoneQueue.then(() => askHer('order', text, delta, t.pocketOrderTag, target.act));
   phoneQueue = turn.catch(() => {});
   return turn;
+}
+
+// The PCs of her swarm an order names, as people write them ("na legionie", "on RG-Beast"): { elsewhere: the
+// other PC's name, if it names one and not this one }, and `act`: the order without this PC's name (and the
+// little word before it), for her to do
+const ORDER_ON = /^(na|w|we|on|at|in|sur|en|em|no|в|на)$/i;
+function orderTarget(text) {
+  const flat = (s) => String(s).toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]/gu, '');
+  const pcs = [{ name: hiveName(), here: true }, ...(hive?.state().peers || []).map((p) => ({ name: p.name, here: false }))]
+    .map((p) => ({ ...p, stem: flat(p.name) })).filter((p) => p.stem.length >= 3);
+  const words = String(text).split(/\s+/);
+  const named = (word) => {
+    const w = flat(word);
+    return w.length >= 3 ? pcs.find((p) => w.startsWith(p.stem) || (w.length >= 4 && p.stem.startsWith(w))) : null;
+  };
+  const hits = words.map(named);
+  const other = hits.find((p) => p && !p.here);
+  if (other && !hits.some((p) => p?.here)) return { elsewhere: other.name, act: text };
+  const keep = words.filter((w, i) => !hits[i] && !(ORDER_ON.test(w) && hits[i + 1]));
+  return { elsewhere: null, act: keep.join(' ').trim() || text };
 }
 
 // her log of orders from her app, oldest first: [{ at, phone, text }]

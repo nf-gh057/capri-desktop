@@ -14,7 +14,7 @@ const REMEMBER_LOCAL = 8; // the same, with a model on this PC standing in (no n
 const EREBUS_CHANCE = 0.08; // an answer through her Blackwall Gateway that brings Erebus in with it
 // a message from your phone (her chat on Telegram): what her AI is told, by the message
 const PHONE_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from their phone. You can\'t open apps, sites or music, play anything or set reminders for them now: if they ask, say so. Plain text, a few sentences at most.';
-const ORDER_NOTE = 'Note for you, never repeat it: the user is away from the PC and gives you this from their phone, confirmed with their fingerprint. Do it as if they were at the PC (change files in your folder, open apps or music, set reminders), then say in a few plain sentences what you did.';
+const ORDER_NOTE = 'Note for you, never repeat it: the user is away from the PC and gives you this from their phone, confirmed with their fingerprint. Opening apps, sites or music and setting reminders is done by Capri herself, right away, not by you: never say you opened or will open something. What you can do, changing files in your folder, do it, then say in a few plain sentences what you did.';
 const PHONE_AGENT ='You only read here: change no file and run nothing that changes anything, even if asked; that waits until they\'re back at the PC.';
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
 // her language, where small models need it: how she says "we" (else it's in English), and the last line
@@ -451,8 +451,9 @@ export class Chat {
   // memory, at your PC, so what you ask plainly (a reminder, the music, an app you named) happens and
   // her line about it follows her answer. What only her AI asked for (a button here) stays undone.
   // `order`: an order from her app on your phone, confirmed with your fingerprint (main.js), done the same
-  // way, with its tag in her chat and her AI told you're away and it may act.
-  async fromDesk(id, text, { order = '' } = {}) {
+  // way, with its tag in her chat and her AI told you're away and it may act. `act`: what she does of it
+  // (the order without the PC's name); a short order that's only a name ("Chrome") opens it.
+  async fromDesk(id, text, { order = '', act = text } = {}) {
     while (this.turn) await new Promise((resolve) => setTimeout(resolve, 500)); // what you typed here first
     const status = await this.host.chatStatus().catch(() => ({ ok: false, error: 'offline' }));
     if (!status.ok) return { ok: false, error: status.error === 'offline' ? this.t.offline : status.error || '…' };
@@ -465,7 +466,8 @@ export class Chat {
     this.capri.pulse();
     this.onMessage?.();
     this.bond?.heard(text);
-    const asked = this.asked(text);
+    const short = order && act.split(/\s+/).length <= 4 && !/\?/.test(act);
+    const asked = this.asked(order ? act : text) || (short ? { kind: 'open', text: act } : null);
     const early = asked && !['close', 'look'].includes(asked.kind) ? this.doNow(asked).catch(() => null) : null;
     // a window she looked for herself: what she found is her whole answer (her AI would only guess)
     const found = asked?.kind === 'window' && (await early);
@@ -494,8 +496,9 @@ export class Chat {
     const done = await early;
     const said = clean(res.text) || '…';
     this.warm = true;
-    this.remember({ role: 'assistant', content: done?.line ? `${said}\n${done.line}` : said });
-    return { ok: true, text: said };
+    const all = done?.line ? `${said}\n${done.line}` : said;
+    this.remember({ role: 'assistant', content: all });
+    return { ok: true, text: order ? all : said }; // to your phone: what she did too ("Chrome: on it.")
   }
 
   // "Look at my screen" in her chat: she looks (asking you first, the first time) and answers here,

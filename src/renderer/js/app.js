@@ -263,8 +263,8 @@ async function boot() {
   brain.onTalk = () => chat.start();
   // what you write her from your phone (main.js lets it through only once unlocked); an order from her app
   // (`order`: its tag in her chat), confirmed with your fingerprint, as if typed at the PC
-  host.onPhoneChat(async ({ id, text, order }) => {
-    const answer = await (order ? chat.fromDesk(id, String(text), { order: String(order) }) : chat.fromPhone(id, String(text)))
+  host.onPhoneChat(async ({ id, text, order, act }) => {
+    const answer = await (order ? chat.fromDesk(id, String(text), { order: String(order), act: String(act || text) }) : chat.fromPhone(id, String(text)))
       .catch((err) => ({ ok: false, error: err.message }));
     host.phoneAnswer({ id, ...answer });
   });

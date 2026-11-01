@@ -117,6 +117,7 @@ const TRAY = {
     pocketOrdersNone: 'Aucun ordre pour l’instant. Son app peut lui en donner, chacun confirmé par ton empreinte.',
     pocketOrderTelegram: 'Me prévenir sur Telegram de chaque ordre',
     pocketOrderTag: 'ORDRE',
+    pocketOrderElsewhere: (pc) => `C’est pour ${pc}, pas pour ce PC : choisis ${pc} en haut de l’app (▾), puis redonne l’ordre.`,
     pocketOrderTold: (phone, text) => `Ordre depuis ${phone} (empreinte confirmée) :\n${text}`,
     pocketSteps: 'Astuce : sur le téléphone, ajoute sa page à l’écran d’accueil (menu du navigateur › Ajouter à l’écran d’accueil) avant d’appairer, et appaire depuis là : la clé reste dans le navigateur qui a appairé.',
     // the page itself (src/pocket), on the phone
@@ -269,6 +270,7 @@ const TRAY = {
     pocketOrdersNone: 'No orders yet. Her app can give her some, each confirmed with your fingerprint.',
     pocketOrderTelegram: 'Tell me on Telegram about each order',
     pocketOrderTag: 'ORDER',
+    pocketOrderElsewhere: (pc) => `That’s for ${pc}, not this PC: pick ${pc} at the top of the app (▾), then give the order again.`,
     pocketOrderTold: (phone, text) => `Order from ${phone} (fingerprint confirmed):\n${text}`,
     pocketSteps: 'Tip: on the phone, add her page to the home screen (browser menu › Add to Home screen) before you pair, and pair from there: the key stays in the browser that paired.',
     // the page itself (src/pocket), on the phone
@@ -420,6 +422,7 @@ const TRAY = {
     pocketOrdersNone: 'Aún no hay órdenes. Su app puede darle alguna, cada una confirmada con tu huella.',
     pocketOrderTelegram: 'Avisarme en Telegram de cada orden',
     pocketOrderTag: 'ORDEN',
+    pocketOrderElsewhere: (pc) => `Eso es para ${pc}, no para este PC: elige ${pc} arriba en la app (▾) y vuelve a dar la orden.`,
     pocketOrderTold: (phone, text) => `Orden desde ${phone} (huella confirmada):\n${text}`,
     pocketSteps: 'Consejo: en el teléfono, añade su página a la pantalla de inicio (menú del navegador › Añadir a pantalla de inicio) antes de emparejar, y empareja desde allí: la clave se queda en el navegador que emparejó.',
     // the page itself (src/pocket), on the phone
@@ -572,6 +575,7 @@ const TRAY = {
     pocketOrdersNone: 'Nenhuma ordem ainda. O app dela pode dar alguma, cada uma confirmada com sua digital.',
     pocketOrderTelegram: 'Me avisar no Telegram de cada ordem',
     pocketOrderTag: 'ORDEM',
+    pocketOrderElsewhere: (pc) => `Isso é para ${pc}, não para este PC: escolha ${pc} no topo do app (▾) e dê a ordem de novo.`,
     pocketOrderTold: (phone, text) => `Ordem de ${phone} (digital confirmada):\n${text}`,
     pocketSteps: 'Dica: no celular, adicione a página dela à tela inicial (menu do navegador › Adicionar à tela inicial) antes de parear, e pareie a partir dali: a chave fica no navegador que pareou.',
     // the page itself (src/pocket), on the phone
@@ -722,6 +726,7 @@ const TRAY = {
     pocketOrdersNone: 'Поручений пока нет. Её приложение может их давать, каждое подтверждено твоим отпечатком.',
     pocketOrderTelegram: 'Сообщать мне в Telegram о каждом поручении',
     pocketOrderTag: 'ПОРУЧЕНИЕ',
+    pocketOrderElsewhere: (pc) => `Это для ${pc}, а не для этого ПК: выбери ${pc} вверху приложения (▾) и дай поручение снова.`,
     pocketOrderTold: (phone, text) => `Поручение с ${phone} (отпечаток подтверждён):\n${text}`,
     pocketSteps: 'Совет: на телефоне добавь её страницу на главный экран (меню браузера › Добавить на главный экран) до сопряжения и сопрягай уже оттуда: ключ остаётся в браузере, который сопрягал.',
     // the page itself (src/pocket), on the phone
@@ -873,6 +878,7 @@ const TRAY = {
     pocketOrdersNone: 'Jeszcze żadnego zlecenia. Jej aplikacja może je dawać, każde potwierdzone twoim odciskiem palca.',
     pocketOrderTelegram: 'Informuj mnie na Telegramie o każdym zleceniu',
     pocketOrderTag: 'ZLECENIE',
+    pocketOrderElsewhere: (pc) => `To dla ${pc}, nie dla tego komputera: wybierz ${pc} na górze aplikacji (▾) i daj zlecenie jeszcze raz.`,
     pocketOrderTold: (phone, text) => `Zlecenie z ${phone} (odcisk palca potwierdzony):\n${text}`,
     pocketSteps: 'Wskazówka: na telefonie dodaj jej stronę do ekranu głównego (menu przeglądarki › Dodaj do ekranu głównego) przed parowaniem i paruj już stamtąd: klucz zostaje w przeglądarce, która parowała.',
     // the page itself (src/pocket), on the phone
