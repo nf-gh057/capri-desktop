@@ -20,7 +20,6 @@ import { sleep, rand, pick, clamp, lerp, ease, tween, reducedMotion, today } fro
 
 const ON_TWOS = 1000 / 12;
 const ON_ONES = 1000 / 24;
-const ASLEEP = 1000 / 6;
 const SLEEP_AFTER = 10 * 60 * 1000;
 const DOZE_AFTER = 20 * 1000; // asleep this long, she comes apart down to her mask
 const EREBUS_FOR = [20000, 35000]; // how long Erebus has her, ms
@@ -110,7 +109,7 @@ export class Capri {
     this.sy = 1;
     this.base = new Player('stand');
     this.act = null;
-    this.lastDraw = 0;
+    this.nextDraw = 0;
 
     const now = performance.now();
     this.lastActivity = now;
@@ -540,21 +539,26 @@ export class Capri {
 
   // ---------- frame loop ----------
 
+  // as often as her drawings come (acting.js plays them at twice what the sheets are written at);
+  // thrown about, at the fastest of those; asleep, half as often
   interval() {
-    if (this.busy || this.stance === 'fall' || SPUN.has(this.stance) || this.skid || this.act?.player.act.fps === 24) return ON_ONES;
-    return this.mode === 'sleep' ? ASLEEP : ON_TWOS;
+    if (this.busy || this.stance === 'fall' || SPUN.has(this.stance) || this.skid) return ON_ONES / 2;
+    const fps = Math.max(this.base.fps, this.act?.player.fps ?? 0);
+    return 1000 / (this.mode === 'sleep' && fps < 48 ? fps / 2 : fps);
   }
 
   loop(now) {
     requestAnimationFrame(this.loop);
     if (this.hidden) return;
-    if (now - this.lastDraw < this.interval() - 1) return;
+    // on a schedule rather than since the last drawing: 48 a second on a 60 Hz screen stays 48, not 30
+    if (now < this.nextDraw - 1) return;
+    const every = this.interval();
+    this.nextDraw = Math.max(this.nextDraw, now - every) + every;
     this.drawFrame(now);
     this.behave(now);
   }
 
   drawFrame(now = performance.now()) {
-    this.lastDraw = now;
     this.animate(now);
     this.sprite.draw(this.p);
     this.place();
@@ -563,7 +567,8 @@ export class Capri {
   // Pick the drawing: the stance's cycle underneath, the current act on top.
   animate(now) {
     const p = this.p;
-    p.seed = Math.random() * 100; // a fresh drawing, so the line boils
+    // a fresh line every other drawing, so it boils as it did before her drawings were doubled
+    if ((this.drawn = (this.drawn || 0) + 1) % 2) p.seed = Math.random() * 100;
 
     const under = this.base.sample(now);
     const base = under ? this.base.resolve(under.pose, this.facing) : {};

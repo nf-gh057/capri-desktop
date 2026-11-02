@@ -346,8 +346,10 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   o konstrukt (Capri się przebija, glitche, ekran rozdarty wokół niej, wyciekające z niej czerwone dane). Okno, którym
   się zajmuje, płonie tak, jak Blackwall pali ludzi: uderza w nie czerwony słup, robi się czarno-czerwone, miga
   i rozdziera się. Erebus mówi, chłodno i z wyższością. Potem jej LÓD go wyrzuca; złapanie jej też. W tym czasie jej
-  twarz w dymku jest jego, a to, co mówi, trafia też do HOLO, na czerwono pod jego własnym kwadratem. Przy ograniczonych animacjach nic
-  z tego; odznacz *Erebus może ją opętać* w Mainframe › RELIC, żeby go nie wpuszczać.
+  twarz w dymku jest jego, a to, co mówi, trafia też do HOLO, na czerwono pod jego własnym kwadratem. Przy
+  ograniczonych animacjach nic z tego; odznacz *Erebus może ją opętać* w Mainframe › RELIC, żeby go nie wpuszczać.
+- **Płynniej**: każda jej animacja, także te z oryginalnego projektu, dostaje rysunek pośredni między każdymi dwoma
+  swoimi i jest odtwarzana dwa razy szybciej, więc rusza się dwa razy płynniej i trwa tyle samo co wcześniej.
 
 ![Znudzona: ręka na biodrze, skrzyżowane ręce, zabawa pazurami, siad po turecku w powietrzu](docs/fork/poses.png)
 
