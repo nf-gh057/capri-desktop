@@ -8,7 +8,7 @@
 // pointer ("held"), flying through the air when you throw her or she jumps to another screen
 // ("fly"), and knocked down on the floor after a crash ("down").
 // Bored, she lounges: floating with her hand on her hip, her arms crossed, fiddling with her claws
-// or cross-legged, or lying on her ledge instead of sitting on it (this.lounge; those are pose
+// or cross-legged, or lying on her ledge instead of sitting on it (this.posing; those are pose
 // drawings, sprite.js POSES). Walking or sitting at the end of a window's top, she may go over the
 // edge and hang off its side like in a platformer, trying to pull herself up.
 // Now and then Erebus, a rogue AI from beyond the Blackwall, gets into her through her Blackwall
@@ -63,7 +63,8 @@ export class Capri {
     this.facing = 1; // 1: as drawn (reaching left), -1: mirrored
     this.mode = 'idle'; // idle | work | alert | sleep
     this.stance = 'stand';
-    this.lounge = null;   // one of AFLOAT (standing) or 'lie' (sitting): the pose drawing she's lounging in
+    this.posing = null;   // one of AFLOAT (standing) or 'lie' (sitting): the pose drawing she's lounging in (not `lounge`:
+                          // the original project's lying back on her ledge goes by that name)
     this.perch = null;    // { id, dx, side }: the window she sits on, where along it (hanging: off which side)
     this.erebus = null;   // { until, win, next… }: Erebus has her (erebusIn)
     this.erebusOn = true; // he may (Mainframe › RELIC)
@@ -691,7 +692,7 @@ export class Capri {
 
     if (this.mode === 'idle' && !this.act && now > this.nextLounge) {
       this.nextLounge = now + rand(20000, 45000);
-      this.loungeStep(now);
+      this.poseStep(now);
     }
 
     if (this.mode === 'idle' && now > this.nextMove) {
@@ -863,27 +864,27 @@ export class Capri {
 
   // Bored: floating, she takes up a pose (and now and then another one), lying down on her ledge
   // after a while, and back.
-  loungeStep(now) {
+  poseStep(now) {
     if (this.pointing || this.dormant) return;
     if (this.stance === 'stand') {
-      const other = pick(AFLOAT.filter((k) => k !== this.lounge));
-      this.loungeAs(Math.random() < (this.lounge ? 0.35 : 0.6) ? other : null);
+      const other = pick(AFLOAT.filter((k) => k !== this.posing));
+      this.poseAs(Math.random() < (this.posing ? 0.35 : 0.6) ? other : null);
     } else if (this.stance === 'hang') {
       if (Math.random() < 0.5) this.climbUp();
-    } else if (this.stance === 'sit' && this.lounge) {
-      if (Math.random() < 0.3) this.loungeAs(null);
+    } else if (this.stance === 'sit' && this.posing) {
+      if (Math.random() < 0.3) this.poseAs(null);
     } else if (this.stance === 'sit' && now - this.lastActivity > BORED_AFTER && Math.random() < 0.6) {
       // sitting at the end of her window, she may let herself over it instead
       const win = this.perchWin(this.perch.id);
       const side = win && (this.perch.dx < 160 ? -1 : this.perch.dx > win.w - 170 ? 1 : 0);
-      if (!side || Math.random() < 0.5 || !this.hangOff(side)) this.loungeAs('lie');
+      if (!side || Math.random() < 0.5 || !this.hangOff(side)) this.poseAs('lie');
     }
   }
 
-  loungeAs(kind) {
-    if (this.lounge === kind) return;
-    const was = this.lounge;
-    this.lounge = kind;
+  poseAs(kind) {
+    if (this.posing === kind) return;
+    const was = this.posing;
+    this.posing = kind;
     this.base = this.restBase();
     if (kind === 'lie') this.perform('liedown');
     else if (was === 'lie' && this.stance === 'sit') this.perform('getup');
@@ -910,7 +911,7 @@ export class Capri {
     const at = { ...this.pos };
     if (this.stance !== 'stand') this.setStance('stand'); // up off her window, floating where she was
     this.pos = at;
-    this.lounge = null;
+    this.posing = null;
     const now = performance.now();
     this.erebus = {
       until: now + rand(...EREBUS_FOR), win: win?.id ?? null,
@@ -1069,7 +1070,7 @@ export class Capri {
     const onTaskbar = ledged(stance) && perch?.id === 'taskbar';
     if (onTaskbar !== (this.perch?.id === 'taskbar' && ledged(this.stance))) this.onTaskbar?.(onTaskbar);
     this.stance = stance;
-    this.lounge = null;
+    this.posing = null;
     this.perch = perch;
     this.peekSide = peekSide;
     this.p.sit = stance === 'sit' ? 1 : 0;
@@ -1090,7 +1091,7 @@ export class Capri {
   }
 
   baseAct() {
-    if (this.stance === 'sit') return this.lounge === 'lie' ? 'lie' : 'sit';
+    if (this.stance === 'sit') return this.posing === 'lie' ? 'lie' : 'sit';
     if (this.stance === 'walk') return 'walk';
     if (this.stance === 'hang') return 'hang';
     if (this.stance === 'peek') return 'peek';
@@ -1100,7 +1101,7 @@ export class Capri {
     if (this.stance === 'down') return 'ko';
     if (this.erebus) return 'erebus';
     if (this.mode === 'sleep') return 'sleep';
-    return AFLOAT.includes(this.lounge) ? this.lounge : 'stand';
+    return AFLOAT.includes(this.posing) ? this.posing : 'stand';
   }
 
   setMode(mode) {
@@ -1115,7 +1116,7 @@ export class Capri {
     if (mode === 'sleep') this.sleptAt = now;
     this.onMode?.(mode, prev);
     if (mode !== 'idle' && (this.stance === 'walk' || this.stance === 'hang')) this.sitDown(); // something's going on: back on her ledge
-    if (mode !== 'idle' && mode !== 'sleep' && this.lounge) this.loungeAs(null); // something's going on: she drops the pose
+    if (mode !== 'idle' && mode !== 'sleep' && this.posing) this.poseAs(null); // something's going on: she drops the pose
     else if (this.stance === 'stand') this.base = this.restBase();
     const p = this.p;
     if (mode === 'sleep') tween(p, { alpha: 0.55, sparkle: 0.35, boil: 0.4 }, 900, ease.inOut);
