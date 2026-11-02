@@ -3069,6 +3069,12 @@ export class Capri {
       y: clamp(win.y + Math.min(win.h * 0.5, 320), 40, this.view.floor - 40),
     };
     if (this.hidden || this.stowed || this.dormant || reducedMotion.matches) return onHit();
+    // her reaching side toward it first, so she faces the page she strikes: a turn where she stands
+    const facing = at.x < this.pos.x ? 1 : -1;
+    if (facing !== this.facing) {
+      if (this.stance === 'stand') await this.perform('turn');
+      if (facing !== this.facing) this.faceToward(at.x);
+    }
     const side = this.armToward(dir);
     const reach = () => {
       const sh = this.limb(side).shoulder;

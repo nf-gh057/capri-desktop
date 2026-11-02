@@ -208,6 +208,7 @@ export class Jealousy {
     this.chat = chat;
     this.guide = guide;
     this.host = host;
+    this.goScreen = null;   // (display) => she goes over to that screen (app.js)
     this.enabled = true;    // her menu: Jealous of other AIs
     this.closePages = true; // her menu: Close other AIs' pages
     this.front = null;      // the AI in front: { key, id, since, page: 'site' or 'download' in a browser, else null }
@@ -354,15 +355,34 @@ export class Jealousy {
   // closes) unless you stop her, with a click on her or on "Let me". Stopped, she leaves that AI's
   // pages alone for a while, and sulks.
   async close(f) {
-    const win = this.capri.windows.wins.find((w) => w.id === f.id);
-    if (!win) return;
     this.wait[f.key] = Date.now() + AGAIN_MS; // a moment, if she can't go just now
     this.chasing = true;
     try {
+      // she only sees the windows on her own screen: one on another, she goes there first
+      const win = this.capri.windows.wins.find((w) => w.id === f.id) || (await this.over(f.id));
+      if (!win) {
+        this.last = 'screen';
+        return;
+      }
       this.last = await this.chase(f, win);
     } finally {
       this.chasing = false;
     }
+  }
+
+  // Their page on another of your screens: she goes over to it (app.js goScreen, as for a window you
+  // ask her for), and has it once the windows there have come in. Null if she couldn't.
+  async over(id) {
+    if (!this.goScreen || !this.host.showWindow) return null;
+    const up = await this.host.showWindow(id).catch(() => null); // in front already: only tells which screen
+    if (up?.display == null) return null;
+    await this.goScreen(up.display);
+    for (let i = 0; i < 20; i++) {
+      const win = this.capri.windows.wins.find((w) => w.id === id);
+      if (win) return win;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return null;
   }
 
   // Her go at it: how it ended ('closed', 'spared', 'busy', 'left', or why it didn't close).

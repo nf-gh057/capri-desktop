@@ -747,6 +747,7 @@ async function boot() {
     });
   };
   chat.goScreen = goToScreen; // a window you asked for (or its taskbar button) on another screen
+  jealousy.goScreen = goToScreen; // another AI's page on another screen, to be closed
   // The pointer on another of your screens for a few seconds: she follows you there, when she's
   // free to (not in the middle of something, not asleep, not put away).
   let followOn = config.follow !== false;
