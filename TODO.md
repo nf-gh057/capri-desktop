@@ -66,6 +66,16 @@ Wspólne dla wszystkich etapów:
 - Capri zaczepia cię na telefonie, gdy nie ma cię przy komputerze: sama z siebie, jak jej uwagi na pulpicie
   (`talk.js`), wiadomość do jej aplikacji (powiadomienie, widżet) albo na Telegram. Z umiarem (kilka razy dziennie
   najwyżej, nie w nocy), ustawiane w Mainframe; wysyła komputer, na którym jest, gdy nie ma cię przy żadnym.
+- Zazdrość: rozpoznawanie innych AI lokalnym modelem (Ollama na tym PC). Dziś Capri zna tylko 11 nazw z listy
+  oryginalnego projektu (`windows.ps1`: ChatGPT, Claude, Gemini, Copilot…), dopasowanych do tytułu okna. Z modelem
+  sama oceni, czy karta przeglądarki albo okno to inne AI (czat, strona do pobrania), także takie spoza listy, i dopisze
+  je do listy w Mainframe › RELIC, gdzie można je zostawić w spokoju. Tytuły kart idą tylko do modelu na tym komputerze,
+  nigdy do AI w sieci (bez lokalnego modelu zostaje sama lista). Odpowiedzi zapamiętane, żeby nie pytać o ten sam tytuł
+  dwa razy.
+- Styl Night City poza dymkami na pulpicie (etap 1, dymki, zrobiony w 0.5.0-3). Każde miejsce z osobnym wyborem
+  Night City albo Oryginalny:
+  - Etap 2: Mainframe (z HOLO) i jej strona na telefonie; wybór w Mainframe.
+  - Etap 3: jej aplikacja na Androida i widżet; wybór w aplikacji.
 - Jej aplikacja na Androida (`android/`), co zostało:
   - Zapasowo, opcjonalnie: FCM albo UnifiedPush, dla telefonów, które mimo wyłączonej optymalizacji baterii zabijają
     aplikacje w tle (niektóre Xiaomi, Huawei); treść szyfrowana kluczem telefonu (RFC 8291), więc pośrednik widzi tylko
