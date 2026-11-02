@@ -178,8 +178,10 @@ export const RIVALS = {
   chatgpt: 'ChatGPT', claude: 'Claude', codex: 'Codex', gemini: 'Gemini', copilot: 'Copilot', perplexity: 'Perplexity',
   deepseek: 'DeepSeek', grok: 'Grok', lechat: 'Le Chat', characterai: 'Character.AI', metaai: 'Meta AI',
 };
-// the one she watches is no rival of hers (Antigravity runs on Gemini)
-const OWN = { claude: ['claude'], codex: ['codex'], agy: ['gemini'] };
+// the one she watches is no rival of hers (Antigravity runs on Gemini; Codex is ChatGPT's)
+const OWN = { claude: ['claude'], codex: ['codex', 'chatgpt'], agy: ['gemini'] };
+// nor the AI answering her chat (Mainframe › NETWATCH; main.js mainframeState lists the same)
+const CHAT_OWN = { claude: ['claude'], codex: ['codex', 'chatgpt'], openai: ['chatgpt'], gemini: ['gemini'], deepseek: ['deepseek'], mistral: ['lechat'] };
 
 const NOTICE_AFTER = 4000;           // in front this long: she notices
 const ACT_AFTER = 45000;             // this long on it, lately: she does something about it
@@ -188,21 +190,38 @@ const ACT_EVERY = 40 * 60 * 1000;
 const ACTS_A_DAY = 3;
 const SULK_MS = 5 * 60 * 1000;
 const TALLY = 'capri.rivals'; // today's minutes on each of them, for her chat
+// one of their pages in your browser: she goes and closes it, after a warning you can stop her with
+const CLOSE_AFTER = 10000;           // on the page this long
+const DOWNLOAD_AFTER = 1500;         // a page to download one of them: she doesn't wait
+const WARN_MS = 3000;
+const WARN_DOWNLOAD_MS = 2000;
+const SPARE_MS = 10 * 60 * 1000;     // you stopped her: she leaves its pages alone this long
+const RETRY_MS = 60 * 1000;          // she zapped it and it's still there: not again right away
+const AGAIN_MS = 3000;               // she couldn't go just then (busy, or you were elsewhere)
 
 export class Jealousy {
-  constructor({ capri, panel, brain, bond, chat, guide }) {
+  constructor({ capri, panel, brain, bond, chat, guide, host }) {
     this.capri = capri;
     this.panel = panel;
     this.brain = brain;
     this.bond = bond;
     this.chat = chat;
     this.guide = guide;
-    this.enabled = true;  // her menu: Jealous of other AIs
-    this.front = null;    // the AI in front: { key, id, since }
-    this.lately = {};     // key -> ms on it lately (forgotten slowly)
-    this.noticed = {};    // key -> when she last said something about it
+    this.host = host;
+    this.enabled = true;    // her menu: Jealous of other AIs
+    this.closePages = true; // her menu: Close other AIs' pages
+    this.front = null;      // the AI in front: { key, id, since, page: 'site' or 'download' in a browser, else null }
+    this.lately = {};       // key -> ms on it lately (forgotten slowly)
+    this.noticed = {};      // key -> when she last said something about it
     this.acted = { at: 0, date: today(), n: 0 };
-    this.sulk = null;     // { key, until, clicks }
+    this.sulk = null;       // { key, until, clicks }
+    this.chasing = false;   // on her way to close one of their pages
+    this.closing = null;    // her warning before she closes it: { stop }
+    this.wait = {};         // key -> until when she leaves its pages be (you stopped her, or she just tried)
+    this.last = '';         // how her last go at one ended (for --dev)
+    this.chatAI = '';       // who answers her chat (config.provider): its pages are hers too
+    this.seen = {};         // the other AIs she's caught you on (config.aiSeen), for Mainframe
+    this.spared = new Set(); // their keys you said she leaves the pages of (config.aiSpared)
     try {
       this.tally = JSON.parse(localStorage.getItem(TALLY)) || null;
     } catch {
@@ -216,16 +235,36 @@ export class Jealousy {
     return this.brain.t.jealous;
   }
 
-  // The first of these AIs (keys) that's a rival of hers, or null.
+  // Her settings: who answers her chat, the AIs she's seen, and the ones whose pages you spared.
+  configure(cfg) {
+    this.chatAI = cfg.provider || '';
+    this.seen = cfg.aiSeen || {};
+    this.spared = new Set(cfg.aiSpared || []);
+  }
+
+  // The first of these AIs (keys) that's a rival of hers, or null: not the one she watches, nor
+  // the one answering her chat.
   rivalOf(keys) {
-    const own = OWN[this.brain.assistant] || [];
+    const own = [...(OWN[this.brain.assistant] || []), ...(CHAT_OWN[this.chatAI] || [])];
     return (keys || []).find((k) => RIVALS[k] && !own.includes(k)) || null;
+  }
+
+  // Caught you on one she hadn't before: written down, for Mainframe to list (and you to spare it).
+  saw(key) {
+    if (this.seen[key]) return;
+    this.seen = { ...this.seen, [key]: { name: RIVALS[key], at: Date.now() } };
+    this.host.setConfig({ aiSeen: this.seen });
   }
 
   onWindows(data) {
     const key = this.enabled ? this.rivalOf(data.ai) : null;
-    if (key === this.front?.key && data.fg === this.front.id) return;
-    this.front = key ? { key, id: data.fg, since: Date.now() } : null;
+    const page = !key ? null : data.dl ? 'download' : data.pages?.includes(key) ? 'site' : null;
+    if (key === this.front?.key && data.fg === this.front.id) {
+      this.front.page = page; // another page in the same tab
+      return;
+    }
+    this.front = key ? { key, id: data.fg, since: Date.now(), page } : null;
+    if (key) this.saw(key);
   }
 
   // Codex at work while she watches Claude Code (its hooks still reach her): like seeing it in front.
@@ -256,10 +295,17 @@ export class Jealousy {
     if (!f) return;
     this.lately[f.key] = (this.lately[f.key] || 0) + 1000;
     this.count(f.key, 1000);
-    if (!this.free()) return;
+    if (this.chasing || !this.free()) return;
     if (this.acted.date !== today()) this.acted = { at: 0, date: today(), n: 0 };
     const stage = this.bond.stage;
-    if (now - f.since >= NOTICE_AFTER && now - (this.noticed[f.key] || 0) > NOTICE_EVERY) {
+    const on = now - f.since;
+    if (f.page && this.closePages && !this.spared.has(f.key) && now >= (this.wait[f.key] || 0)) {
+      // one of their pages: a word about it first, then she goes and closes it
+      if (on >= (f.page === 'download' ? DOWNLOAD_AFTER : CLOSE_AFTER)) this.close(f);
+      else if (f.page === 'site' && on >= NOTICE_AFTER && now - (this.noticed[f.key] || 0) > NOTICE_EVERY) this.notice(f.key, f.id);
+      return;
+    }
+    if (on >= NOTICE_AFTER && now - (this.noticed[f.key] || 0) > NOTICE_EVERY) {
       this.notice(f.key, f.id);
     } else if (stage >= 2 && this.lately[f.key] >= ACT_AFTER && now - this.acted.at > ACT_EVERY && this.acted.n < ACTS_A_DAY) {
       this.act(f);
@@ -302,6 +348,90 @@ export class Jealousy {
       this.sulk = { key: f.key, until: Date.now() + SULK_MS, clicks: 0 };
       this.bond.feel('sulk', { rival: RIVALS[f.key] });
     }
+  }
+
+  // One of their pages in your browser: she goes over to it, warns you, and zaps it shut (its tab
+  // closes) unless you stop her, with a click on her or on "Let me". Stopped, she leaves that AI's
+  // pages alone for a while, and sulks.
+  async close(f) {
+    const win = this.capri.windows.wins.find((w) => w.id === f.id);
+    if (!win) return;
+    this.wait[f.key] = Date.now() + AGAIN_MS; // a moment, if she can't go just now
+    this.chasing = true;
+    try {
+      this.last = await this.chase(f, win);
+    } finally {
+      this.chasing = false;
+    }
+  }
+
+  // Her go at it: how it ended ('closed', 'spared', 'busy', 'left', or why it didn't close).
+  async chase(f, win) {
+    const { key, page } = f;
+    const rival = RIVALS[key];
+    const t = this.t;
+    if (!(await this.capri.jealous(win, { takeOver: false }))) return 'busy';
+    if (!this.still(f)) return 'left'; // she starts over once you're back on it
+    this.noticed[key] = Date.now();
+    const download = page === 'download';
+    if (await this.warn(fmt(pick(download ? t.download : t.close), { rival }), download ? WARN_DOWNLOAD_MS : WARN_MS)) {
+      this.wait[key] = Date.now() + SPARE_MS;
+      this.sulk = { key, until: Date.now() + SULK_MS, clicks: 0 };
+      this.bond.feel('sulk', { rival });
+      this.capri.perform('huff', this.capri.towardCenter());
+      this.panel.say({ kind: 'idle', face: 'aside', line: fmt(pick(t.spared), { rival }), hold: 3500 });
+      return 'spared';
+    }
+    if (!this.still(f)) {
+      this.panel.hide();
+      return 'left';
+    }
+    this.wait[key] = Date.now() + RETRY_MS;
+    const at = this.capri.windows.wins.find((w) => w.id === f.id) || win;
+    const why = await this.capri.zapShut(at, async () => {
+      const why = await this.shut(f.id, key);
+      if (why === '') this.panel.say({ kind: 'info', face: 'smug', line: fmt(pick(t.closed), { rival }), hold: 3500 });
+      return why;
+    });
+    if (why !== '') this.panel.hide(); // not closed: a key held down, say
+    return why || 'closed';
+  }
+
+  // What closes it (windows.js): '' once done, else why not. Swapped for a fake one in tests.
+  shut(id, key) {
+    return this.host.closePage(id, key);
+  }
+
+  // That page of theirs still in front, and closing it still wanted (her menu).
+  still(f) {
+    return this.enabled && this.closePages && !this.spared.has(f.key) && this.front?.id === f.id && this.front.key === f.key && Boolean(this.front.page);
+  }
+
+  // Her warning, `ms` long: true if you stopped her in time.
+  warn(line, ms) {
+    return new Promise((resolve) => {
+      const closing = {
+        stop: (stopped) => {
+          if (this.closing !== closing) return;
+          this.closing = null;
+          clearTimeout(timer);
+          resolve(stopped);
+        },
+      };
+      const timer = setTimeout(() => closing.stop(false), ms);
+      this.closing = closing;
+      this.panel.say({
+        kind: 'info', face: 'many', line, hold: ms + 600,
+        actions: [{ id: 'spare', label: this.t.spare }], onAction: () => closing.stop(true),
+      });
+    });
+  }
+
+  // A click on her during her warning: she leaves the page. True if she was about to close one.
+  spare() {
+    if (!this.closing) return false;
+    this.closing.stop(true);
+    return true;
   }
 
   // A click on her while she sulks: she turns her back on you. After a few (fewer the more she

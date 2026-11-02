@@ -180,14 +180,31 @@ function cyberware(s, t) {
         choice('trio grow', [['quiet', t.talkQuiet], ['normal', t.talkNormal], ['chatty', t.talkChatty]], c.talk, 'talk')),
       c.talkCloudAsk && c.talk !== 'quiet' && check(t.talkCloud, c.talkCloud, 'talkCloud'),
       check(t.wander, c.wander, 'wander'),
+      check(t.lieBack, c.lieBack, 'lieBack'),
       check(t.possess, c.possess, 'possess'),
       check(t.jealous, c.jealous, 'jealous'),
+      c.jealous && rivals(c, t),
       check(t.erebus, c.erebus, 'erebus'),
       check(t.pcReact, c.pcReact, 'pcReact'),
       check(t.mute, c.muted, 'muted'),
       check(t.lookAuto, c.lookAuto, 'lookAuto'),
       row(null, button(t.lookNow, 'lookNow', null, { class: 'grow' }))),
   ];
+}
+
+// Jealous: closing other AIs' pages, the ones she's caught you on (each one's pages can be spared),
+// and hers, never touched: the AI answering her chat and the one she watches
+function rivals(c, t) {
+  return el('div', { class: 'rivals' },
+    check(t.closePages, c.closePages, 'closePages'),
+    c.closePages && [
+      c.aiOwn && el('p', { class: 'note' }, c.aiOwn),
+      el('p', { class: 'note' }, c.aiSeen.length ? t.aiSeen : `${t.aiSeen}: ${t.aiSeenNone}`),
+      c.aiSeen.map((ai) => el('label', { class: 'check' },
+        el('input', { type: 'checkbox', checked: ai.spared, onchange: (e) => act('aiSpare', { key: ai.key, on: e.target.checked }) }),
+        el('span'),
+        `${ai.name}: ${t.aiSpare}`)),
+    ]);
 }
 
 function watch(s, t) {
@@ -382,6 +399,8 @@ function system(s, t) {
   const y = s.system;
   return section(t.secSystem,
     row(t.lang, select(y.langs, y.lang, 'lang', { label: t.lang })),
+    row(t.theme, select([['nightcity', 'Night City'], ['classic', t.themeClassic]].map(([id, label]) => ({ id, label })),
+      y.theme, 'theme', { label: t.theme })),
     row(t.motion, select([['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]].map(([id, label]) => ({ id, label })),
       y.motion, 'motion', { label: t.motion })),
     row(t.display, select([['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]].map(([id, label]) => ({ id, label })),

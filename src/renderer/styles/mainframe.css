@@ -463,6 +463,15 @@ body {
 }
 
 /* a checkbox: a square that fills with cyan */
+/* closing other AIs' pages, under "Jealous of other AIs": its own settings, set in a little */
+.rivals {
+  padding-left: 26px;
+}
+
+.rivals .note {
+  margin-top: 8px;
+}
+
 .check {
   position: relative; /* its hidden box stays in it, scrolled with its card */
   display: flex;

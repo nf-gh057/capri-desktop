@@ -65,6 +65,11 @@ async function boot() {
   };
   applyMotion(config.motion);
   reducedMotion.onSystemChange(() => applyMotion(reducedMotion.setting));
+  // her windows: Night City, or her first ones (her menu, classic.css)
+  const applyTheme = (theme) => {
+    document.documentElement.dataset.theme = theme || 'nightcity';
+  };
+  applyTheme(config.theme);
 
   const fx = new FxLayer(document.getElementById('fx'), {
     cutins: Object.fromEntries(CUTINS.map((name, i) => [name, cutins[i]])),
@@ -336,8 +341,10 @@ async function boot() {
   brain.bond = bond;
   chat.bond = bond;
   capri.fondness = bond.stage;
-  const jealousy = new Jealousy({ capri, panel, brain, bond, chat, guide });
+  const jealousy = new Jealousy({ capri, panel, brain, bond, chat, guide, host });
   jealousy.enabled = config.jealous !== false;
+  jealousy.closePages = config.closePages !== false;
+  jealousy.configure(config); // whose pages are hers (her chat's AI, the one she watches) and the ones you spared
   chat.jealousy = jealousy;
   brain.onRival = (key) => jealousy.onRivalEvent(key);
   const reminders = new Reminders({ host, list: config.reminders || [] });
@@ -361,8 +368,10 @@ async function boot() {
 
   // Clicking her: what's going on, or she offers to talk. Sulking, she turns her back on you.
   // Double-clicking her: her chat, the cursor already in it (a click waits a moment for the second one).
+  // About to close one of your other AIs' pages, a click has her leave it, at once.
   let clickWait = 0;
   capri.onClick = () => {
+    if (jealousy.spare()) return;
     if (clickWait) {
       clearTimeout(clickWait);
       clickWait = 0;
@@ -434,6 +443,7 @@ async function boot() {
   // her once her ICE has thrown him out. All of it in HOLO too; her face is his meanwhile.
   panel.possessed = () => Boolean(capri.erebus);
   capri.erebusOn = config.erebus !== false; // Mainframe › RELIC can keep him out
+  capri.lieBack = config.lieBack !== false; // and her lying back on her ledge
   let erebusSaid = []; // what he's said this time he has her: he never says it twice
   capri.onErebus = (phase) => {
     const t = brain.t;
@@ -765,6 +775,10 @@ async function boot() {
     jealousy.enabled = cfg.jealous !== false;
     capri.erebusOn = cfg.erebus !== false;
     if (!capri.erebusOn) capri.erebusOut(); // turned off while he has her: her ICE throws him out
+    jealousy.closePages = cfg.closePages !== false;
+    jealousy.configure(cfg);
+    capri.lieBack = cfg.lieBack !== false;
+    if (!capri.lieBack && capri.lounge) capri.getUp(); // turned off while she lies there
     followOn = cfg.follow !== false;
     capri.follows = followOn;
     look.configure(cfg);
@@ -778,6 +792,7 @@ async function boot() {
     capri.screens = cfg.screens || 1;
     brain.stowKey = cfg.stowKey;
     applyMotion(cfg.motion);
+    applyTheme(cfg.theme);
     if ((cfg.claude === false && brain.watching) || cfg.assistant !== brain.assistant) {
       guide.answer(null);
       panel.hide();

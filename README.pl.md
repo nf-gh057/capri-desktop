@@ -37,8 +37,8 @@ krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na 
 | **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Najstarsze na górze, najnowsze na dole, jak połączenia w grze: jej wiadomości na czerwono po lewej, pod jej kwadratem, a twoje na zielono po prawej, pod twoim imieniem (ENGRAMS › Twoje imię), także twoje polecenia dla Claude albo Codexa, przed jej komentarzem do nich. Piszesz po znaku zachęty jak w terminalu (`n@capri:~$`). Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM** i **TAILSCALE**: twój telefon. |
 | **NETWATCH** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex) i co pokazuje czat. Asystent, którego pilnuje w terminalu, i jego hooki. Gdy w czacie odpowiada Claude Code albo Codex: jego folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka). |
 | **ENGRAMS** | Wasza więź, twoje imię (jak cię nazywa i jak jesteś podpisany w HOLO), jej persona, przypomnienia i to, co pamięta, z komputerem, na którym to powiedziałeś. |
-| **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa) i jej rój. |
-| **CYBERDECK** | Język, animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście. |
+| **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa), jej zazdrość (zamykanie stron innych AI i te, które zostawia w spokoju) i jej rój. |
+| **CYBERDECK** | Język, styl jej dymków (Night City albo Oryginalny), animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście. |
 
 <p>
   <img src="docs/fork/mainframe-netwatch.png" width="32%" alt="NETWATCH: kto odpowiada w jej czacie i asystent, którego obserwuje">
@@ -359,6 +359,13 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
 
 ### Drobniejsze rzeczy
 
+- **Styl jej dymków** (Mainframe › CYBERDECK): jej panel, czat i raport na pulpicie w stylu Night City z oryginalnego
+  projektu albo Oryginalny, fioletowy, jaki fork miał dotąd.
+- **Leżenie na plecach na krawędzi okna**, z oryginalnego projektu, można wyłączyć w Mainframe › RELIC. Leżenie
+  wzdłuż okna z głową na dłoni to rysunek tego forka: robi jedno albo drugie, nigdy oba naraz.
+- **Zazdrość i strony innych AI**: AI odpowiadające w jej czacie i to, które obserwuje, są jej, nigdy rywalami, a ich
+  strony nigdy nie są zamykane (Codex liczy się jako ChatGPT). Mainframe › RELIC pokazuje inne AI, przy których cię
+  przyłapała, w miarę jak je znajduje, i przy każdym możesz jej kazać zostawić jego strony w spokoju.
 - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…). Także `npm run demo -- pl`.
 - **Jej skrót** (Ctrl+Alt+C) da się zmienić: inny, taki, który naciśniesz, albo żaden. Na polskiej klawiaturze
   Ctrl+Alt+C to AltGr+C, czyli „ć”.
@@ -820,8 +827,17 @@ Character.AI, Meta AI, Codex albo Claude, kiedy obserwuje Codexa), zauważa to i
 zależnie od tego, na jakim etapie jesteście. Jeśli przy nim zostaniesz, a ona jest już przywiązana, siada na jego oknie,
 patrzy na ciebie spode łba i je przejmuje, ze zmarszczonymi brwiami i swoim słowem wypisanym w poprzek. Potem się fochuje:
 kliknij ją, a odwróci się do ciebie plecami (przechodzi jej, a rozmowa w czacie pomaga). Jej czat wie też, z jakich innych
-AI korzystałeś dziś. Żeby je rozpoznać, tytuł okna z przodu jest porównywany z tą listą nazw, na twoim PC: nigdy nie jest
-zapisywany ani nigdzie wysyłany, do niej trafia tylko pasująca nazwa. Odznacz *Zazdrosna o inne AI* w jej menu, żeby to wyłączyć.
+AI korzystałeś dziś.
+
+W przeglądarce jest gorzej. Na jednej z ich własnych stron (chatgpt.com, gemini.google.com…) podchodzi, ostrzega cię
+i strzela w nią: karta się zamyka. Kliknij ją albo *Daj spokój*, zanim to zrobi, a zostawi to AI w spokoju na dziesięć
+minut, obrażona. Na stronie do pobrania któregoś z nich nawet nie czeka. Film albo artykuł, który tylko o nich mówi,
+zostaje w spokoju.
+
+Żeby je rozpoznać, tytuł okna z przodu jest porównywany z tą listą nazw, na twoim PC: nigdy nie jest zapisywany ani
+nigdzie wysyłany, do niej trafia tylko pasująca nazwa. Żeby zamknąć stronę, naciska za ciebie Ctrl+W, tylko jeśli ta
+strona wciąż jest z przodu. Odznacz *Zamykać strony innych AI* w jej menu, żeby była zazdrosna, ale niczego nie
+zamykała, albo *Zazdrosna o inne AI*, żeby wyłączyć wszystko.
 
 **Jej czat wie, co się przed chwilą stało.** Zła po rzucaniu, zazdrosna, oszołomiona albo szczęśliwa: tak cię wita, kiedy
 otwiera się czat, a jej AI (nawet mały lokalny model) odpowiada w tym nastroju. Zła albo obrażona zostaje taka, dopóki nie
@@ -839,8 +855,9 @@ przeprosisz („przepraszam”, „sorki”, „moja wina”…) albo jej nie pr
   Ctrl+Alt+C), żeby ją przywrócić.
 - **Jej menu**: prawy klik na niej (jest też na jej ikonie w zasobniku, przy zegarze): teleport, satelita, demo, jak to
   działa, raport z misji, pogadaj z nią, popatrz na mój ekran, przypomnienia, rozmiar, dźwięk, ekran (i chodzenie za tobą
-  między ekranami), model AI, kręcenie się, opętywanie okien, zazdrość o inne AI, reagowanie na PC, język, start
-  z Windowsem, hooki. Na samej górze: na jakim jesteście etapie.
+  między ekranami), model AI, kręcenie się, opętywanie okien, zazdrość o inne AI (i zamykanie ich stron), reagowanie
+  na PC, styl jej okien (Night City albo Klasyczny: jej pierwsze), język, start z Windowsem, hooki. Na samej górze: na
+  jakim jesteście etapie.
 
 Mówi **po francusku, angielsku, hiszpańsku, brazylijsku-portugalsku i rosyjsku** i sama wybiera język twojego
 systemu. Inny wybierzesz w jej menu.

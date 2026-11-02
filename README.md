@@ -37,8 +37,8 @@ remembers where you left it, its size and the tab you were on.
 | **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Oldest on top, newest at the bottom, like calls in her game: hers in red on the left, under her square, and yours in green on the right, under your name (ENGRAMS › Your name), your prompts to Claude or Codex too, before what she said about them. You write after a prompt as in a terminal (`n@capri:~$`). Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM** and **TAILSCALE**: your phone. |
 | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows. The assistant she watches in your terminal, and its hooks. With Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**, her own powers with it (apps, sites, music). |
 | **ENGRAMS** | Your bond, your name (what she calls you, and you in HOLO), her persona, her reminders, and what she remembers, with the PC it was said on. |
-| **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts, how chatty she is) and her swarm. |
-| **CYBERDECK** | Language, animations, display, menu, starting with Windows, her updates, help, quit. |
+| **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts, how chatty she is), her jealousy (closing other AIs' pages, and the ones she leaves be) and her swarm. |
+| **CYBERDECK** | Language, her bubbles' style (Night City or Original), animations, display, menu, starting with Windows, her updates, help, quit. |
 
 <p>
   <img src="docs/fork/mainframe-netwatch.png" width="32%" alt="NETWATCH: who answers her chat, and the assistant she watches">
@@ -345,6 +345,13 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
 
 ### Smaller things
 
+- **Her bubbles' style** (Mainframe › CYBERDECK): her panel, her chat and her report on your desktop in the original
+  project's Night City style, or Original, the violet ones this fork had so far.
+- **Lying back on her ledge**, from the original project, can be turned off in Mainframe › RELIC. Lying along her
+  ledge, head on her hand, is a drawing of this fork's: she does one or the other, never both at once.
+- **Her jealousy and other AIs' pages**: the AI answering her chat and the one she watches are hers, never rivals,
+  their pages never closed (Codex counts as ChatGPT). Mainframe › RELIC lists the other AIs she's caught you on, as
+  she finds them, and for each one you can tell her to leave its pages be.
 - **Polish**: she speaks it, and understands it in her chat (reminders, music, files…). `npm run demo -- pl` too.
 - **Her shortcut** (Ctrl+Alt+C) can be changed: another one, one you press, or none. On a Polish keyboard Ctrl+Alt+C is
   AltGr+C ("ć").
@@ -805,8 +812,16 @@ DeepSeek, Grok, Le Chat, Character.AI, Meta AI, Codex, or Claude when she watche
 or less nicely depending on where you two stand. If you stay on it, once she's attached, she goes and sits on its
 window, glares at you and takes it over, brows down, with a word of hers written across it. Then she sulks: click her
 and she turns her back on you (it passes, and talking it over in her chat helps). Her chat also knows which other AIs
-you used today. To spot them, the title of the window in front is checked against that list of names, on your PC: it's
-never kept or sent anywhere, only the name it matched reaches her. Untick *Jealous of other AIs* in her menu to stop it.
+you used today.
+
+In your browser it's worse. On one of their own pages (chatgpt.com, gemini.google.com…) she goes over, warns you, and
+zaps it shut: the tab closes. Click her, or *Let me*, before she does and she leaves that AI alone for ten minutes, sulking.
+On a page to download one of them, she doesn't even wait. A video or an article that just talks about them is left alone.
+
+To spot them, the title of the window in front is checked against that list of names, on your PC: it's never kept or
+sent anywhere, only the name it matched reaches her. To close a page she presses Ctrl+W for you, only if that page is
+still the one in front. Untick *Close other AIs' pages* in her menu to keep her jealous without closing anything, or
+*Jealous of other AIs* to stop it all.
 
 **Her chat knows what just happened.** Mad about being thrown, jealous, dizzy or happy: she greets you that way when the
 chat opens, and her AI (even a small local model) answers in that mood. Mad or sulking, she stays that way until you say
@@ -824,8 +839,8 @@ She only catches the mouse on her actual body (pixel-precise): the rest of the s
   to bring her back.
 - **Her menu**: right-click her (it's also on her tray icon, next to the clock): teleport, look at the satellite, demo,
   how it works, mission report, talk to her, look at your screen, reminders, size, sound, screen (and following you across screens), AI
-  model, wander, possess your windows, jealous of other AIs, react to my PC, language, start with Windows, hooks. At the very top:
-  where you two stand.
+  model, wander, possess your windows, jealous of other AIs (and closing their pages), react to my PC, her window style (Night City, or Classic: her
+  first ones), language, start with Windows, hooks. At the very top: where you two stand.
 
 She speaks **French, English, Spanish, Brazilian Portuguese and Russian**, and picks the language of your system on her
 own. You can choose another one in her menu.

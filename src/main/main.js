@@ -705,6 +705,8 @@ function rebuildTray() {
       check(t.wander, cfg.wander, (wander) => updateConfig({ wander })),
       check(t.possess, cfg.possess, (possess) => updateConfig({ possess })),
       check(t.jealous, cfg.jealous !== false, (jealous) => updateConfig({ jealous })),
+      check(t.closePages, cfg.closePages !== false, (closePages) => updateConfig({ closePages })),
+      check(t.lieBack, cfg.lieBack !== false, (lieBack) => updateConfig({ lieBack })),
       check(t.pcReact, cfg.pcReact !== false, (pcReact) => updateConfig({ pcReact })),
     ]),
     // her system: language, how she's drawn, her menu, starting with Windows, and showing what she does
@@ -713,6 +715,7 @@ function rebuildTray() {
         label: t.lang,
         submenu: radios([['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])], cfg.lang, (lang) => updateConfig({ lang })),
       },
+      { label: t.theme, submenu: radios([['nightcity', 'Night City'], ['classic', t.themeClassic]], cfg.theme || 'nightcity', (theme) => updateConfig({ theme })) },
       { label: t.motion, submenu: radios([['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]], cfg.motion, (motion) => updateConfig({ motion, motionAsked: true })) },
       { label: t.display, submenu: radios([['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]], cfg.render, pickRender) },
       { label: t.menuMode, submenu: radios([['full', t.menuFull], ['compact', t.menuCompact]], cfg.menu || 'full', (menu) => updateConfig({ menu })) },
@@ -726,6 +729,13 @@ function rebuildTray() {
   tray.setContextMenu(menu);
   trayMenu = menu;
 }
+
+// Her own AIs, never rivals (renderer/js/bond.js OWN and CHAT_OWN): the one she watches, the one
+// answering her chat. Codex is ChatGPT's.
+const AI_NAMES = { chatgpt: 'ChatGPT', claude: 'Claude', codex: 'Codex', gemini: 'Gemini', deepseek: 'DeepSeek', lechat: 'Le Chat' };
+const WATCHED_AI = { claude: ['claude'], codex: ['codex', 'chatgpt'], agy: ['gemini'] };
+const CHAT_AI = { claude: ['claude'], codex: ['codex', 'chatgpt'], openai: ['chatgpt'], gemini: ['gemini'], deepseek: ['deepseek'], mistral: ['lechat'] };
+const ownAIs = (cfg) => [...new Set([...(cfg.claude !== false ? WATCHED_AI[cfg.assistant] || [] : []), ...(CHAT_AI[cfg.provider] || [])])];
 
 // What her settings window shows (renderer/js/mainframe.js): her menu's choices, with what's picked.
 function mainframeState() {
@@ -774,6 +784,13 @@ function mainframeState() {
       screens: displays().map((d, i) => ({ id: d.id, label: `${i + 1} — ${d.size.width}×${d.size.height}` })),
       follow: cfg.follow !== false,
       jealous: cfg.jealous !== false,
+      closePages: cfg.closePages !== false,
+      lieBack: cfg.lieBack !== false,
+      // the other AIs she's caught you on, minus hers (bond.js does the same), and whose pages you spared
+      aiOwn: ownAIs(cfg).length ? t.aiOwn(ownAIs(cfg).map((key) => AI_NAMES[key]).join(', ')) : '',
+      aiSeen: Object.entries(cfg.aiSeen || {}).filter(([key]) => !ownAIs(cfg).includes(key))
+        .sort(([, a], [, b]) => (a.at || 0) - (b.at || 0))
+        .map(([key, ai]) => ({ key, name: ai.name || key, spared: (cfg.aiSpared || []).includes(key) })),
       erebus: cfg.erebus !== false,
       pcReact: cfg.pcReact !== false,
       lookAuto: Boolean(cfg.watchScreen),
@@ -841,6 +858,7 @@ function mainframeState() {
     system: {
       lang: cfg.lang,
       langs: [['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])].map(([id, label]) => ({ id, label })),
+      theme: cfg.theme || 'nightcity',
       motion: cfg.motion,
       render: cfg.render,
       startup: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
@@ -876,7 +894,7 @@ async function mainframeAct(name, value) {
     case 'userName': if (typeof value === 'string') updateConfig({ userName: value.trim().slice(0, 24) }); break;
     case 'help': sendCommand('welcome'); break;
     case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
-    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'erebus': case 'pcReact': case 'talkCloud': updateConfig({ [name]: Boolean(value) }); break;
+    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'closePages': case 'lieBack': case 'erebus': case 'pcReact': case 'talkCloud': updateConfig({ [name]: Boolean(value) }); break;
     case 'talk': if (one(['quiet', 'normal', 'chatty'])) updateConfig({ talk: value }); break;
     case 'lookNow': sendCommand('look'); break;
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
@@ -890,6 +908,18 @@ async function mainframeAct(name, value) {
     case 'watch': pickWatch(String(value)); break;
     case 'hooks': if (one(['install', 'uninstall'])) runHooks(value); break;
     case 'lang': if (value === 'auto' || LANGS.includes(value)) updateConfig({ lang: value }); break;
+    case 'theme': if (one(['nightcity', 'classic'])) updateConfig({ theme: value }); break;
+    case 'aiSpare': {
+      // { key, on }: she leaves that AI's pages be, or closes them again
+      const key = String(value?.key || '');
+      const cfg = config.load();
+      if (!(cfg.aiSeen || {})[key]) break;
+      const spared = new Set(cfg.aiSpared || []);
+      if (value.on) spared.add(key);
+      else spared.delete(key);
+      updateConfig({ aiSpared: [...spared] });
+      break;
+    }
     case 'motion': if (one(['auto', 'full', 'reduced'])) updateConfig({ motion: value, motionAsked: true }); break;
     case 'render': if (one(['auto', 'gl', 'software'])) pickRender(value); break;
     case 'startup': app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: Boolean(value) }); rebuildTray(); break;
@@ -1742,6 +1772,7 @@ function registerIpc() {
   ipcMain.handle('claude:found', () => fs.existsSync(path.dirname(activeHooks().status().file))); // Claude Code keeps its settings there
   ipcMain.on('claude:help', () => shell.openExternal(activeAssistant().help));
   ipcMain.handle('windows:get', () => lastWindows);
+  ipcMain.handle('windows:closePage', (_e, { id, key }) => windowWatch?.close(id, key) ?? 'gone');
   // talking to her (chat.js): is Ollama there, with a model to talk with
   ipcMain.handle('chat:status', async () => {
     const cfg = config.load(true); // keys may have been edited by hand
