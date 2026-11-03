@@ -6,7 +6,7 @@
 const $ = (id) => document.getElementById(id);
 const APP = 'io.github.nfgh057.capri'; // her app on Android (android/)
 let t = {};
-let nc = true;     // her page in Night City's colours (start: look)
+let look = 'nightcity'; // her page's style (start: look): 'nightcity', 'original' or 'custom'
 let keys = null;    // this phone's key pair (CryptoKey objects, as IndexedDB keeps them)
 let events = null;  // her answers as they come (EventSource)
 let pending = null; // { id, el, text }: her answer being written
@@ -42,6 +42,11 @@ function since(at) {
 }
 
 // --- the server --------------------------------------------------------------------------------
+
+// one of her chat's pictures in her page's style: drawn in your colours for Custom (look.js)
+function picture(name) {
+  return (look === 'custom' && capriLook.picture(name)) || `/${name}${look === 'nightcity' ? '-nc' : ''}.svg`;
+}
 
 async function api(method, url, body) {
   const res = await fetch(url, {
@@ -120,7 +125,7 @@ function when(at) {
 function row(you, bubbleClass, text, { tag = '', at = 0, quote = '' } = {}) {
   const make = (tag, cls, content) => Object.assign(document.createElement(tag), cls ? { className: cls } : {}, content !== undefined ? { textContent: content } : {});
   const face = make('img', 'chat-row__face');
-  face.src = `/face-${you ? 'you' : 'capri'}${nc ? '-nc' : ''}.svg`;
+  face.src = picture(you ? 'face-you' : 'face-capri');
   face.alt = '';
   const head = make('p', 'chat-row__name', you ? t.you || 'YOU' : 'Capri');
   if (tag) head.append(make('span', 'chat-row__tag', tag));
@@ -201,10 +206,10 @@ async function boot() {
     return;
   }
   t = start.t || {};
-  // her page's style, picked in Mainframe: Night City (her yellow, you cyan) or this fork's own red
-  nc = start.look !== 'original';
-  document.documentElement.dataset.theme = nc ? 'nightcity' : 'original';
-  $('send').querySelector('img').src = nc ? '/send-nc.svg' : '/send.svg';
+  // her page's style, picked in Mainframe: Night City (her yellow, you cyan), this fork's own red, or your two colours
+  look = start.look?.theme || 'nightcity';
+  capriLook.apply(start.look || {});
+  $('send').querySelector('img').src = picture('send');
   words();
   $('pc').textContent = start.name || '';
   // the code from Mainframe's QR code: read here, never sent anywhere in the address

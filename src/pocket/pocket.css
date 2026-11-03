@@ -35,6 +35,23 @@ html[data-theme='nightcity'] {
   --danger: #ff3b5c;
 }
 
+/* Custom (Mainframe › CYBERDECK, her page's style): her colour and yours, picked there (look.js sets --pick-her, --pick-you);
+   the ink, the lines and the words made from hers, as Night City's are from its yellow */
+html[data-theme='custom'] {
+  --bg: color-mix(in srgb, var(--pick-her) 5%, #0b0b0d);
+  --bg-2: color-mix(in srgb, var(--pick-her) 9%, #141416);
+  --line: color-mix(in srgb, var(--pick-her) 30%, #1c1c1f);
+  --text: color-mix(in srgb, var(--pick-her) 6%, #f3f3f0);
+  --text-2: color-mix(in srgb, var(--pick-her) 14%, #9e9e98);
+  --red: var(--pick-her);
+  --red-dim: color-mix(in srgb, var(--pick-her) 55%, #000);
+  --red-wash: color-mix(in srgb, var(--pick-her) 8%, transparent);
+  --yellow: var(--pick-you);
+  --cyan: var(--pick-you);
+  --cyan-wash: color-mix(in srgb, var(--pick-you) 7%, transparent);
+  --danger: #ff3b5c;
+}
+
 *,
 *::before,
 *::after {

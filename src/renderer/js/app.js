@@ -66,11 +66,14 @@ async function boot() {
   };
   applyMotion(config.motion);
   reducedMotion.onSystemChange(() => applyMotion(reducedMotion.setting));
-  // her windows: Night City, or her first ones (her menu, classic.css)
-  const applyTheme = (theme) => {
-    document.documentElement.dataset.theme = theme || 'nightcity';
+  // her windows: Night City, her first ones (her menu, classic.css), or Night City's in your two colours
+  const applyTheme = ({ theme, customHer, customYou }) => {
+    const root = document.documentElement;
+    root.dataset.theme = theme || 'nightcity';
+    root.style.setProperty('--pick-her', customHer || '#ff5fd2');
+    root.style.setProperty('--pick-you', customYou || '#7c9cff');
   };
-  applyTheme(config.theme);
+  applyTheme(config);
 
   const fx = new FxLayer(document.getElementById('fx'), {
     cutins: Object.fromEntries(CUTINS.map((name, i) => [name, cutins[i]])),
@@ -816,7 +819,7 @@ async function boot() {
     capri.screens = cfg.screens || 1;
     brain.stowKey = cfg.stowKey;
     applyMotion(cfg.motion);
-    applyTheme(cfg.theme);
+    applyTheme(cfg);
     if ((cfg.claude === false && brain.watching) || cfg.assistant !== brain.assistant) {
       guide.answer(null);
       panel.hide();

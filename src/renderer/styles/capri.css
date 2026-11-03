@@ -107,6 +107,19 @@
   --cut: 18px;
 }
 
+/* Custom (Mainframe › CYBERDECK, her bubbles' style): Night City's windows in two colours picked there,
+   hers where its yellow is, yours where its cyan is (app.js sets --pick-her, --pick-you); the ink and
+   the paper take a little of hers */
+html[data-theme='custom'] {
+  --ink: color-mix(in oklch, var(--pick-her) 5%, oklch(0.155 0.006 100));
+  --ink-2: color-mix(in oklch, var(--pick-her) 8%, oklch(0.215 0.01 100));
+  --paper: color-mix(in oklch, var(--pick-her) 5%, oklch(0.96 0.012 100));
+  --paper-2: color-mix(in oklch, var(--pick-her) 8%, oklch(0.84 0.012 100));
+  --paper-3: color-mix(in oklch, var(--pick-her) 10%, oklch(0.64 0.012 100));
+  --yellow: var(--pick-her);
+  --cyan: var(--pick-you);
+}
+
 *,
 *::before,
 *::after {

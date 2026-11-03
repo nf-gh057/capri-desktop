@@ -716,7 +716,7 @@ function rebuildTray() {
         label: t.lang,
         submenu: radios([['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])], cfg.lang, (lang) => updateConfig({ lang })),
       },
-      { label: t.theme, submenu: radios([['nightcity', 'Night City'], ['classic', t.themeClassic]], cfg.theme || 'nightcity', (theme) => updateConfig({ theme })) },
+      { label: t.theme, submenu: radios([['nightcity', 'Night City'], ['classic', t.themeClassic], ['custom', t.themeCustom]], cfg.theme || 'nightcity', (theme) => updateConfig({ theme })) },
       { label: t.motion, submenu: radios([['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]], cfg.motion, (motion) => updateConfig({ motion, motionAsked: true })) },
       { label: t.display, submenu: radios([['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]], cfg.render, pickRender) },
       { label: t.menuMode, submenu: radios([['full', t.menuFull], ['compact', t.menuCompact]], cfg.menu || 'full', (menu) => updateConfig({ menu })) },
@@ -862,6 +862,8 @@ function mainframeState() {
       theme: cfg.theme || 'nightcity',
       themeMainframe: cfg.themeMainframe || 'nightcity',
       themePage: cfg.themePage || 'nightcity',
+      customHer: cfg.customHer,
+      customYou: cfg.customYou,
       motion: cfg.motion,
       render: cfg.render,
       startup: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
@@ -911,8 +913,9 @@ async function mainframeAct(name, value) {
     case 'watch': pickWatch(String(value)); break;
     case 'hooks': if (one(['install', 'uninstall'])) runHooks(value); break;
     case 'lang': if (value === 'auto' || LANGS.includes(value)) updateConfig({ lang: value }); break;
-    case 'theme': if (one(['nightcity', 'classic'])) updateConfig({ theme: value }); break;
-    case 'themeMainframe': case 'themePage': if (one(['nightcity', 'original'])) updateConfig({ [name]: value }); break;
+    case 'theme': if (one(['nightcity', 'classic', 'custom'])) updateConfig({ theme: value }); break;
+    case 'themeMainframe': case 'themePage': if (one(['nightcity', 'original', 'custom'])) updateConfig({ [name]: value }); break;
+    case 'customHer': case 'customYou': if (/^#[0-9a-f]{6}$/i.test(String(value))) updateConfig({ [name]: String(value).toLowerCase() }); break;
     case 'aiSpare': {
       // { key, on }: she leaves that AI's pages be, or closes them again
       const key = String(value?.key || '');
@@ -1330,7 +1333,10 @@ async function runSyncPocket() {
           return { ...t.pocketPage, lang: resolveLang(config.load().lang), you: config.load().userName || t.holoYou };
         },
         name: () => hiveName(),
-        look: () => config.load().themePage || 'nightcity', // Mainframe › CYBERDECK, her page's style
+        look: () => { // Mainframe › CYBERDECK, her page's style, and Custom's colours
+          const cfg = config.load();
+          return { theme: cfg.themePage || 'nightcity', her: cfg.customHer, you: cfg.customYou };
+        },
         // her page on your other PCs (her swarm), for her app to go to when this one's away
         // (only those answering now: a PC that's off or gone has no page to go to)
         pcs: () => (hive?.state().peers || []).filter((p) => p.online && p.pocket).map((p) => ({ name: p.name, url: p.pocket, active: p.active })),

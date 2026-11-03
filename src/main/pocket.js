@@ -48,6 +48,7 @@ const MOBILE = /^(android|ios)$/i; // what Tailscale says a phone or a tablet ru
 const FILES = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/pocket.js': ['pocket.js', 'text/javascript; charset=utf-8'],
+  '/look.js': ['look.js', 'text/javascript; charset=utf-8'], // Custom's two colours, and its pictures in them
   '/pocket.css': ['pocket.css', 'text/css; charset=utf-8'],
   '/manifest.webmanifest': ['manifest.webmanifest', 'application/manifest+json'],
   // her face, for the phone's home screen (Chrome installs her as an app with both sizes)
@@ -153,7 +154,7 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 function createPocket({
   host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
   ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true, route = () => ({ here: true }), roots, online = () => 1,
-  look = () => 'nightcity',
+  look = () => ({ theme: 'nightcity' }),
 }) {
   const who = new Map();        // address -> { at, it }
   const challenges = new Map(); // challenge -> { node, at }

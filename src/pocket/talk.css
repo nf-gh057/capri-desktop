@@ -24,6 +24,15 @@ html[data-theme='nightcity'] {
 html[data-theme='nightcity'] .hud {
   border-image-source: url('hud-frame-nc.svg');
 }
+/* Custom: her in her colour, you in yours, picked in Mainframe (look.js draws the HUD bar's frame in hers) */
+html[data-theme='custom'] {
+  --capri: var(--pick-her);
+  --capri-deep: color-mix(in srgb, var(--pick-her) 88%, #000);
+  --you: var(--pick-you);
+}
+html[data-theme='custom'] .hud {
+  border-image-source: var(--hud-frame);
+}
 
 /* one message in three columns no line shows: her square, the words, yours */
 .chat-row {

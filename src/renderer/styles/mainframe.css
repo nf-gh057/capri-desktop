@@ -114,8 +114,25 @@ html[data-theme='nightcity'] {
   --text-2: #a3a194;
   --red: #f2e750;
   --red-dim: #857f22;
-  --red-wash: color-mix(in srgb, var(--yellow) 8%, transparent);
+  --red-wash: color-mix(in srgb, var(--red) 8%, transparent);
   --yellow: #5ef6ff;
+  --danger: #ff3b5c;
+}
+
+/* Custom (Mainframe › CYBERDECK): her colour and yours, picked there (look.js sets --pick-her, --pick-you);
+   the ink, the lines and the words made from hers, as Night City's are from its yellow */
+html[data-theme='custom'] {
+  --bg: color-mix(in srgb, var(--pick-her) 5%, #0b0b0d);
+  --bg-2: color-mix(in srgb, var(--pick-her) 9%, #141416);
+  --line: color-mix(in srgb, var(--pick-her) 30%, #1c1c1f);
+  --text: color-mix(in srgb, var(--pick-her) 6%, #f3f3f0);
+  --text-2: color-mix(in srgb, var(--pick-her) 14%, #9e9e98);
+  --red: var(--pick-her);
+  --red-dim: color-mix(in srgb, var(--pick-her) 55%, #000);
+  --red-wash: color-mix(in srgb, var(--pick-her) 8%, transparent);
+  --yellow: var(--pick-you);
+  --cyan: var(--pick-you);
+  --cyan-wash: color-mix(in srgb, var(--pick-you) 7%, transparent);
   --danger: #ff3b5c;
 }
 
@@ -446,6 +463,34 @@ body {
 }
 .select option {
   background: var(--bg-2);
+}
+/* Custom's two colours: a square of each, its name by it */
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.swatch input {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--red-dim);
+  background: transparent;
+  cursor: pointer;
+}
+.swatch input:hover {
+  border-color: var(--red);
+}
+.swatch input:focus-visible {
+  outline: 1px solid var(--cyan);
+  outline-offset: 2px;
+}
+.swatch input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.swatch input::-webkit-color-swatch {
+  border: 0;
 }
 .input {
   padding: 0 10px;

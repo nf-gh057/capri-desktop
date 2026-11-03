@@ -57,6 +57,11 @@ const select = (items, picked, name, extra = {}) => el('select', {
   onchange: (e) => act(name, e.target.value === '' ? null : e.target.value),
 }, items.map(({ id, label }) => el('option', { value: id ?? '', selected: id === picked }, label)));
 
+// a colour to pick, its name by it: what's picked goes to `name` once the picker closes
+const swatch = (value, name, label) => el('label', { class: 'swatch', title: label },
+  el('input', { type: 'color', value, 'aria-label': label, onchange: (e) => act(name, e.target.value) }),
+  el('span', {}, label));
+
 const check = (label, checked, name, tip) => el('label', { class: 'check', 'data-tip': tip },
   el('input', { type: 'checkbox', checked, onchange: (e) => act(name, e.target.checked) }),
   el('span'),
@@ -399,13 +404,16 @@ function system(s, t) {
   const y = s.system;
   return section(t.secSystem,
     row(t.lang, select(y.langs, y.lang, 'lang', { label: t.lang })),
-    row(t.theme, select([['nightcity', 'Night City'], ['classic', t.themeClassic]].map(([id, label]) => ({ id, label })),
+    row(t.theme, select([['nightcity', 'Night City'], ['classic', t.themeClassic], ['custom', t.themeCustom]].map(([id, label]) => ({ id, label })),
       y.theme, 'theme', { label: t.theme })),
-    // Mainframe itself (with HOLO), and her page on your phone: Night City, or this fork's own, red
-    row(t.themeMainframe, select([['nightcity', 'Night City'], ['original', t.themeClassic]].map(([id, label]) => ({ id, label })),
+    // Mainframe itself (with HOLO), and her page on your phone: Night City, this fork's own, red, or your two colours
+    row(t.themeMainframe, select([['nightcity', 'Night City'], ['original', t.themeClassic], ['custom', t.themeCustom]].map(([id, label]) => ({ id, label })),
       y.themeMainframe, 'themeMainframe', { label: t.themeMainframe })),
-    row(t.themePage, select([['nightcity', 'Night City'], ['original', t.themeClassic]].map(([id, label]) => ({ id, label })),
+    row(t.themePage, select([['nightcity', 'Night City'], ['original', t.themeClassic], ['custom', t.themeCustom]].map(([id, label]) => ({ id, label })),
       y.themePage, 'themePage', { label: t.themePage })),
+    // Custom's two colours, hers and yours, once any of them has it: the rest is made from them
+    [y.theme, y.themeMainframe, y.themePage].includes('custom') && row(t.themeColors,
+      swatch(y.customHer, 'customHer', t.customHer), swatch(y.customYou, 'customYou', t.customYou)),
     row(t.motion, select([['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]].map(([id, label]) => ({ id, label })),
       y.motion, 'motion', { label: t.motion })),
     row(t.display, select([['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]].map(([id, label]) => ({ id, label })),
@@ -427,9 +435,10 @@ function when(at) {
 
 // One message as calls in her game (talk.css): who it's from, her square on the left or yours on the right,
 // a tag (what she said it about, where it went) and when, over its bubble
-// her chat's pictures, in Night City's colours (*-nc.svg) when Mainframe has its look
-const nc = () => state.system.themeMainframe !== 'original';
-const pic = (name) => `../pocket/${name}${nc() && name !== 'face-erebus' ? '-nc' : ''}.svg`;
+// her chat's pictures, in Night City's colours (*-nc.svg) when Mainframe has its look, in yours (look.js) for Custom
+const look = () => state.system.themeMainframe || 'nightcity';
+const pic = (name) => (look() === 'custom' && capriLook.picture(name))
+  || `../pocket/${name}${look() === 'nightcity' && name !== 'face-erebus' ? '-nc' : ''}.svg`;
 const FACES = { capri: 'face-capri', you: 'face-you', erebus: 'face-erebus' };
 function talkRow(who, bubble, { tag = '', at = 0 } = {}) {
   const you = who === 'you';
@@ -558,7 +567,7 @@ function draw(next) {
   state = next;
   const t = state.t;
   document.documentElement.lang = state.lang;
-  document.documentElement.dataset.theme = nc() ? 'nightcity' : 'original'; // CYBERDECK › Mainframe's style
+  capriLook.apply({ theme: look(), her: state.system.customHer, you: state.system.customYou }); // CYBERDECK › Mainframe's style
   document.body.classList.toggle('is-help', help);
   document.getElementById('stats').replaceChildren(...stats(state, t));
   document.getElementById('build').replaceChildren(

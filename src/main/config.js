@@ -33,9 +33,11 @@ const DEFAULTS = {
   claudeMode: 'default', // Claude Code's (or Codex's) permission mode in her chat: 'default' only reads, 'acceptEdits' edits without asking
   claude: true,      // she watches Claude Code (off: she just keeps you company, no word of it)
   rest: 'corner',    // where she rests when nothing's going on: 'corner', or 'taskbar' (sitting on it)
-  themeMainframe: 'nightcity', // Mainframe's own (with HOLO): 'nightcity' or 'original' (this fork's red)
-  themePage: 'nightcity', // her page on your phone (pocket.js), the same two
-  theme: 'nightcity', // her panel, chat and report: 'nightcity' (the cyberpunk.net HUD) or 'classic' (Original in Mainframe: her first ones, violet)
+  themeMainframe: 'nightcity', // Mainframe's own (with HOLO): 'nightcity', 'original' (this fork's red) or 'custom'
+  themePage: 'nightcity', // her page on your phone (pocket.js), the same three
+  theme: 'nightcity', // her panel, chat and report: 'nightcity' (the cyberpunk.net HUD), 'classic' (Original in Mainframe: her first ones, violet) or 'custom'
+  customHer: '#ff5fd2', // Custom's two colours, hers and yours: the rest of it is made from them
+  customYou: '#7c9cff',
   motion: 'auto',    // her animations: 'auto' (like Windows' animation effects), 'full' or 'reduced'
   motionAsked: false, // she asked once, Windows' animations being off, whether to move anyway
   render: 'auto',   // how her window is drawn: 'auto', 'gl' (OpenGL) or 'software' (no graphics card), for PCs that show it black
