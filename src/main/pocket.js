@@ -60,6 +60,11 @@ const FILES = {
   '/face-erebus.svg': ['face-erebus.svg', 'image/svg+xml'],
   '/hud-frame.svg': ['hud-frame.svg', 'image/svg+xml'],
   '/send.svg': ['send.svg', 'image/svg+xml'],
+  // the same in Night City's colours, her page's style picked in Mainframe (start: look)
+  '/face-capri-nc.svg': ['face-capri-nc.svg', 'image/svg+xml'],
+  '/face-you-nc.svg': ['face-you-nc.svg', 'image/svg+xml'],
+  '/hud-frame-nc.svg': ['hud-frame-nc.svg', 'image/svg+xml'],
+  '/send-nc.svg': ['send-nc.svg', 'image/svg+xml'],
 };
 
 const HEADERS = {
@@ -148,6 +153,7 @@ const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.h
 function createPocket({
   host = '127.0.0.1', port = PORT, remember = WHO_MS, tls = null, origins = [], dir, whois, mine = () => false, phones = () => [], onPhones = () => {},
   ask = async () => ({ ok: false, error: 'offline' }), history = () => [], labels = () => ({}), name = () => '', pcs = () => [], here = () => true, route = () => ({ here: true }), roots, online = () => 1,
+  look = () => 'nightcity',
 }) {
   const who = new Map();        // address -> { at, it }
   const challenges = new Map(); // challenge -> { node, at }
@@ -256,7 +262,7 @@ function createPocket({
       const paired = Boolean(phoneOf(device.node));
       return {
         name: name(), device: device.name, paired, pairing: Boolean(pair && pair.until > Date.now()),
-        challenge: paired ? challenge(device.node) : null, t: labels(), pcs: pcs(), here: here(), online: online(),
+        challenge: paired ? challenge(device.node) : null, t: labels(), pcs: pcs(), here: here(), online: online(), look: look(),
       };
     },
     // this phone, with the code shown in Mainframe and the public half of the key its browser (or her

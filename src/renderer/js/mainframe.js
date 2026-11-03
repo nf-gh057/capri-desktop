@@ -401,6 +401,11 @@ function system(s, t) {
     row(t.lang, select(y.langs, y.lang, 'lang', { label: t.lang })),
     row(t.theme, select([['nightcity', 'Night City'], ['classic', t.themeClassic]].map(([id, label]) => ({ id, label })),
       y.theme, 'theme', { label: t.theme })),
+    // Mainframe itself (with HOLO), and her page on your phone: Night City, or this fork's own, red
+    row(t.themeMainframe, select([['nightcity', 'Night City'], ['original', t.themeClassic]].map(([id, label]) => ({ id, label })),
+      y.themeMainframe, 'themeMainframe', { label: t.themeMainframe })),
+    row(t.themePage, select([['nightcity', 'Night City'], ['original', t.themeClassic]].map(([id, label]) => ({ id, label })),
+      y.themePage, 'themePage', { label: t.themePage })),
     row(t.motion, select([['auto', t.motionAuto], ['full', t.motionFull], ['reduced', t.motionReduced]].map(([id, label]) => ({ id, label })),
       y.motion, 'motion', { label: t.motion })),
     row(t.display, select([['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]].map(([id, label]) => ({ id, label })),
@@ -422,10 +427,13 @@ function when(at) {
 
 // One message as calls in her game (talk.css): who it's from, her square on the left or yours on the right,
 // a tag (what she said it about, where it went) and when, over its bubble
-const FACES = { capri: '../pocket/face-capri.svg', you: '../pocket/face-you.svg', erebus: '../pocket/face-erebus.svg' };
+// her chat's pictures, in Night City's colours (*-nc.svg) when Mainframe has its look
+const nc = () => state.system.themeMainframe !== 'original';
+const pic = (name) => `../pocket/${name}${nc() && name !== 'face-erebus' ? '-nc' : ''}.svg`;
+const FACES = { capri: 'face-capri', you: 'face-you', erebus: 'face-erebus' };
 function talkRow(who, bubble, { tag = '', at = 0 } = {}) {
   const you = who === 'you';
-  const face = el('img', { class: 'chat-row__face', src: FACES[who], alt: '' });
+  const face = el('img', { class: 'chat-row__face', src: pic(FACES[who]), alt: '' });
   const name = who === 'erebus' ? 'EREBUS' : you ? state.capri.userName || state.t.holoYou : 'Capri';
   if (tag === name) tag = ''; // his badge is his name: once is enough
   const head = el('p', { class: 'chat-row__name' }, name, tag && el('span',{ class: 'chat-row__tag' }, tag), at ? el('span', { class: 'chat-row__at' }, when(at)) : null);
@@ -458,7 +466,7 @@ function hud(input, go, busy) {
     el('span', { class: 'hud__prompt', 'aria-hidden': 'true' }, `${you}@`, el('b', {}, 'capri'), ':~$'),
     input,
     el('button', { type: 'button', class: 'hud__btn', title: state.t.holoSend, 'aria-label': state.t.holoSend, disabled: busy, onclick: go },
-      el('img', { src: '../pocket/send.svg', alt: '' })));
+      el('img', { src: pic('send'), alt: '' })));
 }
 
 function holo(s, t) {
@@ -550,6 +558,7 @@ function draw(next) {
   state = next;
   const t = state.t;
   document.documentElement.lang = state.lang;
+  document.documentElement.dataset.theme = nc() ? 'nightcity' : 'original'; // CYBERDECK › Mainframe's style
   document.body.classList.toggle('is-help', help);
   document.getElementById('stats').replaceChildren(...stats(state, t));
   document.getElementById('build').replaceChildren(

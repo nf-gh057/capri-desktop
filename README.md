@@ -38,7 +38,7 @@ remembers where you left it, its size and the tab you were on.
 | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows. The assistant she watches in your terminal, and its hooks. With Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**, her own powers with it (apps, sites, music). |
 | **ENGRAMS** | Your bond, your name (what she calls you, and you in HOLO), her persona, her reminders, and what she remembers, with the PC it was said on. |
 | **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts, how chatty she is), her jealousy (closing other AIs' pages, and the ones she leaves be) and her swarm. |
-| **CYBERDECK** | Language, her bubbles' style (Night City or Original), animations, display, menu, starting with Windows, her updates, help, quit. |
+| **CYBERDECK** | Language, the styles (her bubbles', Mainframe's, her page's: Night City or Original), animations, display, menu, starting with Windows, her updates, help, quit. |
 
 <p>
   <img src="docs/fork/mainframe-netwatch.png" width="32%" alt="NETWATCH: who answers her chat, and the assistant she watches">
@@ -348,7 +348,9 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
 ### Smaller things
 
 - **Her bubbles' style** (Mainframe › CYBERDECK): her panel, her chat and her report on your desktop in the original
-  project's Night City style, or Original, the violet ones this fork had so far.
+  project's Night City style, or Original, the violet ones this fork had so far. **Mainframe's style** (with HOLO) and
+  **her page's** on your phone, each its own choice there too: Night City (her in yellow, you in cyan, on ink), or
+  Original, this fork's red (her in red, you in green).
 - **Her PC from your phone**: what her chat does to your PC itself (settings, sound, a timer, your windows, dark mode,
   locking, sleep, shutting down, restarting) can be ordered from her app too, on the PC you picked, if it's on. Your
   fingerprint on the order stands for the click on her button: "shut down Legion in an hour" is done there, and

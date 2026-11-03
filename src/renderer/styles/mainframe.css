@@ -90,16 +90,33 @@
   --text-2: oklch(0.68 0.03 20);
   --red: #ff5f56;
   --red-dim: #8c3a37;
-  --red-wash: rgba(255, 95, 86, 0.08);
+  --red-wash: color-mix(in srgb, var(--red) 8%, transparent);
   --yellow: #f2e750;
   --cyan: #5ef6ff;
   --cyan-wash: rgba(94, 246, 255, 0.07);
+  --danger: #ff5f56; /* quit, and what can't be undone */
 
   --font-display: 'Chakra Petch', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   /* a cut corner, as on her game's boxes */
   --cut: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
   color-scheme: dark;
+}
+
+/* Night City (Mainframe › CYBERDECK, Mainframe's style; its page sets data-theme): the original
+   project's look, after the cyberpunk.net HUD. Ink and paper, her yellow where her red was, cyan;
+   and a red kept for what can't be undone */
+html[data-theme='nightcity'] {
+  --bg: #111210;
+  --bg-2: #1c1d18;
+  --line: #3b391f;
+  --text: #f3f2e8;
+  --text-2: #a3a194;
+  --red: #f2e750;
+  --red-dim: #857f22;
+  --red-wash: color-mix(in srgb, var(--yellow) 8%, transparent);
+  --yellow: #5ef6ff;
+  --danger: #ff3b5c;
 }
 
 *,
@@ -126,7 +143,7 @@ body {
   flex-direction: column;
   /* a faint scanline, and the red glow of her game's menus at the top */
   background:
-    radial-gradient(120% 60% at 50% -20%, rgba(255, 95, 86, 0.10), transparent 60%),
+    radial-gradient(120% 60% at 50% -20%, color-mix(in srgb, var(--red) 10%, transparent), transparent 60%),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
     var(--bg);
 }
@@ -236,7 +253,7 @@ body {
 }
 .tab.is-on {
   border-color: var(--red);
-  background: linear-gradient(180deg, rgba(255, 95, 86, 0.24), rgba(255, 95, 86, 0.06));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--red) 24%, transparent), color-mix(in srgb, var(--red) 6%, transparent));
   color: var(--red);
 }
 .tab.is-on .tab__mark {
@@ -284,7 +301,7 @@ body {
   gap: 4px;
   padding: 10px 14px;
   border: 1px solid var(--yellow);
-  background: rgba(242, 231, 80, 0.05);
+  background: color-mix(in srgb, var(--yellow) 5%, transparent);
   color: var(--yellow);
   font: 12px/1.45 var(--font-mono);
   text-align: left;
@@ -292,7 +309,7 @@ body {
   clip-path: var(--cut);
 }
 .legend__item:hover {
-  background: rgba(242, 231, 80, 0.12);
+  background: color-mix(in srgb, var(--yellow) 12%, transparent);
 }
 .legend__name {
   font: 700 12px/1.2 var(--font-display);
@@ -404,7 +421,7 @@ body {
   color: var(--cyan);
 }
 .button.is-danger {
-  color: var(--red);
+  color: var(--danger);
 }
 .button:focus-visible,
 .select:focus-visible,
@@ -629,7 +646,7 @@ body {
 }
 .contact.is-on {
   border-color: var(--red);
-  background: linear-gradient(90deg, rgba(255, 95, 86, 0.28), rgba(255, 95, 86, 0.08));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--red) 28%, transparent), color-mix(in srgb, var(--red) 8%, transparent));
 }
 .contact__name {
   font: 700 14px/1.1 var(--font-display);

@@ -38,7 +38,7 @@ krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na 
 | **NETWATCH** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex) i co pokazuje czat. Asystent, którego pilnuje w terminalu, i jego hooki. Gdy w czacie odpowiada Claude Code albo Codex: jego folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka). |
 | **ENGRAMS** | Wasza więź, twoje imię (jak cię nazywa i jak jesteś podpisany w HOLO), jej persona, przypomnienia i to, co pamięta, z komputerem, na którym to powiedziałeś. |
 | **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa), jej zazdrość (zamykanie stron innych AI i te, które zostawia w spokoju) i jej rój. |
-| **CYBERDECK** | Język, styl jej dymków (Night City albo Oryginalny), animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście. |
+| **CYBERDECK** | Język, style (jej dymków, Mainframe, jej strony: Night City albo Oryginalny), animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście. |
 
 <p>
   <img src="docs/fork/mainframe-netwatch.png" width="32%" alt="NETWATCH: kto odpowiada w jej czacie i asystent, którego obserwuje">
@@ -362,7 +362,9 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
 ### Drobniejsze rzeczy
 
 - **Styl jej dymków** (Mainframe › CYBERDECK): jej panel, czat i raport na pulpicie w stylu Night City z oryginalnego
-  projektu albo Oryginalny, fioletowy, jaki fork miał dotąd.
+  projektu albo Oryginalny, fioletowy, jaki fork miał dotąd. **Styl Mainframe** (z HOLO) i **jej strony** na
+  telefonie, każdy wybierany tam osobno: Night City (ona na żółto, ty na cyjanowo, na atramentowym tle) albo
+  Oryginalny, czerwony styl tego forka (ona na czerwono, ty na zielono).
 - **Jej PC z telefonu**: to, co jej czat robi z samym PC (ustawienia, dźwięk, minutnik, okna, tryb ciemny, blokada,
   uśpienie, wyłączenie, restart), można też zlecić z jej aplikacji, na wybranym komputerze, jeśli jest włączony. Twój
   odcisk palca na zleceniu zastępuje kliknięcie jej przycisku: „wyłącz Legiona za godzinę” dzieje się na nim, a

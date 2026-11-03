@@ -19,6 +19,22 @@
   color-scheme: dark;
 }
 
+/* Night City (Mainframe › CYBERDECK, her page's style; pocket.js sets data-theme): the original
+   project's look, after the cyberpunk.net HUD. Ink and paper, her yellow where her red was, cyan;
+   and a red kept for what can't be undone */
+html[data-theme='nightcity'] {
+  --bg: #111210;
+  --bg-2: #1c1d18;
+  --line: #3b391f;
+  --text: #f3f2e8;
+  --text-2: #a3a194;
+  --red: #f2e750;
+  --red-dim: #857f22;
+  --red-wash: rgba(242, 231, 80, 0.08);
+  --yellow: #5ef6ff;
+  --danger: #ff3b5c;
+}
+
 *,
 *::before,
 *::after {
@@ -41,7 +57,7 @@ body {
   height: 100dvh;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background:
-    radial-gradient(120% 50% at 50% -20%, rgba(255, 95, 86, 0.12), transparent 60%),
+    radial-gradient(120% 50% at 50% -20%, color-mix(in srgb, var(--red) 12%, transparent), transparent 60%),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
     var(--bg);
 }
@@ -142,7 +158,7 @@ textarea.input {
   padding: 10px 16px;
   border: 1px solid var(--red);
   border-radius: 0;
-  background: rgba(255, 95, 86, 0.08);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
   color: var(--red);
   font: 700 13px/1 var(--font-display);
   letter-spacing: 0.1em;
@@ -156,7 +172,7 @@ textarea.input {
   text-decoration: none;
 }
 .button:active {
-  background: rgba(255, 95, 86, 0.2);
+  background: color-mix(in srgb, var(--red) 20%, transparent);
 }
 .button:disabled {
   opacity: 0.45;

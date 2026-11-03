@@ -860,6 +860,8 @@ function mainframeState() {
       lang: cfg.lang,
       langs: [['auto', t.auto], ...LANGS.map((lang) => [lang, TRAY[lang].name])].map(([id, label]) => ({ id, label })),
       theme: cfg.theme || 'nightcity',
+      themeMainframe: cfg.themeMainframe || 'nightcity',
+      themePage: cfg.themePage || 'nightcity',
       motion: cfg.motion,
       render: cfg.render,
       startup: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
@@ -910,6 +912,7 @@ async function mainframeAct(name, value) {
     case 'hooks': if (one(['install', 'uninstall'])) runHooks(value); break;
     case 'lang': if (value === 'auto' || LANGS.includes(value)) updateConfig({ lang: value }); break;
     case 'theme': if (one(['nightcity', 'classic'])) updateConfig({ theme: value }); break;
+    case 'themeMainframe': case 'themePage': if (one(['nightcity', 'original'])) updateConfig({ [name]: value }); break;
     case 'aiSpare': {
       // { key, on }: she leaves that AI's pages be, or closes them again
       const key = String(value?.key || '');
@@ -1327,6 +1330,7 @@ async function runSyncPocket() {
           return { ...t.pocketPage, lang: resolveLang(config.load().lang), you: config.load().userName || t.holoYou };
         },
         name: () => hiveName(),
+        look: () => config.load().themePage || 'nightcity', // Mainframe › CYBERDECK, her page's style
         // her page on your other PCs (her swarm), for her app to go to when this one's away
         // (only those answering now: a PC that's off or gone has no page to go to)
         pcs: () => (hive?.state().peers || []).filter((p) => p.online && p.pocket).map((p) => ({ name: p.name, url: p.pocket, active: p.active })),

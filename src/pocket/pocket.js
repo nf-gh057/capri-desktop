@@ -6,6 +6,7 @@
 const $ = (id) => document.getElementById(id);
 const APP = 'io.github.nfgh057.capri'; // her app on Android (android/)
 let t = {};
+let nc = true;     // her page in Night City's colours (start: look)
 let keys = null;    // this phone's key pair (CryptoKey objects, as IndexedDB keeps them)
 let events = null;  // her answers as they come (EventSource)
 let pending = null; // { id, el, text }: her answer being written
@@ -119,7 +120,7 @@ function when(at) {
 function row(you, bubbleClass, text, { tag = '', at = 0, quote = '' } = {}) {
   const make = (tag, cls, content) => Object.assign(document.createElement(tag), cls ? { className: cls } : {}, content !== undefined ? { textContent: content } : {});
   const face = make('img', 'chat-row__face');
-  face.src = you ? '/face-you.svg' : '/face-capri.svg';
+  face.src = `/face-${you ? 'you' : 'capri'}${nc ? '-nc' : ''}.svg`;
   face.alt = '';
   const head = make('p', 'chat-row__name', you ? t.you || 'YOU' : 'Capri');
   if (tag) head.append(make('span', 'chat-row__tag', tag));
@@ -200,6 +201,10 @@ async function boot() {
     return;
   }
   t = start.t || {};
+  // her page's style, picked in Mainframe: Night City (her yellow, you cyan) or this fork's own red
+  nc = start.look !== 'original';
+  document.documentElement.dataset.theme = nc ? 'nightcity' : 'original';
+  $('send').querySelector('img').src = nc ? '/send-nc.svg' : '/send.svg';
   words();
   $('pc').textContent = start.name || '';
   // the code from Mainframe's QR code: read here, never sent anywhere in the address
