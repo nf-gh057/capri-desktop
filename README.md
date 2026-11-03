@@ -352,7 +352,8 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   fingerprint on the order stands for the click on her button: "shut down Legion in an hour" is done there, and
   "cancel the shutdown" stops it. In Polish too ("wyłącz Legiona za godzinę").
 - **Petting her**, from the original project, with this fork's pose drawings: in one she lets it go and leans into
-  your hand; lying along her ledge she only purrs, her mane aglow; not while she walks, hangs or Erebus has her.
+  your hand; lying along her ledge she has a drawing of it, her head pushed up into your hand and her eyes half shut;
+  not while she walks, hangs or Erebus has her.
 - **Lying back on her ledge**, from the original project, can be turned off in Mainframe › RELIC. Lying along her
   ledge, head on her hand, is a drawing of this fork's: she does one or the other, never both at once.
 - **Her jealousy and other AIs' pages**: the AI answering her chat and the one she watches are hers, never rivals,

@@ -66,6 +66,7 @@ POSES = {
     **{f'hang{i}': {'kind': 'hang', 'from': 'hang1'} for i in (2, 3, 4)},
     'lie': {'kind': 'ledge', 'like': 'hip', 'mid': 120},
     'lean': {'kind': 'ledge', 'from': 'lie', 'mid': 120},  # lying down: between sitting and 'lie'
+    'petlie': {'kind': 'ledge', 'from': 'lie', 'mid': 120},  # 'lie', petted: her head into your hand, eyes half shut
 }
 
 

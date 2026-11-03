@@ -366,7 +366,8 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   odcisk palca na zleceniu zastępuje kliknięcie jej przycisku: „wyłącz Legiona za godzinę” dzieje się na nim, a
   „anuluj wyłączenie” to zatrzymuje.
 - **Głaskanie**, z oryginalnego projektu, z rysunkami póz tego forka: w pozie ją porzuca i wtula się w twoją dłoń;
-  leżąc wzdłuż okna tylko mruczy, a grzywa świeci; nie wtedy, gdy chodzi, wisi albo ma ją Erebus.
+  leżąc wzdłuż okna ma na to własny rysunek: wtula głowę w twoją dłoń i przymyka oczy; nie wtedy, gdy chodzi, wisi
+  albo ma ją Erebus.
 - **Leżenie na plecach na krawędzi okna**, z oryginalnego projektu, można wyłączyć w Mainframe › RELIC. Leżenie
   wzdłuż okna z głową na dłoni to rysunek tego forka: robi jedno albo drugie, nigdy oba naraz.
 - **Zazdrość i strony innych AI**: AI odpowiadające w jej czacie i to, które obserwuje, są jej, nigdy rywalami, a ich

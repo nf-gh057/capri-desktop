@@ -3166,10 +3166,11 @@ export class Capri {
       pet.purred = now;
       this.voice.play('purr');
     }
-    // in one of her pose drawings (sprite.js POSES) there's no leaning into it, drawn: standing, she
-    // lets the pose go and leans into your hand; lying along her ledge, she only purrs, her specks aglow
+    // in her pose drawings standing (sprite.js POSES) there's no leaning into it, drawn: she lets the
+    // pose go and leans into your hand. Lying along her ledge, she has her own drawing of it.
     if (AFLOAT.includes(this.posing)) this.poseAs(null);
-    if (this.posing !== 'lie' && this.act?.player.name !== 'petted') this.perform('petted', x < this.pos.x ? -1 : 1);
+    const petted = this.posing === 'lie' ? 'pettedlie' : 'petted';
+    if (this.act?.player.name !== petted) this.perform(petted, x < this.pos.x ? -1 : 1);
   }
 
   // The strokes stopped (or she's had enough): her specks back to normal.

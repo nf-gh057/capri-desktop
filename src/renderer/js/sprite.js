@@ -392,6 +392,7 @@ export const POSES = {
   take3: { rect: [35.1, 36.7, 174.4, 381.3], face: [120, 132], mane: [120, 95, 100, 75], sway: [150, 40] },
   lie: { rect: [-57.3, 68.1, 354.6, 166.9], face: [203, 182], mane: [215, 140, 100, 75], sway: [200, 110] },
   lean: { rect: [-59.5, 64.6, 359.0, 170.4], face: [205, 164], mane: [215, 135, 100, 75], sway: [195, 110] }, // lying down, halfway
+  petlie: { rect: [-56.3, 88.1, 352.6, 146.9], face: [205, 174], mane: [215, 148, 100, 70], sway: [200, 115] }, // lying there, petted
   // hanging off a window's corner, seen from the side, facing it: hanging, pulling herself up,
   // slipping (one hand), climbing over; all four hold on at the same corner (grip)
   hang1: { rect: [38.0, 28.3, 187.5, 378.0], face: [148, 120], mane: [108, 100, 85, 80], sway: [145, 40], grip: [190, 72] },

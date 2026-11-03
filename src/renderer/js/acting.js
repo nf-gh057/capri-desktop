@@ -254,6 +254,17 @@ export const ACTS = {
       [4, { draw: 'lean', mane: 0.04, hair: -1.5 }],
     ],
   },
+  // lying there and petted (capri.js stroke): her head pushed up into your hand, her eyes half shut,
+  // her mane pressed down where it passes, rocking a little with each stroke
+  pettedlie: {
+    priority: 1,
+    keys: [
+      [3, { draw: 'petlie', mane: 0.06, hair: 0.6 }],
+      [4, { draw: 'petlie', mane: -0.04, hair: -0.6 }],
+      [4, { draw: 'petlie', mane: 0.05, hair: 0.6 }],
+      [3, { draw: 'petlie', mane: -0.03 }],
+    ],
+  },
 
   // perched on a window, hands down on the ledge, legs kicking one after the other
   sit: {
