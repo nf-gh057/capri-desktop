@@ -48,11 +48,12 @@ async function boot() {
     // her pose drawings (sprite.js POSES): without one she just doesn't strike that pose
     Promise.all(Object.keys(POSES).map((name) => loadImage(`../../assets/capri/pose-${name}.png`).catch(() => null)))
       .then((images) => Object.fromEntries(Object.keys(POSES).map((name, i) => [name, images[i]]))),
-    // her intro: her close-up grabbing the screen, and its drawings with her mouth and arm moving
-    Promise.all(GRAB_FRAMES.map((name) => loadImage(`../../assets/capri/intro-${name}.webp`).catch(() => null)))
+    // her intro: her close-up grabbing the screen, and its drawings with her mouth and arm moving,
+    // and her mane behind her (fx.js GRAB.maneAt)
+    Promise.all([...GRAB_FRAMES, 'mane'].map((name) => loadImage(`../../assets/capri/intro-${name}.webp`).catch(() => null)))
       // decoded now, not the first time each one shows up (a hitch right on "hi", on the wave)
       .then((cels) => Promise.all(cels.map((cel) => cel && createImageBitmap(cel))))
-      .then((cels) => (cels[0] ? Object.fromEntries(GRAB_FRAMES.map((name, i) => [name, cels[i]])) : null)),
+      .then((cels) => (cels[0] ? Object.fromEntries([...GRAB_FRAMES, 'mane'].map((name, i) => [name, cels[i]])) : null)),
     ...CUTINS.map((name) => loadImage(`../../assets/capri/cutin-${name}.png`)),
     document.fonts.load('600 16px "Chakra Petch"'),
     document.fonts.load('400 11px "JetBrains Mono"'),

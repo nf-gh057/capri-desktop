@@ -49,6 +49,9 @@ const GRAB = {
     [1129, 480], [1030, 590], [630, 590]
   ],
   hands: [{ x: 0, y: 610 }, { x: 1672, y: 520 }], // where her hands hold the edges of the screen
+  // her real mane (assets/capri/intro-mane.webp, drawn by Codex after the show's frames, picked by
+  // you): where its top left goes on her picture. Without it, the outline above stands in.
+  maneAt: { x: -239, y: -560 },
 };
 const INTRO_T = { hands: 6, right: 8, reach: 10, grab: 16, hold: 21, blink: 29, hi: 34, wave: 46, regrab: 63, happy: 65, glance: 75, slip: 80, antic: 86, shrink: 88, land: 98, end: 101 };
 // her mane's red and the specks of its grain; apart, for her colours pulled apart
@@ -264,6 +267,7 @@ export class FxLayer {
     this.ctx = canvas.getContext('2d');
     this.cutins = cutins;
     this.grab = intro?.grab || null; // her close-up for her intro (GRAB_FRAMES), at rest
+    this.mane = intro?.mane || null; // and her mane behind it (GRAB.maneAt)
     this.grabFrames = intro || {};
     if (this.grab) this.prepareGrab();
     this.items = [];
@@ -770,6 +774,30 @@ export class FxLayer {
       violet: copy(COLORS.violet, 'source-in'),
       channels: ['#ff0000', '#00ff00', '#0000ff'].map((c) => copy(c, 'multiply')),
     };
+    // her mane the same ways: flat for the impact frames, its colours apart
+    if (this.mane) {
+      const mane = (fill, mode) => {
+        const c = document.createElement('canvas');
+        c.width = this.mane.width;
+        c.height = this.mane.height;
+        const g = c.getContext('2d');
+        g.drawImage(this.mane, 0, 0);
+        g.globalCompositeOperation = mode;
+        g.fillStyle = fill;
+        g.fillRect(0, 0, c.width, c.height);
+        if (mode === 'multiply') {
+          g.globalCompositeOperation = 'destination-in';
+          g.drawImage(this.mane, 0, 0);
+        }
+        return c;
+      };
+      this.maneCopies = {
+        paper: mane(COLORS.paper, 'source-in'),
+        ink: mane(COLORS.ink, 'source-in'),
+        violet: mane(COLORS.violet, 'source-in'),
+        channels: ['#ff0000', '#00ff00', '#0000ff'].map((c) => mane(c, 'multiply')),
+      };
+    }
     // her mane's red, its grain of specks on a tile
     const tile = document.createElement('canvas');
     tile.width = tile.height = 128;
@@ -802,22 +830,27 @@ export class FxLayer {
       ctx.clip();
     }
     ctx.imageSmoothingQuality = 'high';
-    // her mane first, behind her
-    const mane = (fill, dx = 0, dy = 0) => {
+    // her mane first, behind her: her real one (its picture, or a copy of it: `which`), else its outline
+    const m = this.maneCopies;
+    const mane = (fill, dx = 0, dy = 0, which = null) => {
+      if (this.mane) {
+        ctx.drawImage(which || this.mane, GRAB.maneAt.x + dx, GRAB.maneAt.y + dy);
+        return;
+      }
       ctx.fillStyle = fill;
       ctx.beginPath();
       GRAB.mane.forEach(([mx, my], i) => (i ? ctx.lineTo(mx + dx, my + dy) : ctx.moveTo(mx + dx, my + dy)));
       ctx.fill();
     };
     if (flat) {
-      mane(COLORS[flat]);
+      mane(COLORS[flat], 0, 0, m?.[flat]);
       ctx.drawImage(c[flat], 0, 0);
     } else if (split) {
       const d = split / (it.s * k);
       ctx.globalCompositeOperation = 'lighter';
-      mane(MANE.channels[0], -d, d * 0.3);
-      mane(MANE.channels[1]);
-      mane(MANE.channels[2], d, -d * 0.3);
+      mane(MANE.channels[0], -d, d * 0.3, m?.channels[0]);
+      mane(MANE.channels[1], 0, 0, m?.channels[1]);
+      mane(MANE.channels[2], d, -d * 0.3, m?.channels[2]);
       ctx.globalCompositeOperation = 'destination-out'; // her in front of it: none of its red through her
       ctx.drawImage(c.ink, 0, 0);
       ctx.globalCompositeOperation = 'lighter';

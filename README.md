@@ -334,6 +334,8 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   superior. Then her ICE throws him out; grabbing her does too. Meanwhile her face in her panel is his, and what he
   says goes to HOLO too, in red under his own square. With reduced motion, none of it; untick *Erebus can take her
   over* in Mainframe › RELIC to keep him out.
+- **Her mane in her intro**, as she holds your screen: her real one from the show, broad crimson planes layered over
+  each other with black shards among them, instead of a flat red star.
 - **Smoother**: every animation of hers, the original project's included, gets a drawing in between each two of its
   own and plays twice as fast, so it moves twice as smoothly and lasts as long as before.
 

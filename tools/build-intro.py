@@ -1,8 +1,8 @@
 """Builds her intro's close-ups in assets/capri/: her holding the screen by its edges, cut out of
 their red background. What stays: her figure (everything that isn't the mane's hot red, only
 what's joined to her); the rest is see-through, so your desktop shows around her. Her mane isn't
-in them: fx.js draws it behind her (GRAB.mane), as big as it is in the show, past the top of the
-picture, which would cut it flat. Every drawing is cut the same way, so they can be swapped like
+in them: fx.js draws it behind her (intro-mane.webp at GRAB.maneAt, drawn apart, else its outline
+GRAB.mane), as big as it is in the show, past the top of the picture, which would cut it flat. Every drawing is cut the same way, so they can be swapped like
 cels: `grab` is her at rest (both hands on the edges, mouth shut), the others are the same picture
 with only her mouth, her eyes or her right arm changed (fx.js GRAB_FRAMES), and only that change is taken
 from them (CHANGES), so nothing else shimmers when they're swapped. fx.js knows where her face,
