@@ -139,7 +139,8 @@ const same = (a, b) => {
 
 const cookie = (req) => (/(?:^|;\s*)capri_pocket=([\w-]{20,})/.exec(String(req.headers.cookie || '')) || [])[1] || null;
 
-// `host`, `port`: where to listen (this PC's Tailscale address); `tls`: { cert, key }, or null for plain
+// `host`, `port`: where to listen (this PC's Tailscale address, or its addresses: the first one has to be free,
+// the others are listened on if they can be); `tls`: { cert, key }, or null for plain
 // HTTP (tests and --dev on 127.0.0.1 only); `origins`: the page's own address(es), the only ones its
 // requests may come from; `dir`: the page's files.
 // `whois(address)`: the device Tailscale says is there, { node, name, user } or null; `mine(who)`:
@@ -163,7 +164,8 @@ function createPocket({
   const sent = new Map();       // node -> [times]: messages in the last minute
   const notes = [];             // { id, at, line, project, quote }: her notes, oldest first
   let pair = null;              // { code, until, tries }
-  let server = null;
+  let server = null;            // on the first address
+  let others = [];              // on the others
   let ping = null;
   let queue = Promise.resolve(); // your messages, answered one after the other
 
@@ -458,18 +460,22 @@ function createPocket({
     });
   }
 
-  async function start() {
-    server = tls ? https.createServer({ cert: tls.cert, key: tls.key }, handle) : http.createServer(handle);
-    server.headersTimeout = 10000;
-    server.requestTimeout = 15000; // the request itself: her answers come on their own stream
+  async function serve(address) {
+    const it = tls ? https.createServer({ cert: tls.cert, key: tls.key }, handle) : http.createServer(handle);
+    it.headersTimeout = 10000;
+    it.requestTimeout = 15000; // the request itself: her answers come on their own stream
     await new Promise((resolve) => {
-      server.once('error', resolve); // taken, or that address is gone
-      server.listen(port, host, resolve);
+      it.once('error', resolve); // taken, or that address is gone
+      it.listen(port, address, resolve);
     });
-    if (!server.listening) {
-      server = null;
-      return false;
-    }
+    return it.listening ? it : null;
+  }
+
+  async function start() {
+    const [first, ...rest] = [...new Set([].concat(host))];
+    server = await serve(first);
+    if (!server) return false;
+    others = (await Promise.all(rest.map(serve))).filter(Boolean);
     // a word now and then, so a phone's network doesn't drop a quiet stream
     ping = setInterval(() => { for (const s of streams) s.res.write(': ping\n\n'); }, 20000);
     return true;
@@ -480,11 +486,12 @@ function createPocket({
     for (const s of streams) s.res.end();
     streams.clear();
     sessions.clear();
-    if (server) {
-      server.close();
-      server.closeAllConnections();
+    for (const it of [server, ...others].filter(Boolean)) {
+      it.close();
+      it.closeAllConnections();
     }
     server = null;
+    others = [];
   }
 
   // a code for a phone to pair with, shown in Mainframe: "ABCDE-FGHJK"
@@ -505,7 +512,7 @@ function createPocket({
     start, stop, startPairing, forget, note,
     stopPairing: () => { pair = null; },
     pairing: () => Boolean(pair && pair.until > Date.now() && pair.tries < PAIR_TRIES),
-    setCert: (next) => server?.setSecureContext?.({ cert: next.cert, key: next.key }), // a renewed certificate, without a restart
+    setCert: (next) => { for (const it of [server, ...others]) it?.setSecureContext?.({ cert: next.cert, key: next.key }); }, // a renewed certificate, without a restart
     listening: () => Boolean(server?.listening),
   };
 }

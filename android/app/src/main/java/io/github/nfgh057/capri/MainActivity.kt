@@ -121,6 +121,11 @@ class MainActivity : Activity() {
                 start.onSuccess { s ->
                     t = s.optJSONObject("t") ?: JSONObject()
                     head.text = "CAPRI  ${s.optString("name")}"
+                    // a PC of yours that knows this phone already (her app went to another, and lost its way
+                    // back): her chat there, with your fingerprint; paired again only if her key there isn't this one
+                    if (s.optBoolean("paired") && Keys.has()) {
+                        return@onSuccess say("${s.optString("name")}\n\n${Uri.parse(origin).host}", word("unlock", "Unlock")) { goTo(candidate, s) { pair(candidate, code) } }
+                    }
                     say("${word("pairTitle", "Pair")}\n\n${Uri.parse(origin).host}", word("pairApp", "Pair")) { pair(candidate, code) }
                 }.onFailure { say(word("offline", getString(R.string.offline))) }
             }
@@ -150,6 +155,17 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    // her chat on the PC a pairing link came from, which knows this phone: `orElse` if her key there isn't this one
+    private fun goTo(there: Api, s: JSONObject, orElse: () -> Unit) {
+        pairing = null
+        lock()
+        log.removeAllViews()
+        api = there
+        prefs.edit().putString("origin", there.origin).apply()
+        remember(there.origin, s)
+        hello(s.getString("challenge"), orElse)
     }
 
     // --- unlocking: your fingerprint, her key signs a fresh challenge, a session ---------------------------
@@ -183,19 +199,27 @@ class MainActivity : Activity() {
 
     private val tsNet = Regex("^https://[a-z0-9-]+(\\.[a-z0-9-]+)*\\.ts\\.net:\\d{2,5}$", RegexOption.IGNORE_CASE)
 
-    // what this PC said of itself and of the others answering now, kept for when it's the one that's away;
-    // the name on top, with ▾ when there's another to go to
+    // what this PC said of itself and of the others answering now, added to the PCs known before (one that's off
+    // now stays known: her app goes back to it when this one's away); the name on top, with ▾ when there's
+    // another to go to
     private fun remember(origin: String, s: JSONObject) {
-        val all = JSONArray().put(JSONObject().put("name", s.optString("name")).put("url", origin))
+        val names = LinkedHashMap<String, String>()
+        names[origin] = s.optString("name")
         val pcs = s.optJSONArray("pcs") ?: JSONArray()
-        var others = 0
         for (i in 0 until pcs.length()) {
             val p = pcs.getJSONObject(i)
             val url = p.optString("url").trimEnd('/')
-            if (!tsNet.matches(url) || url == origin) continue
-            all.put(JSONObject().put("name", p.optString("name")).put("url", url))
-            others++
+            if (tsNet.matches(url) && url !in names) names[url] = p.optString("name")
         }
+        val before = runCatching { JSONArray(prefs.getString("pcs", "[]")) }.getOrDefault(JSONArray())
+        for (i in 0 until before.length()) {
+            val p = before.getJSONObject(i)
+            val url = p.optString("url")
+            if (tsNet.matches(url) && url !in names) names[url] = p.optString("name")
+        }
+        val all = JSONArray()
+        names.entries.take(12).forEach { (url, name) -> all.put(JSONObject().put("name", name).put("url", url)) }
+        val others = all.length() - 1
         prefs.edit().putString("pcs", all.toString()).apply()
         head.text = "CAPRI  ${s.optString("name")}${if (s.optBoolean("here")) " ★" else ""}${if (others > 0) "  ▾" else ""}"
         head.setOnClickListener(if (others > 0) View.OnClickListener { elsewhere(origin) } else null)
@@ -247,13 +271,17 @@ class MainActivity : Activity() {
         unlock()
     }
 
-    private fun hello(challenge: String) {
+    private fun hello(challenge: String, orElse: (() -> Unit)? = null) {
         val api = api ?: return
         fingerprint(word("unlockTitle", "Capri"), word("unlockSub", "")) { signer ->
             work.execute {
                 val ok = runCatching { api.post("/api/hello", JSONObject().put("challenge", challenge).put("sig", Keys.sign(signer, Keys.hello(challenge)))) }
                 runOnUiThread {
-                    if (ok.isSuccess) open() else say(word("lost", getString(R.string.not_paired)))
+                    when {
+                        ok.isSuccess -> open()
+                        orElse != null && (ok.exceptionOrNull() as? Api.Failed)?.status == 403 -> orElse()
+                        else -> say(word("lost", getString(R.string.not_paired)))
+                    }
                 }
             }
         }

@@ -119,9 +119,10 @@ async function runTailscale(args, timeout = 5000) {
   return null;
 }
 
-// Tailscale here: { ip, name, dns, certs, user, peers: [{ name, ip, online, user }] } (user: the account a
-// device is signed in with; dns: this device's name on your Tailscale network; certs: the names it can
-// have an HTTPS certificate for, none until HTTPS is turned on for the network), or null (not installed)
+// Tailscale here: { ip, ip6, name, dns, certs, user, peers: [{ name, ip, online, user }] } (user: the account a
+// device is signed in with; ip6: its IPv6 address, which its name has too; dns: this device's name on your
+// Tailscale network; certs: the names it can have an HTTPS certificate for, none until HTTPS is turned on for
+// the network), or null (not installed)
 async function tailscale() {
   const out = await runTailscale(['status', '--json']);
   if (!out) return null;
@@ -131,6 +132,7 @@ async function tailscale() {
     const ip4 = (ips) => (ips || []).find((ip) => /^\d+\.\d+\.\d+\.\d+$/.test(ip)) || null;
     return {
       ip: ip4(s.Self?.TailscaleIPs),
+      ip6: (s.Self?.TailscaleIPs || []).find((ip) => ip.includes(':')) || null,
       name: s.Self?.HostName || null,
       dns: String(s.Self?.DNSName || '').replace(/\.$/, '') || null,
       certs: (s.CertDomains || []).map(String),

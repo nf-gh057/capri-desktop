@@ -1301,7 +1301,8 @@ async function runSyncPocket() {
     const ts = await swarm.tailscale().catch(() => null);
     if (!ts?.ip) pocketError = 'noTailscale';
     else if (!ts.dns || !ts.certs.includes(ts.dns)) pocketError = 'noHttps';
-    else where = { host: ts.ip, domain: ts.dns, origin: `https://${ts.dns}:${POCKET_PORT}`, user: ts.user };
+    // both of its addresses: its name has both, and a phone may try IPv6 first (her app gives up on a silent one)
+    else where = { host: [ts.ip, ...(ts.ip6 ? [ts.ip6] : [])], domain: ts.dns, origin: `https://${ts.dns}:${POCKET_PORT}`, user: ts.user };
   }
   const sig = where && JSON.stringify([where.host, where.origin, where.user]);
   if (pocketLink && pocketLink.sig !== sig) {

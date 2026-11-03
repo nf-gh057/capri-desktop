@@ -82,6 +82,15 @@ test('a device that is not yours gets nothing, not even the page', async (t) => 
   assert.equal((await it.call('GET', '/')).status, 403);
 });
 
+test('her page answers on each of her addresses (Tailscale gives her name an IPv6 one too), and stops on all', async (t) => {
+  const it = page(t, { host: ['127.0.0.1', '::1'] });
+  assert.ok(await it.p.start());
+  const port = new URL(it.origin).port;
+  for (const at of ['127.0.0.1', '[::1]']) assert.equal((await fetch(`http://${at}:${port}/api/start`)).status, 200);
+  it.p.stop();
+  for (const at of ['127.0.0.1', '[::1]']) await assert.rejects(fetch(`http://${at}:${port}/api/start`));
+});
+
 test('a phone of yours sees the page, and pairs only with the code, while it is open', async (t) => {
   const it = page(t);
   await it.p.start();
