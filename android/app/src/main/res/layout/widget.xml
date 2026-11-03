@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Her widget, as calls in her game: your words with her (hers red on the left, yours green on the right, each in
-     a see-through bubble with a neon outline) on the home screen as it is (no background), and along the bottom
-     edge her HUD bar: ornaments on the left, the call and message buttons on the right -->
+<!-- Her widget, as calls in her game: your words with her (hers on the left, yours on the right, each in a see-through
+     bubble with a neon outline, in her style's colours) on the home screen as it is (no background), and along the
+     bottom edge her HUD bar: ornaments on the left, the call and message buttons on the right -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -38,6 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="44dp"
         android:layout_marginTop="4dp"
+        android:id="@+id/widget_bar"
         android:background="@drawable/hud_frame"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -47,6 +48,7 @@
         <ImageView
             android:layout_width="96dp"
             android:layout_height="18dp"
+            android:id="@+id/widget_glyphs"
             android:src="@drawable/widget_bar_glyphs" />
 
         <!-- how many PCs of your swarm answer: LNK//02 -->
@@ -58,7 +60,7 @@
             android:fontFamily="@font/jetbrains_mono"
             android:letterSpacing="0.1"
             android:text="LNK//--"
-            android:textColor="#D9E8392D"
+            android:textColor="@color/her_deep"
             android:textSize="10sp" />
 
         <FrameLayout

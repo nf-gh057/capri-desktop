@@ -18,4 +18,10 @@
     <string name="widget_call">Talk to her</string>
     <string name="widget_write">Write to her</string>
     <string name="voice_soon">Talking to her by voice: coming soon.</string>
+    <string name="style">Style</string>
+    <string name="style_original">Original</string>
+    <string name="style_custom">Custom</string>
+    <string name="style_her">Her colour</string>
+    <string name="style_you">Your colour</string>
+    <string name="style_bad">That isn’t a colour: #rrggbb, e.g. #ff5fd2.</string>
 </resources>

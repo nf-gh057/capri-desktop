@@ -129,8 +129,10 @@ wpisywania za każdym razem.
 
 ![Mainframe › HOLO › TAILSCALE ze sparowanym telefonem i kodem QR dla kolejnego, obok jej strona na telefonie](docs/fork/pocket.png)
 
-Jej strona, aplikacja i widżet wyglądają jak HOLO: jej czat jak połączenia w grze, jej wiadomości na czerwono, twoje na
-zielono, i jej pasek ze znakiem zachęty jak w terminalu.
+Jej strona, aplikacja i widżet wyglądają jak HOLO: jej czat jak połączenia w grze i jej pasek ze znakiem zachęty jak
+w terminalu. Każde we własnym stylu: styl jej strony wybierasz w Mainframe › CYBERDECK, aplikacji i widżetu w samej
+aplikacji (dwa romby na jej górnym pasku): Night City (ona na żółto, ty na cyjanowo), Oryginalny (ona na czerwono, ty
+na zielono) albo Własny, dwa kolory, które wybierasz, a reszta dopasowana do nich.
 
 **Konfiguracja**
 

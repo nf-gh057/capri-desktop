@@ -27,6 +27,7 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
+import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -64,16 +65,18 @@ class MainActivity : Activity() {
     private val mono by lazy { resources.getFont(R.font.jetbrains_mono) }
     private val chakra by lazy { resources.getFont(R.font.chakra_petch_semibold) }
 
-    private val bg = Color.rgb(11, 10, 15)
-    private val red = Color.rgb(255, 95, 86)
-    private val yellow = Color.rgb(242, 231, 80)
-    private val cyan = Color.rgb(94, 246, 255)
-    private val green = Color.rgb(87, 227, 137)
-    private val dim = Color.rgb(170, 150, 150)
+    private lateinit var root: LinearLayout
+    private lateinit var version: TextView
+    private lateinit var swatch: TextView
+    private lateinit var bar: LinearLayout
+    private lateinit var talk: ImageButton
+    private lateinit var look: Look // her style, picked here (the swatch on top): her app's and her widget's
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        look = Look.of(this)
         build()
+        paint()
         prefs.getString("origin", null)?.let { api = Api(it) }
         handle(intent)
     }
@@ -503,17 +506,16 @@ class MainActivity : Activity() {
     // --- what's on screen ------------------------------------------------------------------------------
 
     private fun build() {
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg); fitsSystemWindows = true }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; fitsSystemWindows = true }
         head = TextView(this).apply {
             text = "CAPRI"
-            setTextColor(red)
             textSize = 18f
             typeface = chakra
             letterSpacing = 0.15f
             setPadding(dp(16), dp(12), dp(16), dp(10))
         }
-        message = TextView(this).apply { setTextColor(dim); textSize = 15f; setPadding(dp(16), dp(24), dp(16), dp(12)) }
-        action = Button(this).apply { visibility = View.GONE; setTextColor(red); setBackgroundColor(Color.rgb(40, 18, 20)) }
+        message = TextView(this).apply { textSize = 15f; setPadding(dp(16), dp(24), dp(16), dp(12)) }
+        action = Button(this).apply { visibility = View.GONE }
         log = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(8), dp(12), dp(8)) }
         scroll = ScrollView(this).apply { addView(log); isFillViewport = true }
         // her HUD bar, as in Mainframe's HOLO (talk.css): a prompt as in a terminal, the line, and order, talk, send
@@ -535,10 +537,10 @@ class MainActivity : Activity() {
             setOnClickListener { click() }
         }
         orderBtn = icon(R.drawable.btn_order) { order(!orderOn) }
-        val talk = icon(R.drawable.widget_btn_call) { Toast.makeText(this, getString(R.string.voice_soon), Toast.LENGTH_SHORT).show() }
+        talk = icon(R.drawable.widget_btn_call) { Toast.makeText(this, getString(R.string.voice_soon), Toast.LENGTH_SHORT).show() }
         talk.contentDescription = getString(R.string.widget_call)
         send = icon(R.drawable.btn_send) { sendText(input.text.toString()) }
-        val bar = LinearLayout(this).apply {
+        bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundResource(R.drawable.hud_frame)
@@ -552,10 +554,15 @@ class MainActivity : Activity() {
             addView(scroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
             addView(bar, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { setMargins(dp(8), dp(4), dp(8), dp(8)) })
         }
-        // her name and the PC on the left, her app's version on the right
-        val version = TextView(this).apply {
+        // her name and the PC on the left; her style's two colours (a tap: her style), her app's version on the right
+        swatch = TextView(this).apply {
+            textSize = 16f
+            contentDescription = getString(R.string.style)
+            setPadding(dp(8), dp(10), dp(8), dp(10))
+            setOnClickListener { styles() }
+        }
+        version = TextView(this).apply {
             text = "v" + runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
-            setTextColor(dim)
             textSize = 12f
             setPadding(dp(8), dp(12), dp(16), dp(10))
         }
@@ -563,6 +570,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(head, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            addView(swatch, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
             addView(version, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
         }
         root.addView(top)
@@ -570,6 +578,98 @@ class MainActivity : Activity() {
         root.addView(action, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { setMargins(dp(16), 0, dp(16), 0) })
         root.addView(chat, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
         setContentView(root)
+    }
+
+    // --- her style: Night City, Original, or Custom with two colours you pick ----------------------------
+
+    // everything on screen in her style's colours: her pictures are white masks, tinted (res/values/colors.xml)
+    private fun paint() {
+        root.setBackgroundColor(look.bg)
+        head.setTextColor(look.her)
+        message.setTextColor(look.dim)
+        version.setTextColor(look.dim)
+        action.setTextColor(look.her)
+        action.setBackgroundColor(look.wash)
+        input.setTextColor(Color.WHITE)
+        swatch.text = SpannableStringBuilder().apply {
+            append("◆", ForegroundColorSpan(look.her), 0)
+            append("◆", ForegroundColorSpan(look.you), 0)
+        }
+        bar.backgroundTintList = Look.tint(look.herDeep)
+        for (b in listOf(talk, send)) b.imageTintList = Look.tint(look.her)
+        order(orderOn)
+        if (unlocked) prompt()
+        for (i in 0 until log.childCount) tint(log.getChildAt(i))
+    }
+
+    // one row of her chat in her style: hers, a note of hers, or yours (its tag, from bubble())
+    private fun tint(row: View) {
+        val you = row.tag == "you"
+        val color = if (you) look.you else look.her
+        row.findViewById<TextView>(R.id.row_name).setTextColor(color)
+        row.findViewById<TextView>(R.id.row_text).apply {
+            setTextColor(if (you) look.youText else look.herText)
+            backgroundTintList = Look.tint(color)
+        }
+        row.findViewById<android.widget.ImageView>(R.id.row_face).imageTintList = Look.tint(color)
+    }
+
+    private fun styles() {
+        val names = arrayOf("Night City", getString(R.string.style_original), getString(R.string.style_custom))
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.style))
+            .setSingleChoiceItems(names, Look.STYLES.indexOf(look.style)) { dialog, i ->
+                dialog.dismiss()
+                if (Look.STYLES[i] == Look.CUSTOM) custom() else restyle(Look.STYLES[i])
+            }
+            .show()
+    }
+
+    // Custom: her colour, then yours
+    private fun custom() {
+        val now = Look.of(this).takeIf { it.style == Look.CUSTOM }
+        colour(getString(R.string.style_her), now?.her ?: Look.CUSTOM_HER) { her ->
+            colour(getString(R.string.style_you), now?.you ?: Look.CUSTOM_YOU) { you -> restyle(Look.CUSTOM, her, you) }
+        }
+    }
+
+    private fun restyle(style: String, her: Int? = null, you: Int? = null) {
+        Look.pick(this, style, her, you)
+        look = Look.of(this)
+        paint()
+    }
+
+    // a colour to pick: one of her swatches, or a hex code (#rrggbb)
+    private fun colour(title: String, current: Int, then: (Int) -> Unit) {
+        val code = EditText(this).apply {
+            setText(Look.hex(current))
+            typeface = mono
+            setSingleLine()
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        }
+        val grid = GridLayout(this).apply {
+            columnCount = 6
+            for (c in Look.SWATCHES) addView(View(this@MainActivity).apply {
+                background = GradientDrawable().apply { setColor(c); setStroke(dp(1), Color.WHITE) }
+                setOnClickListener { code.setText(Look.hex(c)) }
+            }, GridLayout.LayoutParams().apply { width = dp(36); height = dp(36); setMargins(dp(4), dp(4), dp(4), dp(4)) })
+        }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(grid)
+            addView(code, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = dp(8) })
+        }
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                runCatching { Color.parseColor(code.text.toString().trim().let { if (it.startsWith("#")) it else "#$it" }) }
+                    .onSuccess(then)
+                    .onFailure { Toast.makeText(this, getString(R.string.style_bad), Toast.LENGTH_SHORT).show() }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     // a message on screen instead of her chat, and a button under it if there's something to do
@@ -582,11 +682,13 @@ class MainActivity : Activity() {
         action.setOnClickListener { onClick?.invoke() }
     }
 
-    // One message as calls in her game, the same as on her widget and in Mainframe's HOLO: hers red on the left,
-    // yours green on the right, each under its name with its square, in a bubble at most 80 % of the middle
-    // (widget_row_*.xml); its words, to change as her answer comes
+    // One message as calls in her game, the same as on her widget and in Mainframe's HOLO: hers on the left, yours
+    // on the right, in her style's colours, each under its name with its square, in a bubble at most 80 % of the
+    // middle (widget_row_*.xml); its words, to change as her answer comes
     private fun bubble(you: Boolean, text: String, tag: String = ""): TextView {
         val row = layoutInflater.inflate(if (you) R.layout.widget_row_you else R.layout.widget_row_capri, log, false)
+        row.tag = if (you) "you" else "capri"
+        tint(row)
         row.findViewById<TextView>(R.id.row_name).text = listOf(if (you) word("you", "YOU") else "Capri", tag).filter { it.isNotEmpty() }.joinToString("  ")
         val words = row.findViewById<TextView>(R.id.row_text).apply {
             this.text = if (you) text else clean(text)
@@ -603,22 +705,25 @@ class MainActivity : Activity() {
         val text = listOf(n.optString("line"), n.optString("quote")).filter { it.isNotEmpty() }.joinToString("\n")
         val view = bubble(false, text, n.optString("project").uppercase())
         view.setBackgroundResource(R.drawable.bubble_line_capri)
+        view.backgroundTintList = Look.tint(look.her)
         if (fresh) down()
     }
 
-    // the bolt on her bar: what you send next is an order (your fingerprint for it), lit up yellow
+    // the bolt on her bar: what you send next is an order (your fingerprint for it), lit up in her style's colour
+    // for what's on (Original's yellow, Night City's cyan, your colour in Custom)
     private fun order(on: Boolean) {
         orderOn = on
         orderBtn.setImageResource(if (on) R.drawable.btn_order_on else R.drawable.btn_order)
+        orderBtn.imageTintList = Look.tint(if (on) look.on else look.her)
     }
 
-    // the prompt before the line, as in a terminal: "n@capri:~$", you in green, her in red
+    // the prompt before the line, as in a terminal: "n@capri:~$", you in your colour, her in hers
     private fun prompt() {
         val you = word("you", "you").lowercase().replace(Regex("\\s+"), "")
         promptView.text = SpannableStringBuilder().apply {
-            append("$you@", ForegroundColorSpan(green), 0)
-            append("capri", ForegroundColorSpan(red), 0)
-            append(":~$", ForegroundColorSpan(green), 0)
+            append("$you@", ForegroundColorSpan(look.you), 0)
+            append("capri", ForegroundColorSpan(look.her), 0)
+            append(":~$", ForegroundColorSpan(look.you), 0)
         }
     }
 

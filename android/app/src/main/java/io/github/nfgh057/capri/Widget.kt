@@ -12,8 +12,9 @@ import android.widget.RemoteViews
 import org.json.JSONArray
 import org.json.JSONObject
 
-// Her widget on your home screen, as calls in her game: your last words with her (hers red on the left, yours
-// green on the right, each under its name, in a neon bubble), and along its bottom edge her HUD bar with the call
+// Her widget on your home screen, as calls in her game: your last words with her (hers on the left, yours on the
+// right, each under its name, in a neon bubble, in her style picked in her app: Look.kt), and along its bottom edge
+// her HUD bar with the call
 // and message buttons, which open her app (your fingerprint, then her chat). Nothing on it can do anything on
 // your PCs.
 class Widget : AppWidgetProvider() {
@@ -52,7 +53,7 @@ class Widget : AppWidgetProvider() {
             return (0 until list.length()).map { list.getJSONObject(it) }.map { it.optBoolean("you") to it.optString("text") }
         }
 
-        private fun redraw(context: Context) {
+        fun redraw(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             draw(context, manager, manager.getAppWidgetIds(ComponentName(context, Widget::class.java)))
         }
@@ -61,9 +62,18 @@ class Widget : AppWidgetProvider() {
             val said = said(context).ifEmpty { listOf(false to context.getString(R.string.widget_empty)) }
             val you = prefs(context).getString("you", null)?.takeIf { it.isNotBlank() } ?: context.getString(R.string.widget_you)
             val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+            val look = Look.of(context)
+            // her pictures tinted with her style's colours (Android 12+; on 11, Night City's, its words in hers)
+            fun RemoteViews.tint(id: Int, method: String, color: Int) {
+                if (Build.VERSION.SDK_INT >= 31) setColorStateList(id, method, Look.tint(color))
+            }
             fun row(mine: Boolean, text: String) = RemoteViews(context.packageName, if (mine) R.layout.widget_row_you else R.layout.widget_row_capri).apply {
                 setTextViewText(R.id.row_name, if (mine) you else "Capri")
                 setTextViewText(R.id.row_text, text)
+                setTextColor(R.id.row_name, if (mine) look.you else look.her)
+                setTextColor(R.id.row_text, if (mine) look.youText else look.herText)
+                tint(R.id.row_text, "setBackgroundTintList", if (mine) look.you else look.her)
+                tint(R.id.row_face, "setImageTintList", if (mine) look.you else look.her)
             }
             for (id in ids) {
                 val views = RemoteViews(context.packageName, R.layout.widget)
@@ -84,6 +94,9 @@ class Widget : AppWidgetProvider() {
                 }
                 val online = prefs(context).getInt("online", -1)
                 views.setTextViewText(R.id.widget_lnk, if (online > 0) "LNK//%02d".format(online) else "LNK//--")
+                views.setTextColor(R.id.widget_lnk, look.herDeep)
+                views.tint(R.id.widget_bar, "setBackgroundTintList", look.herDeep)
+                for (b in listOf(R.id.widget_glyphs, R.id.widget_call, R.id.widget_write)) views.tint(b, "setImageTintList", look.her)
                 views.setOnClickPendingIntent(R.id.widget_write, open)
                 // talking to her: her app for now; her voice, with the microphone, is to come (TODO.md)
                 val talk = Intent(context, MainActivity::class.java).putExtra("talk", true)

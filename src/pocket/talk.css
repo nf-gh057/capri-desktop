@@ -10,7 +10,7 @@
 ------------------------------------------------------------------- */
 
 :root {
-  --capri: #ff5f56;      /* her (android: colors.xml capri) */
+  --capri: #ff5f56;      /* her (android: Look.kt, Original) */
   --capri-deep: #e8392d; /* her frames */
   --you: #57e389;        /* you */
   --erebus: #ff1f4b;     /* Erebus, the Blackwall's crimson */

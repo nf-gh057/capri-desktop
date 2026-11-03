@@ -74,7 +74,7 @@ Wspólne dla wszystkich etapów:
   dwa razy.
 - Styl Night City poza dymkami na pulpicie (etap 1, dymki, zrobiony w 0.5.0-3; etap 2, Mainframe i jej strona,
   w 0.5.1-4, z Własnym w 0.5.1-5). Każde miejsce z osobnym wyborem Night City, Oryginalny albo Własny (dwa kolory):
-  - Etap 3: jej aplikacja na Androida i widżet; wybór w aplikacji.
+  - Etap 3: jej aplikacja na Androida i widżet; wybór w aplikacji. (zrobione w 0.5.1-6, aplikacja 0.16)
 - Jej aplikacja na Androida (`android/`), co zostało:
   - Zapasowo, opcjonalnie: FCM albo UnifiedPush, dla telefonów, które mimo wyłączonej optymalizacji baterii zabijają
     aplikacje w tle (niektóre Xiaomi, Huawei); treść szyfrowana kluczem telefonu (RFC 8291), więc pośrednik widzi tylko

@@ -1,28 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- her square in her widget's chat, as a caller's in her game: red, a ring of two arcs, a notch at the bottom left -->
+<!-- her square in her widget's chat, as a caller's in her game: in her colour (her app tints it with her style's), a ring of two arcs, a notch at the bottom left -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="40dp"
     android:height="40dp"
     android:viewportWidth="40"
+    android:tint="@color/her"
+    android:tintMode="multiply"
     android:viewportHeight="40">
     <path
-        android:fillColor="#B3A9201A"
-        android:strokeColor="#FFE8392D"
+        android:fillColor="#B38C8C8C"
+        android:strokeColor="#FFDDDDDD"
         android:strokeWidth="1"
         android:pathData="M1,1H39V39H5L1,35Z" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FFFF5F56"
+        android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeWidth="3"
         android:pathData="M14.5,9.5A12,12 0,0 0,14.5 30.5" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FFFF5F56"
+        android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeWidth="3"
         android:pathData="M25.5,9.5A12,12 0,0 1,25.5 30.5" />
     <path
-        android:fillColor="#59FF5F56"
+        android:fillColor="#59FFFFFF"
         android:pathData="M3,3h2v2h-2zM8,3h2v2h-2zM13,3h2v2h-2zM18,3h2v2h-2zM23,3h2v2h-2zM28,3h2v2h-2zM33,3h2v2h-2z" />
 </vector>

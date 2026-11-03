@@ -17,4 +17,10 @@
     <string name="widget_call">Hablar con ella</string>
     <string name="widget_write">Escribirle</string>
     <string name="voice_soon">Hablar con ella por voz: muy pronto.</string>
+    <string name="style">Estilo</string>
+    <string name="style_original">Original</string>
+    <string name="style_custom">Personalizado</string>
+    <string name="style_her">Su color</string>
+    <string name="style_you">Tu color</string>
+    <string name="style_bad">Eso no es un color: #rrggbb, p. ej. #ff5fd2.</string>
 </resources>

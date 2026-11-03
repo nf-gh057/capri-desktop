@@ -1,28 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- your square in her widget's chat: the same, in green -->
+<!-- your square in her widget's chat: the same, in your colour -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="40dp"
     android:height="40dp"
     android:viewportWidth="40"
+    android:tint="@color/you"
+    android:tintMode="multiply"
     android:viewportHeight="40">
     <path
-        android:fillColor="#B31E8A3E"
-        android:strokeColor="#FF3BE36A"
+        android:fillColor="#B38C8C8C"
+        android:strokeColor="#FFFFFFFF"
         android:strokeWidth="1"
         android:pathData="M1,1H39V39H5L1,35Z" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FF8CFF9E"
+        android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeWidth="3"
         android:pathData="M9.5,14.5A12,12 0,0 1,30.5 14.5" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FF8CFF9E"
+        android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeWidth="3"
         android:pathData="M9.5,25.5A12,12 0,0 0,30.5 25.5" />
     <path
-        android:fillColor="#593BE36A"
+        android:fillColor="#59FFFFFF"
         android:pathData="M3,3h2v2h-2zM8,3h2v2h-2zM13,3h2v2h-2zM18,3h2v2h-2zM23,3h2v2h-2zM28,3h2v2h-2zM33,3h2v2h-2z" />
 </vector>

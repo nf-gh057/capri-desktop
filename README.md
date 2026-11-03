@@ -126,8 +126,10 @@ code to type each time.
 
 ![Mainframe › HOLO › TAILSCALE with a phone paired and a QR code for another, and her page on the phone](docs/fork/pocket.png)
 
-Her page, her app and her widget look like HOLO: her chat as calls in her game, hers in red, yours in green, and her
-bar with a prompt as in a terminal.
+Her page, her app and her widget look like HOLO: her chat as calls in her game, and her bar with a prompt as in a
+terminal. Each in a style of its own: her page's is picked in Mainframe › CYBERDECK; her app's and her widget's in her
+app itself (the two diamonds on its top bar): Night City (her in yellow, you in cyan), Original (her in red, you in
+green), or Custom, two colours you pick and the rest made from them.
 
 **Setting it up**
 

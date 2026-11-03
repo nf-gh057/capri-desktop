@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- one of yours in her widget's chat, in the same three columns: hers on the left, empty; your name and words in
-     a bubble at most 80 % of the middle column, on your side; your green square on the right -->
+     a bubble at most 80 % of the middle column, on your side; your square on the right -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/row"
     android:layout_width="match_parent"
@@ -26,7 +26,7 @@
             android:fontFamily="@font/chakra_petch_semibold"
             android:shadowColor="#CC000000"
             android:shadowRadius="4"
-            android:textColor="#FF57E389"
+            android:textColor="@color/you"
             android:textSize="13sp"
             />
 
@@ -57,7 +57,7 @@
                     android:maxLines="3"
                     android:shadowColor="#E6000000"
                     android:shadowRadius="4"
-                    android:textColor="#FFC9F7D4"
+                    android:textColor="@color/you_text"
                     android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
@@ -67,5 +67,6 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_marginStart="6dp"
+        android:id="@+id/row_face"
         android:src="@drawable/widget_face_you" />
 </LinearLayout>

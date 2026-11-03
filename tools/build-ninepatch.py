@@ -1,6 +1,7 @@
 """Her chat's frames for Android, as 9-patch images (android/app/src/main/res/drawable-xxhdpi/*.9.png): the same
 shapes as talk.css (a bubble with its top right corner cut, her HUD bar with both ends cut), the frame drawn whole
-across every cut corner, stretched by Android without touching the corners.
+across every cut corner, stretched by Android without touching the corners. Hers and yours are white masks her app
+tints with her style (Night City, Original or Custom).
 
     python tools/build-ninepatch.py
 """
@@ -57,11 +58,13 @@ def frame(name, w, h, fill, stroke, stroke_dp=1.0, cut_tr=0, cuts_all=0, stretch
 
 W, H = 40 * DP, 30 * DP
 bubble = dict(cut_tr=8, stretch=((4 * DP, 12 * DP), (12 * DP, 4 * DP)), pad=((8 * DP, 8 * DP), (5 * DP, 5 * DP)))
-RED, GREEN, CRIMSON = '#ff5f56', '#57e389', '#ff1f4b'
-frame('bubble_capri', W, H, rgba(RED, 0.15), rgba(RED), **bubble)
-frame('bubble_you', W, H, rgba(GREEN, 0.15), rgba(GREEN), **bubble)
-frame('bubble_line_capri', W, H, (0, 0, 0, 0), rgba(RED, 0.45), **bubble)
-frame('bubble_line_you', W, H, (0, 0, 0, 0), rgba(GREEN, 0.45), **bubble)
+# hers and yours as masks (mask_*): white, tinted by her app with her style's colours (multiply), each through
+# drawable/<name>.xml, which tints it with Night City's until then; Erebus keeps the Blackwall's crimson
+WHITE, CRIMSON = '#ffffff', '#ff1f4b'
+frame('mask_bubble_capri', W, H, rgba(WHITE, 0.15), rgba(WHITE), **bubble)
+frame('mask_bubble_you', W, H, rgba(WHITE, 0.15), rgba(WHITE), **bubble)
+frame('mask_bubble_line_capri', W, H, (0, 0, 0, 0), rgba(WHITE, 0.45), **bubble)
+frame('mask_bubble_line_you', W, H, (0, 0, 0, 0), rgba(WHITE, 0.45), **bubble)
 frame('bubble_erebus', W, H, rgba(CRIMSON, 0.12), rgba(CRIMSON), stroke_dp=2, **bubble)
-frame('hud_frame', 40 * DP, 40 * DP, rgba('#0b0a0f', 0.88), rgba('#e8392d'), cuts_all=8,
+frame('mask_hud_frame', 40 * DP, 40 * DP, rgba('#0b0a0f', 0.88), rgba(WHITE), cuts_all=8,
       stretch=((10 * DP, 10 * DP), (10 * DP, 10 * DP)), pad=((12 * DP, 12 * DP), (4 * DP, 4 * DP)))

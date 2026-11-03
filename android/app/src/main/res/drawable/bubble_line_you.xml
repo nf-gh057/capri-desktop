@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- mask_bubble_line_you (tools/build-ninepatch.py), tinted with her style's colour: Night City's here, her app sets the one picked -->
+<nine-patch xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/mask_bubble_line_you"
+    android:tint="@color/you"
+    android:tintMode="multiply" />

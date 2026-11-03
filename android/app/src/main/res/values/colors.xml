@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Her style's colours until her app sets the one picked in it (Look.kt): Night City's, her in yellow, you in cyan.
+     Her pictures are white masks tinted with them (multiply), so Original and Custom only change these. -->
+<resources>
+    <color name="her">#FFF2E750</color>
+    <color name="her_deep">#FFD4C82A</color>
+    <color name="her_text">#FFFBF7C2</color>
+    <color name="you">#FF5EF6FF</color>
+    <color name="you_text">#FFC7FCFF</color>
+    <color name="on">#FF5EF6FF</color>
+</resources>
