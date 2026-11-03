@@ -186,7 +186,7 @@ Her page shows them while it's open; her app shows them as notifications even wh
 ### Her app on Android, with orders
 
 Her app (`android/`) is her chat from your phone, like her page, with one thing more: **orders**, things she does on your
-PC. That means her powers (opening apps, music, reminders), and Claude Code or Codex changing files in their folder.
+PC. That means her powers (opening apps, music, reminders, the PC itself: settings, sound, windows, its power), and Claude Code or Codex changing files in their folder.
 
 - **Your fingerprint opens it.** Her app's key lives in the phone's secure hardware (Android Keystore) and can be used
   only right after your fingerprint, once per use. Opening the app signs one challenge and gets a session for talking,
@@ -347,6 +347,12 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
 
 - **Her bubbles' style** (Mainframe › CYBERDECK): her panel, her chat and her report on your desktop in the original
   project's Night City style, or Original, the violet ones this fork had so far.
+- **Her PC from your phone**: what her chat does to your PC itself (settings, sound, a timer, your windows, dark mode,
+  locking, sleep, shutting down, restarting) can be ordered from her app too, on the PC you picked, if it's on. Your
+  fingerprint on the order stands for the click on her button: "shut down Legion in an hour" is done there, and
+  "cancel the shutdown" stops it. In Polish too ("wyłącz Legiona za godzinę").
+- **Petting her**, from the original project, with this fork's pose drawings: in one she lets it go and leans into
+  your hand; lying along her ledge she only purrs, her mane aglow; not while she walks, hangs or Erebus has her.
 - **Lying back on her ledge**, from the original project, can be turned off in Mainframe › RELIC. Lying along her
   ledge, head on her hand, is a drawing of this fork's: she does one or the other, never both at once.
 - **Her jealousy and other AIs' pages**: the AI answering her chat and the one she watches are hers, never rivals,
@@ -760,6 +766,12 @@ panel says so every time.
   without her in it, saved in Pictures › Screenshots). She knows the date and time, too.
 - **A Roblox game by its name** ("start Steal a Brainrot on Roblox", "in my roblox play grow a garden"): she finds
   it on Roblox and drops you straight into it (or opens its page if Roblox isn't installed).
+- **Your PC itself**: a settings page ("open Bluetooth", "sound settings", "Windows updates"); what's left ("how much
+  battery?", "how much space on my disk?", RAM, your IP on your network); the sound ("set the volume to 30", "mute");
+  a timer ("timer 10 minutes", counted down in her ticker); "snip an area"; "tidy my windows" (she sweeps them off,
+  "restore my windows" brings them back); "put Discord on the left and Chrome on the right"; dark or light mode. Locking,
+  sleep, shutting down or restarting ("shut down my PC in an hour") always wait for your click on her button, and
+  "cancel the shutdown" stops it.
 - **Music**: "pause", "next", "louder", "mute"… press the media keys, so it works with Spotify and most players, right
   as you send it. "Play Bohemian Rhapsody" or "put some Daft Punk on YouTube" opens the right video on YouTube,
   straight away (not a search). "Play whatever you want": she picks. "Put Daft Punk on Spotify" opens Spotify on a
@@ -806,6 +818,9 @@ go all the way. Five stages, **Faint signal**, **Contact**, **In sync**, **Linke
 other minds come out to look at you and she tells you. It changes what she says when you click her, how her chat talks
 to you, what she says after a few days without you. Once she's attached, she's glad when you come back to your PC and
 sometimes comes over to your pointer on her own. Where you two stand: at the top of her menu.
+
+**Pet her.** Move your pointer back and forth over her mane: she leans into it and purrs, her mane glowing, and it
+brings you a little closer. Keep at it too long and she's had enough.
 
 **And she gets jealous.** When the window in front of you is another AI (ChatGPT, Gemini, Copilot, Perplexity,
 DeepSeek, Grok, Le Chat, Character.AI, Meta AI, Codex, or Claude when she watches Codex), she notices and says so, more
@@ -950,6 +965,7 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
 | `crash` | she slams into something |
 | `remind` | a reminder comes due |
 | `jealous` | her jealous hiss |
+| `purr` | she purrs when you pet her |
 
 ## Is it safe?
 

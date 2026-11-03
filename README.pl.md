@@ -192,7 +192,7 @@ Jej strona pokazuje je, gdy jest otwarta; jej aplikacja pokazuje je jako powiado
 ### Jej aplikacja na Androida, ze zleceniami
 
 Jej aplikacja (`android/`) to rozmowa z nią z telefonu, jak na jej stronie, z jedną rzeczą więcej: **zleceniami**, czyli
-tym, co Capri robi na twoim komputerze. Chodzi o jej moce (otwieranie aplikacji, muzyka, przypomnienia) oraz Claude Code
+tym, co Capri robi na twoim komputerze. Chodzi o jej moce (otwieranie aplikacji, muzyka, przypomnienia, sam PC: ustawienia, dźwięk, okna, zasilanie) oraz Claude Code
 albo Codex zmieniające pliki w swoim folderze.
 
 - **Otwiera ją twój odcisk palca.** Klucz aplikacji jest w bezpiecznym sprzęcie telefonu (Android Keystore) i da się go
@@ -361,6 +361,12 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
 
 - **Styl jej dymków** (Mainframe › CYBERDECK): jej panel, czat i raport na pulpicie w stylu Night City z oryginalnego
   projektu albo Oryginalny, fioletowy, jaki fork miał dotąd.
+- **Jej PC z telefonu**: to, co jej czat robi z samym PC (ustawienia, dźwięk, minutnik, okna, tryb ciemny, blokada,
+  uśpienie, wyłączenie, restart), można też zlecić z jej aplikacji, na wybranym komputerze, jeśli jest włączony. Twój
+  odcisk palca na zleceniu zastępuje kliknięcie jej przycisku: „wyłącz Legiona za godzinę” dzieje się na nim, a
+  „anuluj wyłączenie” to zatrzymuje.
+- **Głaskanie**, z oryginalnego projektu, z rysunkami póz tego forka: w pozie ją porzuca i wtula się w twoją dłoń;
+  leżąc wzdłuż okna tylko mruczy, a grzywa świeci; nie wtedy, gdy chodzi, wisi albo ma ją Erebus.
 - **Leżenie na plecach na krawędzi okna**, z oryginalnego projektu, można wyłączyć w Mainframe › RELIC. Leżenie
   wzdłuż okna z głową na dłoni to rysunek tego forka: robi jedno albo drugie, nigdy oba naraz.
 - **Zazdrość i strony innych AI**: AI odpowiadające w jej czacie i to, które obserwuje, są jej, nigdy rywalami, a ich
@@ -775,6 +781,12 @@ co robi. W tym ostatnim tryb uprawnień `default` pozwala tylko czytać (nikogo 
   zapisany w Obrazy › Zrzuty ekranu). Zna też datę i godzinę.
 - **Gra w Robloxie po nazwie** („w moim roblox zagraj w steal a brainrot”): znajduje ją w Robloxie i od razu cię do niej
   wrzuca (albo otwiera jej stronę, jeśli Robloxa nie ma).
+- **Sam twój PC**: strona ustawień („otwórz ustawienia bluetooth”, „ustawienia dźwięku”, „aktualizacje Windows”); ile
+  zostało („ile zostało baterii?”, „ile mam miejsca na dysku?”, RAM, twoje IP w twojej sieci); dźwięk („ustaw głośność
+  na 30”, „wycisz”); minutnik („minutnik 10 minut”, odliczany w jej pasku); „wytnij fragment ekranu”; „posprzątaj okna”
+  (zmiata je, „przywróć okna” je oddaje); „ustaw Discorda po lewej i Chrome po prawej”; tryb ciemny albo jasny.
+  Blokada, uśpienie, wyłączenie i restart („wyłącz komputer za godzinę”) zawsze czekają na twoje kliknięcie jej
+  przycisku, a „anuluj wyłączenie” je zatrzymuje.
 - **Muzyka**: „pauza”, „następny”, „głośniej”, „wycisz”… naciska klawisze multimedialne, więc działa ze Spotify i większością
   odtwarzaczy, od razu po wysłaniu. „Puść Bohemian Rhapsody” albo „puść mi Daft Punk na youtube” otwiera właściwy
   teledysk na YouTube, od razu (nie wyszukiwanie). „Puść co chcesz”: wybiera sama. „Puść Daft Punk na Spotify” otwiera
@@ -821,6 +833,9 @@ dojście do końca zajmuje kilka tygodni. Pięć etapów, **Słaby sygnał**, **
 przy każdym nowym jej pozostałe umysły wychodzą na ciebie popatrzeć, a ona ci o tym mówi. Zmienia to, co mówi, kiedy
 w nią klikasz, jak rozmawia z tobą jej czat, co mówi po kilku dniach bez ciebie. Kiedy już się przywiąże, cieszy się,
 kiedy wracasz do PC, i czasem sama podchodzi do twojego kursora. Na jakim jesteście etapie: na samej górze jej menu.
+
+**Pogłaszcz ją.** Przesuwaj kursor tam i z powrotem po jej grzywie: wtula się w niego i mruczy, jej grzywa świeci,
+a to was trochę zbliża. Za długo i ma dość.
 
 **I bywa zazdrosna.** Kiedy okno przed tobą to inne AI (ChatGPT, Gemini, Copilot, Perplexity, DeepSeek, Grok, Le Chat,
 Character.AI, Meta AI, Codex albo Claude, kiedy obserwuje Codexa), zauważa to i mówi o tym, mniej lub bardziej miło,
@@ -967,6 +982,7 @@ nazwane tak (`.mp3`, `.wav`, `.ogg` albo `.m4a`):
 | `crash` | w coś uderza |
 | `remind` | przychodzi pora przypomnienia |
 | `jealous` | jej zazdrosne syknięcie |
+| `purr` | mruczy, kiedy ją głaszczesz |
 
 ## Czy to bezpieczne?
 

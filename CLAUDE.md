@@ -68,7 +68,9 @@ pracy nad Capri: `docs/ROZWOJ.md`.
   (Codex w piaskownicy tylko do odczytu, Claude Code tylko Read/Grep/Glob, bez MCP).
 - Wyjątek, decyzja użytkownika: **jej aplikacja na Androida** (`android/`, przez stronę `pocket.js` w Tailscale) może
   zlecać działania na PC: Claude Code albo Codex z prawem zapisu tylko w folderze agenta z Mainframe (piaskownica, bez
-  sieci, nigdy pełny dostęp) oraz jej moce (aplikacje, muzyka, przypomnienia). Klucz aplikacji jest w Android Keystore
+  sieci, nigdy pełny dostęp) oraz jej moce (aplikacje, muzyka, przypomnienia, sam PC z `system.js`: ustawienia, dźwięk, minutnik, okna,
+  tryb ciemny, blokada, uśpienie, wyłączenie, restart; odcisk palca na zleceniu zastępuje kliknięcie jej przycisku
+  przy zasilaniu), tylko na komputerze wybranym w aplikacji i tylko włączonym. Klucz aplikacji jest w Android Keystore
   i każde jego użycie wymaga odcisku palca: odcisk przy otwarciu aplikacji (rozmowa, tylko do odczytu), a **każde
   zlecenie osobno podpisane po odcisku** i sprawdzone przez Capri. Zlecać może tylko klucz aplikacji (nie strona
   w przeglądarce, nie Telegram), i tylko taki, który poświadcza Google (Key Attestation, `attest.js`: klucz
