@@ -33,6 +33,7 @@ function loadImage(src) {
 // close-ups of her for the cut-ins, frames of the show (tools/build-cutins.py)
 const CUTINS = ['grin', 'laugh', 'eyes', 'many', 'look'];
 const WATCH_MS = 2000; // how often she checks the pointer still reaches her
+const QUIET_MS = 250; // no pointer moves this long: where the pointer really is says what's clickable
 const FOLLOW_AFTER = 2; // checks in a row with the pointer on another screen before she follows it there
 const AWAY_MS = 15 * 60 * 1000; // the pointer still this long: you were away from your PC
 const SNOOZE_MS = 10 * 60 * 1000;
@@ -145,19 +146,21 @@ async function boot() {
   // Click-through everywhere except on her body, the panel and her biochip.
   let interactive = false;
   let mouse = null;
-  const setInteractive = (on) => {
-    if (on === interactive) return;
+  // (sent: told to main.js even if it's what she thinks it is already, in case her window isn't)
+  const setInteractive = (on, sent = false) => {
+    if (on === interactive && !sent) return;
     interactive = on;
     host.setInteractive(on);
   };
   const onChip = () => Boolean(chip.visible && mouse && chip.contains(mouse.x, mouse.y, 0));
-  const refreshHit = () => {
-    if (capri.dragging) return setInteractive(true);
-    if (!mouse) return setInteractive(false);
+  const refreshHit = (sent = false) => {
+    // the button down on her (held, or about to be): the button coming up must reach her window
+    if (capri.dragging || capri.pressed) return setInteractive(true, sent);
+    if (!mouse) return setInteractive(false, sent);
     const r = panel.rect();
     const onPanel = r && mouse.x >= r.left && mouse.x <= r.right && mouse.y >= r.top && mouse.y <= r.bottom;
     document.body.style.cursor = onChip() ? 'pointer' : '';
-    return setInteractive(Boolean(onPanel || capri.hit(mouse.x, mouse.y) || onChip()));
+    return setInteractive(Boolean(onPanel || capri.hit(mouse.x, mouse.y) || onChip()), sent);
   };
   // Her biochip: her eyes on it follow the pointer over it, and she comes out when you click it
   // (only then, so the pointer passing through that corner doesn't call her back).
@@ -196,6 +199,20 @@ async function boot() {
     refreshHit();
     hoverChip();
   });
+  // What's clickable goes by the pointer's moves. With none coming for a moment (the pointer still
+  // while her panel comes up under it or she lands there, or the hook that brings the moves to her
+  // click-through window gone), where the pointer really is decides, a few times a second: her
+  // panel's close or her body under it can be clicked at once, not once the pointer moves again or
+  // after the check below (the click went through to the window under her meanwhile).
+  const pointerNow = async () => {
+    const at = await host.cursor().catch(() => null);
+    if (!at || performance.now() - lastMove < QUIET_MS) return false; // a move came meanwhile: it knows better
+    mouse = at.inside ? { x: at.x, y: at.y } : null;
+    return true;
+  };
+  setInterval(async () => {
+    if (performance.now() - lastMove >= QUIET_MS && (await pointerNow())) refreshHit();
+  }, QUIET_MS);
   // Where the pointer really is, every couple of seconds: if it moved over her window and no
   // mousemove came, the hook that brings it to her is gone (Windows drops it without a word, after
   // sleep say), and main.js puts in a new one.
@@ -207,13 +224,10 @@ async function boot() {
     const before = seen;
     seen = at;
     follow?.(at);
+    // her window told again whether it's click-through, in case it isn't what she thinks it is
+    refreshHit(true);
     if (!at?.inside) return;
     const now = performance.now();
-    // the pointer is on her and she isn't clickable (its moves stopped reaching her): she is now
-    if (!interactive && now - lastMove > WATCH_MS) {
-      mouse = { x: at.x, y: at.y };
-      refreshHit();
-    }
     if (!before?.inside || (at.x === before.x && at.y === before.y)) return;
     if (now - lastMove < WATCH_MS * 1.5 || now - rearmedAt < 20000) return;
     rearmedAt = now;
@@ -688,7 +702,7 @@ async function boot() {
   };
 
   // what's in here, for --dev scripts (debug route `eval`)
-  window.dev = { capri, brain, panel, chat, guide, fx, voice, bond, jealousy, reminders, look, pc, setup, screens: () => screens };
+  window.dev = { capri, brain, panel, chat, guide, fx, voice, bond, jealousy, reminders, look, pc, setup, screens: () => screens, hit: () => ({ interactive, mouse }) };
 
   host.onClaudeEvent((evt) => brain.handle(evt));
   host.onWindows((data) => {
@@ -919,9 +933,11 @@ async function boot() {
       case 'bond': // --dev: sync points from a source (as if earned)
         bond.add(cmd.source || 'chat', cmd.n || 1);
         break;
-      case 'rearmed': // a new mouse hook (main.js): click-through until the pointer comes over her again
+      case 'rearmed': // a new mouse hook (main.js), her window click-through again: unless the pointer
+        // is on her or her panel right now (it was going there, say), and then her window is told so
+        interactive = false;
         mouse = null;
-        refreshHit();
+        pointerNow().then(() => refreshHit(true));
         break;
       case 'rearm': // --dev: as if she'd noticed the pointer no longer reaches her
         host.rearm();

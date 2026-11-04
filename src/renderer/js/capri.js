@@ -98,6 +98,7 @@ export class Capri {
     this.onTaskbar = null; // (on): she sat down on the taskbar, or got up (her window goes over it, main.js)
     this.dodgeAt = 0;     // standing in front of the window you work in: when she gets out of the way
     this.dragging = false;
+    this.pressed = false; // the button went down on her and hasn't come up yet (held, or about to be)
     this.track = [];      // where the pointer was lately while it holds her: [{ x, y, t }]
     this.spin = 0;        // degrees she's turned while held, flying or knocked down
     this.held = null;     // { at: the sprite point you're holding her by, w: how fast she swings }
@@ -691,6 +692,13 @@ export class Capri {
     }
     if (this.skid) this.updateSkid(now);
     if (this.busy || this.dragging) return;
+    // the move that came while you held her, now that she's back on her feet
+    if (this.pending) {
+      const next = this.pending;
+      this.pending = null;
+      this.teleport(next.to, next.opts);
+      return;
+    }
     if (this.erebus) {
       this.updateErebus(now);
       return;
@@ -1782,7 +1790,8 @@ export class Capri {
   // Leave in a column of light, reappear somewhere else.
   async teleport(to, opts = {}) {
     if (this.stowed) return; // put away: she stays in her biochip
-    if (this.busy || this.dormant) {
+    // held (Claude done, a new prompt...): not out of your hand, she goes once you let go of her
+    if (this.busy || this.dormant || this.dragging) {
       this.pending = { to, opts };
       if (this.dormant) this.rouse(); // asleep, down to her mask: she comes back first, then goes
       return;
@@ -1822,7 +1831,7 @@ export class Capri {
   // Teleport to another screen: gone from this one in a column of light, her window goes over
   // (main.js), and she arrives on the other one, on a window there or somewhere free.
   async hop() {
-    if (this.screens < 2 || !this.onHop || this.stowed || this.busy || this.dormant) return;
+    if (this.screens < 2 || !this.onHop || this.stowed || this.busy || this.dormant || this.dragging) return;
     this.busy = true;
     this.wake();
     this.onTeleport?.('start');
@@ -1855,7 +1864,7 @@ export class Capri {
   async stow() {
     if (this.stowed || this.stowing) return;
     this.stowing = true;
-    for (let i = 0; this.busy && i < 30; i++) await sleep(100); // let a move finish
+    for (let i = 0; (this.busy || this.dragging) && i < 30; i++) await sleep(100); // let a move finish
     this.busy = true;
     this.endAct(false);
     this.onTeleport?.('start');
@@ -1902,7 +1911,7 @@ export class Capri {
   // Asleep a while: her mane and her body come apart (shards drifting down, the drawing
   // dissolving) and all that's left is her mask, floating there, eyes shut (chip.js Mask).
   async doze() {
-    if (this.busy || this.dormant || this.stowed || this.hidden) return;
+    if (this.busy || this.dragging || this.dormant || this.stowed || this.hidden) return;
     this.busy = true;
     this.endAct(false);
     this.onTeleport?.('start');
@@ -2040,7 +2049,7 @@ export class Capri {
 
   // Lean in from an edge of the screen: vanish, then slide in on twos, three drawings.
   async peek(side = pick(['left', 'right', 'top'])) {
-    if (this.busy) return;
+    if (this.busy || this.dragging) return;
     const s = this.scale;
     const { w, h } = this.view;
     let at, from, facing, dir;
@@ -2393,11 +2402,16 @@ export class Capri {
         return;
       }
       down = { x: e.clientX, y: e.clientY, pos: { ...this.pos }, at: this.spritePoint(e.clientX, e.clientY) };
+      this.pressed = true;
       this.track = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
       if (thrown) this.pickUp(down);
     });
     window.addEventListener('mousemove', (e) => {
       this.mouse = { x: e.clientX, y: e.clientY }; // a window she's in watches it
+      // the button came up where her window never heard of it (over another window, or her window
+      // lost hold of the pointer): let go of her there, or she'd stay stuck to the pointer, her whole
+      // window catching every click on the screen until the next one
+      if (down && !(e.buttons & 1)) letGo(false);
       if (down) {
         const now = performance.now();
         this.track.push({ x: e.clientX, y: e.clientY, t: now });
@@ -2417,13 +2431,16 @@ export class Capri {
       this.stroke(e.clientX, e.clientY);
       this.notice(e.clientX, e.clientY);
     });
-    window.addEventListener('mouseup', () => {
+    window.addEventListener('mouseup', () => letGo(true));
+    // heard: the button came up on her window (a click, if she wasn't picked up)
+    const letGo = (heard) => {
       if (!down) return;
       const wasDragging = this.dragging;
       down = null;
+      this.pressed = false;
       this.dragging = false;
       if (!wasDragging) {
-        this.onClick?.();
+        if (heard) this.onClick?.();
         return;
       }
       tween(this.p, { glitch: 0, split: 0 }, 200, ease.out);
@@ -2436,7 +2453,7 @@ export class Capri {
       this.setStance('stand'); // upright again, under where you held her
       this.onTeleport?.('end');
       this.drop();
-    });
+    };
   }
 
   // How fast the pointer holding her was going just now (px/s): none if it had stopped.
