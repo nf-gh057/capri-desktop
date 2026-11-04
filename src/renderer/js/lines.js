@@ -88,6 +88,14 @@ export const LINES = {
       getOllama: 'Télécharger Ollama', ok: 'Compris',
       failed: 'Signal perdu :',
       swamped: 'Leurs serveurs sont saturés là, même en changeant de modèle. Réessaie dans un instant.',
+      // asked her app for something without the bolt on (chat.js fromPhone): it's no order, she says so
+      bolt: [
+        'Tu n’oublies pas quelque chose ? Le petit éclair sur ma barre. Sans lui, rien ne bouge.',
+        'Et le mot magique ? Chez moi, c’est un éclair. Allume-le sur ma barre et renvoie-moi ça.',
+        'Beaucoup de tonnerre, pas d’éclair. Active l’éclair sur ma barre, et là je frappe.',
+        'Bien essayé. Un ordre, ça vient avec la foudre : l’éclair sur ma barre, ton empreinte, et je frappe.',
+        'Un orage sans foudre ? Bof. Éclair allumé, et tu me renvoies ça.',
+      ],
       offlineLocal: '(Pas de réseau : je réfléchis sur ce PC, avec {model}.)',
       offline: 'Pas de réseau, et mon cerveau est en ligne. Reviens quand le réseau sera là, ou installe Ollama (clic droit sur moi › Modèle IA) pour que je pense sur ce PC.',
       gone: 'Ce modèle n’est plus disponible chez eux. Prends-en un autre : clic droit sur moi › Modèle IA.',
@@ -518,6 +526,14 @@ export const LINES = {
       getOllama: 'Get Ollama', ok: 'Got it',
       failed: 'Lost the signal:',
       swamped: 'Their servers are swamped right now, even on another model. Try again in a moment.',
+      // asked her app for something without the bolt on (chat.js fromPhone): it's no order, she says so
+      bolt: [
+        'Forgetting something, choom? The little bolt on my bar. No bolt, no deal.',
+        'And the magic word? Mine’s a bolt. Light it up on my bar and send that again.',
+        'All thunder, no lightning. Flip the bolt on my bar, then I strike.',
+        'Nice try. Orders come with lightning: the bolt on my bar, your fingerprint, then I strike.',
+        'A storm without a strike? Weak. Bolt on, and send it again.',
+      ],
       offlineLocal: '(No network: thinking on this PC, with {model}.)',
       offline: 'No network, and my brain lives online. Come back when the network does, or install Ollama (right-click me › AI model) so I can think on this PC.',
       gone: 'That model isn’t available there anymore. Pick another one: right-click me › AI model.',
@@ -944,6 +960,14 @@ export const LINES = {
       getOllama: 'Descargar Ollama', ok: 'Entendido',
       failed: 'Se perdió la señal:',
       swamped: 'Sus servidores están saturados ahora, incluso con otro modelo. Inténtalo de nuevo en un momento.',
+      // asked her app for something without the bolt on (chat.js fromPhone): it's no order, she says so
+      bolt: [
+        '¿No se te olvida algo? El rayito de mi barra. Sin él, nada se mueve.',
+        '¿Y la palabra mágica? La mía es un rayo. Enciéndelo en mi barra y mándamelo otra vez.',
+        'Mucho trueno y nada de relámpago. Activa el rayo de mi barra y entonces golpeo.',
+        'Buen intento. Las órdenes vienen con rayo: el de mi barra, tu huella, y ahí golpeo.',
+        '¿Una tormenta sin rayo? Flojo. Rayo encendido, y mándalo de nuevo.',
+      ],
       offlineLocal: '(Sin red: pienso en este PC, con {model}.)',
       offline: 'Sin red, y mi cerebro vive en línea. Vuelve cuando vuelva la red, o instala Ollama (clic derecho sobre mí › Modelo de IA) para que piense en este PC.',
       gone: 'Ese modelo ya no está disponible allí. Elige otro: clic derecho sobre mí › Modelo de IA.',
@@ -1369,6 +1393,14 @@ export const LINES = {
       getOllama: 'Baixar Ollama', ok: 'Entendi',
       failed: 'Perdi o sinal:',
       swamped: 'Os servidores deles estão lotados agora, mesmo com outro modelo. Tenta de novo daqui a pouco.',
+      // asked her app for something without the bolt on (chat.js fromPhone): it's no order, she says so
+      bolt: [
+        'Não tá esquecendo nada? O raiozinho na minha barra. Sem ele, nada se mexe.',
+        'E a palavra mágica? A minha é um raio. Acende ele na minha barra e manda de novo.',
+        'Muito trovão e nada de relâmpago. Liga o raio na minha barra, aí eu ataco.',
+        'Boa tentativa. Ordem vem com raio: o da minha barra, sua digital, e aí eu ataco.',
+        'Tempestade sem raio? Fraco. Raio ligado, e manda de novo.',
+      ],
       offlineLocal: '(Sem rede: pensando neste PC, com {model}.)',
       offline: 'Sem rede, e meu cérebro vive online. Volta quando a rede voltar, ou instala o Ollama (clique direito em mim › Modelo de IA) pra eu pensar neste PC.',
       gone: 'Esse modelo não está mais disponível lá. Escolhe outro: botão direito em mim › Modelo de IA.',
@@ -1794,6 +1826,14 @@ export const LINES = {
       getOllama: 'Скачать Ollama', ok: 'Понятно',
       failed: 'Сигнал потерян:',
       swamped: 'Их серверы сейчас перегружены, даже на другой модели. Попробуй чуть позже.',
+      // asked her app for something without the bolt on (chat.js fromPhone): it's no order, she says so
+      bolt: [
+        'Ничего не забыл? Маленькая молния на моей панели. Без неё я ничего не трогаю.',
+        'А волшебное слово? У меня это молния. Включи её на моей панели и отправь ещё раз.',
+        'Гром есть, а молнии нет. Включи молнию на моей панели, и тогда я ударю.',
+        'Неплохая попытка. Приказы приходят с молнией: молния на панели, твой отпечаток, и я бью.',
+        'Гроза без молнии? Слабо. Включай молнию и отправляй снова.',
+      ],
       offlineLocal: '(Нет сети: думаю на этом ПК, с {model}.)',
       offline: 'Сети нет, а мой мозг живёт в сети. Возвращайся, когда она вернётся, или установи Ollama (правый клик по мне › ИИ-модель), чтобы я думала на этом ПК.',
       gone: 'Этой модели у них больше нет. Выбери другую: правый клик по мне › ИИ-модель.',
@@ -2329,6 +2369,14 @@ export const LINES = {
       getOllama: 'Pobierz Ollamę', ok: 'Jasne',
       failed: 'Straciłam sygnał:',
       swamped: 'Ich serwery są teraz zawalone, nawet na innym modelu. Spróbuj za chwilę.',
+      // asked her app for something without the bolt on (chat.js fromPhone): it's no order, she says so
+      bolt: [
+        'Nie zapomniałeś o czymś? Mała błyskawica na moim pasku. Bez niej nic nie ruszam.',
+        'A gdzie proszę? U mnie proszę to błyskawica. Włącz ją na pasku i wyślij jeszcze raz.',
+        'Grzmi, ale nie błyska. Włącz błyskawicę na pasku, wtedy uderzę.',
+        'Niezła próba. Zlecenia przychodzą z piorunem: błyskawica na pasku, twój odcisk palca, i dopiero wtedy działam.',
+        'Burza bez pioruna? Słabo. Błyskawica w górę i wyślij jeszcze raz.',
+      ],
       offlineLocal: '(Brak sieci: myślę na tym PC, z {model}.)',
       offline: 'Nie ma sieci, a mój mózg siedzi w sieci. Wróć, jak sieć wróci, albo zainstaluj Ollamę (prawy klik na mnie › Model AI), to będę myśleć na tym PC.',
       gone: 'Tego modelu już tam nie ma. Wybierz inny: prawy klik na mnie › Model AI.',

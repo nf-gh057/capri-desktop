@@ -194,7 +194,9 @@ PC. That means her powers (opening apps, music, reminders, the PC itself: settin
   only right after your fingerprint, once per use. Opening the app signs one challenge and gets a session for talking,
   which only reads, as on her page. Put away, the app locks, and its session ends.
 - **Each order takes your fingerprint again.** Tap the bolt on her bar (it lights up yellow) and send, and her key signs that order, word for word, with a
-  challenge of its own. Capri checks the signature, and does it as if you'd typed it at the PC.
+  challenge of its own. Capri checks the signature, and does it as if you'd typed it at the PC. Ask her app for
+  something without the bolt ("play Daft Punk") and she won't do it, nor ask her AI: she teases you about the bolt you
+  forgot ("Forgetting something, choom?", "All thunder, no lightning").
 - **Only her app gives orders.** Her page in a browser and Telegram only talk.
 - **Google vouches for her app's key.** When the app pairs, the phone's secure hardware signs a certificate chain for the
   key, up to Google's attestation root, made for that pairing's code. Every PC checks the chain itself: that the key

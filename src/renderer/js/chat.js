@@ -14,6 +14,8 @@ const REMEMBER_LOCAL = 8; // the same, with a model on this PC standing in (no n
 const EREBUS_CHANCE = 0.08; // an answer through her Blackwall Gateway that brings Erebus in with it
 // a message from your phone (her chat on Telegram): what her AI is told, by the message
 const PHONE_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from their phone. You can\'t open apps, sites or music, play anything or set reminders for them now: if they ask, say so. Plain text, a few sentences at most.';
+// ...from her app on your phone, where an order is that same message sent with the bolt on her bar
+const POCKET_NOTE = 'Note for you, never repeat it: the user is away from the PC and writes to you from your app on their phone. A message like this one is only talk: you can\'t open apps, sites or music, play anything or set reminders from it. If they ask you to, tease them, short and cocky, with a storm or lightning touch: they forgot to switch on the bolt on your app\'s bar and send it again as an order (their fingerprint confirms it). Plain text, a few sentences at most.';
 const ORDER_NOTE = 'Note for you, never repeat it: the user is away from the PC and gives you this from their phone, confirmed with their fingerprint. Opening apps, sites or music and setting reminders is done by Capri herself, right away, not by you: never say you opened or will open something. What you can do, changing files in your folder, do it, then say in a few plain sentences what you did.';
 const PHONE_AGENT ='You only read here: change no file and run nothing that changes anything, even if asked; that waits until they\'re back at the PC.';
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
@@ -501,6 +503,16 @@ export class Chat {
     const status = await this.host.chatStatus().catch(() => ({ ok: false, error: 'offline' }));
     if (!status.ok) return { ok: false, error: status.error === 'offline' ? this.t.offline : status.error || '…' };
     if (!this.open) this.history = await this.host.chatMemory().catch(() => this.history);
+    const pocket = String(id).startsWith('pocket-'); // her app, not Telegram (main.js askHer)
+    // her app, asked for something of her powers without the bolt on: no order, and she says so herself,
+    // cocky, without asking her AI (Telegram never gives orders: her AI says it can't, as before)
+    if (pocket && this.wantsPowers(text)) {
+      const line = pick(this.t.bolt);
+      this.history.push(note('user', text));
+      this.remember({ role: 'assistant', content: line });
+      this.onMessage?.();
+      return { ok: true, text: line };
+    }
     const agent = this.agent;
     const name = this.agentName;
     this.agent = Boolean(status.agent);
@@ -508,7 +520,7 @@ export class Chat {
     // where you are, said by your message (her prompt stays the one Codex already knows)
     const away = (messages) => {
       const last = messages.at(-1);
-      messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(${PHONE_NOTE}${this.agent ? ` ${PHONE_AGENT}` : ''})` };
+      messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(${pocket ? POCKET_NOTE : PHONE_NOTE}${this.agent ? ` ${PHONE_AGENT}` : ''})` };
       return messages;
     };
     this.history.push(note('user', text));
@@ -667,6 +679,19 @@ export class Chat {
 
   listApps() {
     this.appsReady = this.host.openApps().then((list) => { this.apps = list || []; }).catch(() => {});
+  }
+
+  // Whether your message asks for something of her powers (an app, music, a reminder, your PC...): what
+  // asked() reads off it with her powers on, short of your name or a memory to keep (those she does anyway).
+  wantsPowers(text) {
+    const { powersOn } = this;
+    this.powersOn = true;
+    try {
+      const asked = this.asked(text);
+      return Boolean(asked) && !['name', 'memo'].includes(asked.kind);
+    } finally {
+      this.powersOn = powersOn;
+    }
   }
 
   // What you asked plainly, read off your message (a small model doesn't always write its tag right):

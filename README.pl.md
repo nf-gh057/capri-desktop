@@ -201,7 +201,9 @@ albo Codex zmieniające pliki w swoim folderze.
   użyć tylko zaraz po odcisku palca, raz na użycie. Otwarcie aplikacji podpisuje jedno wyzwanie i daje sesję do rozmowy,
   która tylko czyta, jak na jej stronie. Odłożona aplikacja się blokuje, a jej sesja kończy.
 - **Każde zlecenie to znów twój odcisk.** Stuknij błyskawicę na jej pasku (zapala się na żółto) i wyślij, a jej klucz podpisze to zlecenie, słowo w słowo, z własnym
-  wyzwaniem. Capri sprawdza podpis i robi to, jakbyś napisał to przy komputerze.
+  wyzwaniem. Capri sprawdza podpis i robi to, jakbyś napisał to przy komputerze. Poproś aplikację o coś bez błyskawicy
+  („puść Daft Punk”), a nie zrobi tego ani nie zapyta swojego AI: wytknie ci zapomnianą błyskawicę („Nie zapomniałeś
+  o czymś?”, „Grzmi, ale nie błyska”).
 - **Zlecenia daje tylko jej aplikacja.** Jej strona w przeglądarce i Telegram tylko rozmawiają.
 - **Klucz aplikacji poświadcza Google.** Przy parowaniu bezpieczny sprzęt telefonu podpisuje łańcuch certyfikatów
   klucza, aż do certyfikatu głównego poświadczeń Google, zrobiony dla kodu tego parowania. Każdy komputer sprawdza ten
