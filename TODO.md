@@ -61,6 +61,7 @@ Wspólne dla wszystkich etapów:
   głosem (dziś tylko otwiera aplikację z `talk`); razem z jej głosem (punkt wyżej).
 - Erebus w jej widżecie: gdy przejmuje Capri, jego kwestie w widżecie (jego czerwień Blackwalla, jak w HOLO), a na jej
   kwadracie glitch (przesunięte pasy, przebarwienie), dopóki go nie wyrzuci.
+- Przebudowa jej widżetu (Android): Capri pływająca na ekranie telefonu (floating), a rozmowa z nią po kliknięciu.
 - Capri zaczepia cię na telefonie, gdy nie ma cię przy komputerze: sama z siebie, jak jej uwagi na pulpicie
   (`talk.js`), wiadomość do jej aplikacji (powiadomienie, widżet) albo na Telegram. Z umiarem (kilka razy dziennie
   najwyżej, nie w nocy), ustawiane w Mainframe; wysyła komputer, na którym jest, gdy nie ma cię przy żadnym.
