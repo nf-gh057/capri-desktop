@@ -227,7 +227,7 @@ chat there, with your fingerprint. If the PC it talks to doesn't answer and exac
 itself; with several, it asks. Her app pairs once: the other PCs of her swarm know its key.
 
 An order can be just an app's name ("Chrome"), and may name the PC it's for ("Chrome on Legion"), whichever PC the app
-talks to. The PC it talks to says which one that is, and the app sends the order there itself, with your fingerprint as
+talks to. A typo in the PC's name is fine ("on Legoin", "na legi9nie": one letter off, for a name of 5 or more). The PC it talks to says which one that is, and the app sends the order there itself, with your fingerprint as
 always. That PC knows the app's key through her swarm, and a signed order needs no session there, so there's nothing to
 switch. Her swarm still never carries an order from one PC to another. What she did comes back with her answer
 ("Legion: Chrome: on it.").

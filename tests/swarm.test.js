@@ -275,3 +275,30 @@ test('her page for your phone on each PC goes around: only ever an address of he
   assert.equal(b.s.state().peers[0].pocket, 'https://desk.tail1234.ts.net:47825/');
   assert.equal(a.s.state().peers[0].pocket, null);
 });
+
+test('a PC named in an order as people write it: inflected, shortened, or with a typo', () => {
+  const legion = swarm.pcStem('Legion');
+  const beast = swarm.pcStem('RG-Beast');
+  assert.equal(beast, 'rgbeast');
+  // as written
+  assert.equal(swarm.namesPc('legionie', legion), 2);
+  assert.equal(swarm.namesPc('Legion,', legion), 2);
+  assert.equal(swarm.namesPc('rgbeast', beast), 2);
+  assert.equal(swarm.namesPc('RG-Beaście', beast), 1); // inflected so its last letter changes: as a typo
+  assert.equal(swarm.namesPc('rgbe', beast), 2);
+  // a typo: one letter changed, added, dropped or swapped
+  assert.equal(swarm.namesPc('legi9nie', legion), 1);
+  assert.equal(swarm.namesPc('lgeionie', legion), 1);
+  assert.equal(swarm.namesPc('legonie', legion), 1);
+  assert.equal(swarm.namesPc('legijonie', legion), 1);
+  assert.equal(swarm.namesPc('rgbaest', beast), 1);
+  // not it
+  assert.equal(swarm.namesPc('region', legion), 0);
+  assert.equal(swarm.namesPc('legia', legion), 0);
+  assert.equal(swarm.namesPc('lego', legion), 0);
+  assert.equal(swarm.namesPc('youtube', legion), 0);
+  assert.equal(swarm.namesPc('na', legion), 0);
+  // a short name: only as written
+  assert.equal(swarm.namesPc('mini', swarm.pcStem('Mini')), 2);
+  assert.equal(swarm.namesPc('mimi', swarm.pcStem('Mini')), 0);
+});

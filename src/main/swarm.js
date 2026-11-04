@@ -600,7 +600,39 @@ function createSwarm({
   return { start, stop, join, joinTailnet, look, startPairing, stopPairing: () => { pair = null; }, remove, state, tick, decide, forward, phone, pocket };
 }
 
+// A PC's name as she compares it: lower case, letters and digits only ("RG-Beast" → "rgbeast")
+const pcStem = (name) => String(name).toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]/gu, '');
+
+// Letters to change, add, drop or swap (two side by side) to get from a to b
+function edits(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+// How well a word of yours names one of your PCs, as people write it (`stem`: its pcStem): 2 when it
+// starts with its name, inflected or not ("na legionie"), or is its start ("na rgbe"); 1 when it's that
+// with a typo ("legi9nie", "lgeionie", "legonie": one letter off, for a name of 5 or more, its first
+// letter right); 0 when it doesn't.
+function namesPc(word, stem) {
+  const w = pcStem(word);
+  if (w.length < 3 || stem.length < 3) return 0;
+  if (w.startsWith(stem) || (w.length >= 4 && stem.startsWith(w))) return 2;
+  if (stem.length < 5 || w[0] !== stem[0]) return 0;
+  for (const len of [stem.length, stem.length + 1, stem.length - 1]) {
+    if (len <= w.length && edits(w.slice(0, len), stem) <= 1) return 1;
+  }
+  return 0;
+}
+
 module.exports = {
   createSwarm, identity, nodeId, pairKey, seal, open, invite, readInvite, tailscale, whois, certificate, cleanEvent, SwarmError, PORT, ALPHABET,
+  pcStem, namesPc,
   hostName: () => os.hostname(),
 };

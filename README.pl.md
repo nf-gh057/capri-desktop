@@ -237,7 +237,8 @@ nie odpowiada, a odpowiada dokładnie jeden inny, aplikacja przechodzi na niego 
 raz: pozostałe komputery roju znają jej klucz.
 
 Zlecenie może być samą nazwą aplikacji („Chrome”) i może wymieniać komputer, dla którego jest („Chrome na legionie”), bez
-względu na to, z którym komputerem rozmawia aplikacja. Komputer, z którym rozmawia, mówi, który to, a aplikacja sama wysyła
+względu na to, z którym komputerem rozmawia aplikacja. Literówka w nazwie komputera nie przeszkadza („na legi9nie”,
+„na lgeionie”: jedna litera inaczej, dla nazw od 5 znaków). Komputer, z którym rozmawia, mówi, który to, a aplikacja sama wysyła
 tam zlecenie, jak zawsze po twoim odcisku palca. Tamten komputer zna klucz aplikacji dzięki rojowi, a podpisane zlecenie
 nie potrzebuje u niego sesji, więc nie trzeba niczego przełączać. Rój nadal nigdy nie przekazuje zleceń między
 komputerami. To, co zrobiła, wraca razem z jej odpowiedzią („Legion: Chrome: odpalam.”).

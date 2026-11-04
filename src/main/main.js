@@ -1499,18 +1499,24 @@ function pocketOrder(text, name, delta) {
   return turn;
 }
 
-// The PCs of her swarm an order names, as people write them ("na legionie", "on RG-Beast"): { elsewhere: the
+// The PCs of her swarm an order names, as people write them ("na legionie", "on RG-Beast", with a typo:
+// "na legi9nie", swarm.namesPc): { elsewhere: the
 // other PC's name, if it names one and not this one }, and `act`: the order without this PC's name (and the
 // little word before it), for her to do
 const ORDER_ON = /^(na|w|we|on|at|in|sur|en|em|no|в|на)$/i;
 function orderTarget(text) {
-  const flat = (s) => String(s).toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]/gu, '');
   const pcs = [{ name: hiveName(), here: true }, ...(hive?.state().peers || []).map((p) => ({ name: p.name, here: false }))]
-    .map((p) => ({ ...p, stem: flat(p.name) })).filter((p) => p.stem.length >= 3);
+    .map((p) => ({ ...p, stem: swarm.pcStem(p.name) })).filter((p) => p.stem.length >= 3);
   const words = String(text).split(/\s+/);
+  // the PC it names best: its name as written over one with a typo
   const named = (word) => {
-    const w = flat(word);
-    return w.length >= 3 ? pcs.find((p) => w.startsWith(p.stem) || (w.length >= 4 && p.stem.startsWith(w))) : null;
+    let best = null;
+    let top = 0;
+    for (const p of pcs) {
+      const score = swarm.namesPc(word, p.stem);
+      if (score > top) [best, top] = [p, score];
+    }
+    return best;
   };
   const hits = words.map(named);
   const other = hits.find((p) => p && !p.here);
