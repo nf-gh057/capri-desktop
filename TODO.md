@@ -16,17 +16,6 @@ Wspólne dla wszystkich etapów:
 - Limit wiadomości na minutę; długie teksty przycinane, wiersze wyglądające na klucze zamazywane.
 - Bez zatwierdzania zgód Claude/Codex z telefonu: przejęty Telegram nie może oznaczać wykonania kodu na PC.
 
-### Etap 3: zadania przez Codex z narzędziami
-
-- Świeży kod TOTP, odblokowanie na krótko (np. 30 min).
-- Tylko w folderach dopisanych do listy przy komputerze; sandbox `workspace-write` ograniczony do folderu,
-  bez sieci, zgody „never”; nigdy `danger-full-access`. Przed zadaniem sprawdzenie, że sandbox Windows
-  jest gotowy (`windowsSandbox/readiness`), inaczej odmowa.
-- `/stop` przerywa zadanie, wyłącznik w zasobniku i w Mainframe wyłącza wszystko.
-- Raport po powrocie do komputera: co zrobiono zdalnie, zmienione pliki, nieudane próby odblokowania.
-- Ryzyko, które zostaje: prompt injection z plików czytanych przez agenta (ograniczone brakiem sieci,
-  folderem i limitem odpowiedzi); Telegram widzi treść zadań (czaty z botem nie są szyfrowane end-to-end).
-
 ## Rój: jedna Capri na kilku komputerach (przez Tailscale)
 
 Komputery w różnych miejscach i sieciach (Wi-Fi, LAN, sieć komórkowa, zmienne IP). Łączy je Tailscale: prywatna,
@@ -57,6 +46,15 @@ Wspólne dla wszystkich etapów:
   może przejąć telefon i działa jeden kod w aplikacji uwierzytelniającej. Za: parowanie raz, telefon działa, nawet
   gdy komputer z botem jest wyłączony. Przeciw: token trafia na każdy komputer roju, więc przejęcie któregokolwiek
   daje dostęp do bota (dziś tylko komputera, na którym go sparowano).
+- Do decyzji: Telegram, etap 3, zadania przez Codex z narzędziami (wcześniej następny etap bota):
+  - Świeży kod TOTP, odblokowanie na krótko (np. 30 min).
+  - Tylko w folderach dopisanych do listy przy komputerze; sandbox `workspace-write` ograniczony do folderu,
+    bez sieci, zgody „never”; nigdy `danger-full-access`. Przed zadaniem sprawdzenie, że sandbox Windows
+    jest gotowy (`windowsSandbox/readiness`), inaczej odmowa.
+  - `/stop` przerywa zadanie, wyłącznik w zasobniku i w Mainframe wyłącza wszystko.
+  - Raport po powrocie do komputera: co zrobiono zdalnie, zmienione pliki, nieudane próby odblokowania.
+  - Ryzyko, które zostaje: prompt injection z plików czytanych przez agenta (ograniczone brakiem sieci,
+    folderem i limitem odpowiedzi); Telegram widzi treść zadań (czaty z botem nie są szyfrowane end-to-end).
 - Animacja (gałąź `anim/poses`): Capri w trybie mini co jakiś czas otwiera jedno oko i spod przymrużonej powieki
   obserwuje, co się aktualnie dzieje na ekranie.
 - Rozmowa głosowa z jej aplikacji: przycisk rozmowy (słuchawka) na listwie widżetu włącza mikrofon i rozmawiasz z nią
