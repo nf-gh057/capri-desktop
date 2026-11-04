@@ -370,7 +370,9 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   ledge, head on her hand, is a drawing of this fork's: she does one or the other, never both at once.
 - **Her jealousy and other AIs' pages**: the AI answering her chat and the one she watches are hers, never rivals,
   their pages never closed (Codex counts as ChatGPT). Mainframe › RELIC lists the other AIs she's caught you on, as
-  she finds them, and for each one you can tell her to leave its pages be.
+  she finds them, and for each one you can tell her to leave its pages be. Her bolt burns the page the way the
+  Blackwall does (black and red, torn, strobing) a moment before it closes, and she stays on that page's screen until
+  it's done, even if your pointer goes to another one.
 - **Other AIs past her list**: the original project's list has 11 names (ChatGPT, Claude, Gemini, Copilot…), matched to
   the title of the window in front. With a model on this PC (Ollama), she also asks it about a browser tab or an app
   that isn't on that list: Poe, Pi, LM Studio, Kimi, an AI's download page… It goes on her list in Mainframe › RELIC

@@ -416,7 +416,13 @@ export class Jealousy {
       return 'left';
     }
     this.wait[key] = Date.now() + RETRY_MS;
-    const at = this.capri.windows.wins.find((w) => w.id === f.id) || win;
+    // where it is now, on the screen she's on (never where it was on another: she'd strike at nothing,
+    // the wrong way); gone from it, she goes over to it again
+    const at = this.capri.windows.wins.find((w) => w.id === f.id) || (await this.over(f.id));
+    if (!at || !this.still(f)) {
+      this.panel.hide();
+      return at ? 'left' : 'screen';
+    }
     const why = await this.capri.zapShut(at, async () => {
       const why = await this.shut(f.id, key);
       if (why === '') this.panel.say({ kind: 'info', face: 'smug', line: fmt(pick(t.closed), { rival }), hold: 3500 });

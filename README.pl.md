@@ -384,7 +384,9 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   wzdłuż okna z głową na dłoni to rysunek tego forka: robi jedno albo drugie, nigdy oba naraz.
 - **Zazdrość i strony innych AI**: AI odpowiadające w jej czacie i to, które obserwuje, są jej, nigdy rywalami, a ich
   strony nigdy nie są zamykane (Codex liczy się jako ChatGPT). Mainframe › RELIC pokazuje inne AI, przy których cię
-  przyłapała, w miarę jak je znajduje, i przy każdym możesz jej kazać zostawić jego strony w spokoju.
+  przyłapała, w miarę jak je znajduje, i przy każdym możesz jej kazać zostawić jego strony w spokoju. Jej błyskawica
+  wypala stronę jak Blackwall (czerń i czerwień, rozdarcia, migotanie) chwilę przed zamknięciem, a Capri zostaje na
+  ekranie tej strony, aż ją zamknie, nawet jeśli kursor przejdzie na inny.
 - **Inne AI spoza jej listy**: lista oryginalnego projektu ma 11 nazw (ChatGPT, Claude, Gemini, Copilot…), dopasowanych
   do tytułu okna na wierzchu. Z modelem na tym PC (Ollama) pyta go też o kartę przeglądarki albo aplikację spoza tej
   listy: Poe, Pi, LM Studio, Kimi, stronę do pobrania jakiegoś AI… Trafia ono na jej listę w Mainframe › RELIC jak

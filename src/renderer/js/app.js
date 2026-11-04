@@ -797,7 +797,8 @@ async function boot() {
     const elsewhere = followOn && screens && screens.list.length > 1 && at && !at.inside && at.display != null && at.display !== screens.current;
     awayChecks = elsewhere ? awayChecks + 1 : 0;
     if (awayChecks < FOLLOW_AFTER) return;
-    if (capri.busy || capri.dragging || capri.stowed || capri.dormant || capri.hidden || capri.act || capri.pointing) return;
+    // nor while she's after another AI's page: what she aims at is on this screen
+    if (capri.busy || capri.dragging || capri.stowed || capri.dormant || capri.hidden || capri.act || capri.pointing || jealousy.chasing) return;
     if (!['stand', 'sit'].includes(capri.stance) || capri.mode === 'sleep' || capri.mode === 'alert' || chat.open || guide.running) return;
     awayChecks = 0;
     goToScreen(at.display);

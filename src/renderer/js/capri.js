@@ -24,6 +24,7 @@ const ON_ONES = 1000 / 24;
 const SLEEP_AFTER = 10 * 60 * 1000;
 const DOZE_AFTER = 20 * 1000; // asleep this long, she comes apart down to her mask
 const EREBUS_FOR = [20000, 35000]; // how long Erebus has her, ms
+const CORRUPT_MS = 700; // another AI's page burning under her bolt before she closes it (zapShut)
 const BORED_AFTER = 60 * 1000; // nothing going on this long, she may lie down on her ledge
 const AFLOAT = ['hip', 'cross', 'fidget', 'float']; // how she lounges floating (acting.js, sprite.js POSES)
 const GRAVITY = 2600; // px/s²
@@ -1147,7 +1148,8 @@ export class Capri {
 
   // A window burnt by the Blackwall the way people are (fx.js corrupt), a bolt off her onto it, and
   // it shaking: `win` is one of her windows (followed if it moves) or just a rect. Not the taskbar.
-  corruptWin(win) {
+  // `bolt: false`: without the bolt off her head (she's striking it with her hand already).
+  corruptWin(win, { bolt = true } = {}) {
     if (!win || win.id === 'taskbar' || !this.under || !this.onScreenBits) return;
     const { w: vw, h: vh } = this.view;
     const x = clamp(win.x, 0, vw), y = clamp(win.y, 0, vh);
@@ -1159,6 +1161,7 @@ export class Capri {
     const picture = this.onScreenBits([at]).then((bits) => bits[0]);
     this.under.corrupt(rect, at, picture, { covers });
     this.fx.jolt(rect, { covers, power: 1 });
+    if (!bolt) return;
     const h = this.head();
     this.fx.bolt({ x: h.x, y: h.y }, { x: at.x + at.w / 2, y: at.y + Math.min(60, at.h / 2) }, { life: 300, forks: 2, width: 3 });
     this.voice.play('bolt');
@@ -3141,8 +3144,9 @@ export class Capri {
   }
 
   // One of their pages in `win`, once she's there (jealous): her arm shoots out at it, red lightning
-  // into the page, and it tears apart as `onHit` closes it, right on the bolt. Resolves to what
-  // onHit said ('' once closed), or 'cut' if something took her over before.
+  // into the page, which the Blackwall burns on the bolt (black and red, torn, strobing: corruptWin),
+  // and a moment later it tears apart as `onHit` closes it. Resolves to what onHit said ('' once
+  // closed), or 'cut' if something took her over before.
   async zapShut(win, onHit) {
     // well into the page, on the side away from her (sitting on it, she's above its middle)
     const dir = this.pos.x > win.x + win.w / 2 ? -1 : 1;
@@ -3164,14 +3168,18 @@ export class Capri {
     };
     const zap = { ...at, side, dir, hit: null };
     zap.onHit = () => {
-      this.fx.slices(win.x, win.y, win.w, Math.min(win.h, 420), { count: 10, life: 260 });
+      this.corruptWin(win, { bolt: false }); // her own bolt is in it already
       this.fx.crackle(at, { life: 800, radius: 70, count: 4 });
-      zap.hit = onHit();
+      // burning a moment, then it closes, torn apart (what's behind it comes up through the burn)
+      zap.hit = sleep(CORRUPT_MS).then(() => {
+        this.fx.slices(win.x, win.y, win.w, Math.min(win.h, 420), { count: 10, life: 260 });
+        return onHit();
+      });
     };
     this.zapAt = zap;
     await this.perform('zap', dir, { reach });
     if (this.zapAt === zap) this.zapAt = null;
-    return zap.hit ?? 'cut';
+    return zap.hit ? await zap.hit : 'cut';
   }
 
   // Let go of her: onto a ledge if her hips are right at one, otherwise she falls.
