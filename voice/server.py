@@ -26,7 +26,7 @@ SPELL = {
 
 state = {'state': 'loading', 'error': None, 'device': None}
 model = None
-conds = {}             # profile id -> its conditionals, computed once
+conds = {}             # a profile's recording (stamp) -> its conditionals, computed once
 lock = threading.Lock()
 
 
@@ -68,6 +68,11 @@ def load(home):
         if cuda:
             import fast_t3
             fast_t3.apply(m)
+            # the speech tokenizer only reads a profile's recording (once, cond_for): off the card meanwhile
+            # (~470 MB). S3Gen tells its device by the tokenizer's: by its flow's, which stays on it
+            type(m.s3gen).device = property(lambda self: next(self.flow.parameters()).device)
+            m.s3gen.tokenizer.to('cpu')
+            torch.cuda.empty_cache()
         model = m
         p = pick(home, None, None)
         if p:  # warm up (and record the CUDA graph) before her first line
@@ -79,12 +84,27 @@ def load(home):
         state.update(state='error', error=f'{type(e).__name__}: {e}')
 
 
+def stamp(home, p):
+    # which recording a profile speaks with, as it is now: a reference swapped in its folder counts at once
+    ref = os.path.join(home, 'profiles', p['id'], p.get('ref', 'ref.wav'))
+    st = os.stat(ref)
+    return ref, f"{p['id']}:{st.st_mtime_ns}:{st.st_size}:{p.get('exaggeration', 0.5)}"
+
+
 def cond_for(home, p):
-    if p['id'] not in conds:
-        model.prepare_conditionals(os.path.join(home, 'profiles', p['id'], p.get('ref', 'ref.wav')),
-                                   exaggeration=float(p.get('exaggeration', 0.5)))
-        conds[p['id']] = model.conds
-    model.conds = conds[p['id']]
+    ref, key = stamp(home, p)
+    if key not in conds:
+        import torch
+        tok = model.s3gen.tokenizer
+        tok.to(model.device)
+        try:
+            model.prepare_conditionals(ref, exaggeration=float(p.get('exaggeration', 0.5)))
+        finally:
+            tok.to('cpu')
+            if model.device == 'cuda':
+                torch.cuda.empty_cache()
+        conds[key] = model.conds
+    model.conds = conds[key]
 
 
 def synth(home, p, text, lang):
@@ -174,7 +194,7 @@ def say(home, body):
     if not p:
         raise ValueError('no voice profile')
     strength = float(body.get('fx', 1.0))
-    key = hashlib.sha256(json.dumps([VERSION, text, lang, p, strength], sort_keys=True).encode()).hexdigest()[:32]
+    key = hashlib.sha256(json.dumps([VERSION, text, lang, p, stamp(home, p)[1], strength], sort_keys=True).encode()).hexdigest()[:32]
     cache = os.path.join(home, 'cache')
     os.makedirs(cache, exist_ok=True)
     path = os.path.join(cache, key + '.wav')
@@ -221,7 +241,6 @@ def make_profile(home, body):
          'fx': {'eq': True, 'octave': 0.18, 'comb': 0.25, 'crush': 0.2}}
     with open(os.path.join(folder, 'profile.json'), 'w', encoding='utf-8') as f:
         json.dump(p, f, ensure_ascii=False, indent=2)
-    conds.pop(pid, None)
     return {**p, 'id': pid, 'seconds': round(len(y) / sr, 1)}
 
 
