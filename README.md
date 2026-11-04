@@ -37,7 +37,7 @@ remembers where you left it, its size and the tab you were on.
 | **HOLO** | Like her game's messages. **CAPRI**: her chat, the same conversation as in her panel (and on Telegram), to write to her from here too. Her answer streams in, and what you ask plainly (a reminder, the music, an app you name) happens. Next to it is everything else she told you on this PC: Claude, Codex, reminders, your PC. Oldest on top, newest at the bottom, like calls in her game: hers in red on the left, under her square, and yours in green on the right, under your name (ENGRAMS › Your name), your prompts to Claude or Codex too, before what she said about them. You write after a prompt as in a terminal (`n@capri:~$`). Her little lines from her animations (the star, the satellite, being thrown around) aren't there. **TELEGRAM** and **TAILSCALE**: your phone. |
 | **NETWATCH** | Who answers her chat (a model on your PC, online, or Claude Code / Codex) and what her chat shows. The assistant she watches in your terminal, and its hooks. With Claude Code or Codex in her chat: its folder, its permissions, how long Codex thinks, and **Blackwall Gateway**, her own powers with it (apps, sites, music). |
 | **ENGRAMS** | Your bond, your name (what she calls you, and you in HOLO), her persona, her reminders, and what she remembers, with the PC it was said on. |
-| **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts, how chatty she is), her jealousy (closing other AIs' pages, and the ones she leaves be) and her swarm. |
+| **RELIC** | Her body (her size, where she rests, her screen, her shortcut, how she acts, how chatty she is), her jealousy (other AIs past her list, closing their pages, and the ones she leaves be) and her swarm. |
 | **CYBERDECK** | Language, the styles (her bubbles', Mainframe's, her page's: Night City, Original or Custom), animations, display, menu, starting with Windows, her updates, help, quit. |
 
 <p>
@@ -366,6 +366,14 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
 - **Her jealousy and other AIs' pages**: the AI answering her chat and the one she watches are hers, never rivals,
   their pages never closed (Codex counts as ChatGPT). Mainframe › RELIC lists the other AIs she's caught you on, as
   she finds them, and for each one you can tell her to leave its pages be.
+- **Other AIs past her list**: the original project's list has 11 names (ChatGPT, Claude, Gemini, Copilot…), matched to
+  the title of the window in front. With a model on this PC (Ollama), she also asks it about a browser tab or an app
+  that isn't on that list: Poe, Pi, LM Studio, Kimi, an AI's download page… It goes on her list in Mainframe › RELIC
+  like the others, where you can leave its pages be, or say it's *Not an AI* if the model got it wrong. The title goes
+  to that model alone: never to an AI online, never to her overlay. Without a local model she only knows her list.
+  She asks once a title has been in front for 2 seconds, never about a game or a search engine's results, and keeps
+  the answers (with a hash of the title, not the title) so she doesn't ask twice. Off: *Spot other AIs with a model
+  on this PC*.
 - **Polish**: she speaks it, and understands it in her chat (reminders, music, files…). `npm run demo -- pl` too.
 - **Her shortcut** (Ctrl+Alt+C) can be changed: another one, one you press, or none. On a Polish keyboard Ctrl+Alt+C is
   AltGr+C ("ć").
@@ -555,6 +563,7 @@ android/                 her app (Kotlin, no libraries): her key in Android Keys
   mind.js                her shared mind: what she knows on all your PCs, swapped and merged (an island catches up)
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
   screengrab.js / .ps1   bits of the screen in a few ms, for her teleports to tear open (a PowerShell helper, GDI)
+  spot.js                whether the window in front is another AI, past her list: asked of a model on this PC, remembered
 src/renderer/js/
   mainframe.js           Mainframe's page: its tabs, HOLO
   talk.js                what she says of her own, in her words: when, how often, and kept in her chat
@@ -563,7 +572,7 @@ tools/build-poses.py     her pose drawings from generated pictures: keyed, her c
 ```
 
 Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
-`test:pocket`.
+`test:pocket`, `test:spot`.
 
 `npm run dev` turns on her debug routes:
 

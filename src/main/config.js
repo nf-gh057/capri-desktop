@@ -65,8 +65,10 @@ const DEFAULTS = {
   jealous: true,     // she gets jealous when she sees you on another AI (bond.js)
   erebus: true,      // Erebus takes her over now and then, through her Blackwall Gateway (capri.js erebusIn)
   closePages: true,  // jealous, she closes their pages in your browser, and pages to download them
-  aiSeen: {},        // the other AIs she's caught you on: key -> { name, at } (bond.js), listed in Mainframe
+  aiSeen: {},        // the other AIs she's caught you on: key -> { name, at, found (by the model, below) } (bond.js), listed in Mainframe
   aiSpared: [],      // their keys you said she leaves be (Mainframe); hers (her chat's, the one she watches) always are
+  aiSpot: true,      // a model on this PC tells her whether the window in front is another AI, past her list (spot.js)
+  aiNot: [],         // the keys of ones it found that you said are no AI (Mainframe): never taken for one again
   lieBack: true,     // sitting on a window, she lies back on it now and then (capri.js lieDown)
   reminders: [],     // the reminders she keeps: [{ id, at, text, made }] (reminders.js)
   bond: null,        // how close she is to you: { xp, first, last, days, streak, caps } (bond.js)

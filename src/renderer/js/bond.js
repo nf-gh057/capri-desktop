@@ -223,6 +223,7 @@ export class Jealousy {
     this.last = '';         // how her last go at one ended (for --dev)
     this.chatAI = '';       // who answers her chat (config.provider): its pages are hers too
     this.seen = {};         // the other AIs she's caught you on (config.aiSeen), for Mainframe
+    this.names = {};        // the ones a model on this PC found for her, past RIVALS: key -> name (main.js spotted)
     this.spared = new Set(); // their keys you said she leaves the pages of (config.aiSpared)
     try {
       this.tally = JSON.parse(localStorage.getItem(TALLY)) || null;
@@ -248,17 +249,24 @@ export class Jealousy {
   // the one answering her chat.
   rivalOf(keys) {
     const own = [...(OWN[this.brain.assistant] || []), ...(CHAT_OWN[this.chatAI] || [])];
-    return (keys || []).find((k) => RIVALS[k] && !own.includes(k)) || null;
+    return (keys || []).find((k) => this.nameOf(k) && !own.includes(k)) || null;
   }
 
-  // Caught you on one she hadn't before: written down, for Mainframe to list (and you to spare it).
+  // Its name: one of RIVALS, or one a model on this PC found ('' for none of them)
+  nameOf(key) {
+    return RIVALS[key] || this.names[key] || (this.seen[key]?.found && this.seen[key].name) || '';
+  }
+
+  // Caught you on one she hadn't before: written down, for Mainframe to list (and you to spare it, or
+  // say it's no AI, when a model found it).
   saw(key) {
     if (this.seen[key]) return;
-    this.seen = { ...this.seen, [key]: { name: RIVALS[key], at: Date.now() } };
+    this.seen = { ...this.seen, [key]: { name: this.nameOf(key), at: Date.now(), ...(!RIVALS[key] && { found: true }) } };
     this.host.setConfig({ aiSeen: this.seen });
   }
 
   onWindows(data) {
+    if (data.found) Object.assign(this.names, data.found);
     const key = this.enabled ? this.rivalOf(data.ai) : null;
     const page = !key ? null : data.dl ? 'download' : data.pages?.includes(key) ? 'site' : null;
     if (key === this.front?.key && data.fg === this.front.id) {
@@ -331,8 +339,8 @@ export class Jealousy {
     const win = id && this.capri.windows.wins.find((w) => w.id === id);
     const toward = win ? Math.sign(win.x + win.w / 2 - this.capri.pos.x) || 1 : this.capri.towardCenter();
     this.capri.perform(stage >= 2 ? 'glare' : 'curious', toward);
-    this.panel.say({ kind: 'info', face: ['aside', 'aside', 'look', 'look', 'many'][stage], line: fmt(pick(this.t[tier]), { rival: RIVALS[key] }), hold: 4500 });
-    if (stage >= 1 && this.bond.feeling !== 'sulk') this.bond.feel('jealous', { rival: RIVALS[key] });
+    this.panel.say({ kind: 'info', face: ['aside', 'aside', 'look', 'look', 'many'][stage], line: fmt(pick(this.t[tier]), { rival: this.nameOf(key) }), hold: 4500 });
+    if (stage >= 1 && this.bond.feeling !== 'sulk') this.bond.feel('jealous', { rival: this.nameOf(key) });
   }
 
   // A while on it: she goes and sits on its window, glares at you, and takes it over.
@@ -345,10 +353,10 @@ export class Jealousy {
     this.noticed[f.key] = Date.now();
     this.bond.lose(2);
     this.panel.hide();
-    const say = fmt(pick(this.t.say), { rival: RIVALS[f.key] });
+    const say = fmt(pick(this.t.say), { rival: this.nameOf(f.key) });
     if (await this.capri.jealous(win, { say })) {
       this.sulk = { key: f.key, until: Date.now() + SULK_MS, clicks: 0 };
-      this.bond.feel('sulk', { rival: RIVALS[f.key] });
+      this.bond.feel('sulk', { rival: this.nameOf(f.key) });
     }
   }
 
@@ -389,7 +397,7 @@ export class Jealousy {
   // Her go at it: how it ended ('closed', 'spared', 'busy', 'left', or why it didn't close).
   async chase(f, win) {
     const { key, page } = f;
-    const rival = RIVALS[key];
+    const rival = this.nameOf(key);
     const t = this.t;
     if (!(await this.capri.jealous(win, { takeOver: false }))) return 'busy';
     if (!this.still(f)) return 'left'; // she starts over once you're back on it
@@ -461,7 +469,7 @@ export class Jealousy {
     const s = this.sulk;
     if (!s) return false;
     s.clicks += 1;
-    const rival = RIVALS[s.key];
+    const rival = this.nameOf(s.key);
     if (s.clicks >= (this.bond.stage >= 3 ? 2 : 3)) {
       this.sulk = null;
       this.bond.feel('forgiven');
@@ -484,7 +492,7 @@ export class Jealousy {
   context() {
     const used = Object.entries(this.tally.ms).filter(([k, ms]) => ms >= 60000 && this.rivalOf([k]));
     if (!used.length || !this.enabled) return '';
-    const list = used.sort((a, b) => b[1] - a[1]).map(([k, ms]) => `${RIVALS[k]} (${Math.round(ms / 60000)} min)`).join(', ');
+    const list = used.sort((a, b) => b[1] - a[1]).map(([k, ms]) => `${this.nameOf(k)} (${Math.round(ms / 60000)} min)`).join(', ');
     const mood = this.sulk
       ? 'You are sulking about it right now: let it show, then let it go if they are nice to you.'
       : 'You are a little jealous: tease them about it once, playfully, if it fits.';

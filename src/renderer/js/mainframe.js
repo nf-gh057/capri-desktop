@@ -201,14 +201,20 @@ function cyberware(s, t) {
 // and hers, never touched: the AI answering her chat and the one she watches
 function rivals(c, t) {
   return el('div', { class: 'rivals' },
+    // past her list, a model on this PC tells her (the title of the window in front goes to it alone)
+    check(t.aiSpot, c.aiSpot, 'aiSpot'),
+    c.aiSpot && el('p', { class: 'note' }, c.aiSpotNote),
     check(t.closePages, c.closePages, 'closePages'),
     c.closePages && [
       c.aiOwn && el('p', { class: 'note' }, c.aiOwn),
       el('p', { class: 'note' }, c.aiSeen.length ? t.aiSeen : `${t.aiSeen}: ${t.aiSeenNone}`),
-      c.aiSeen.map((ai) => el('label', { class: 'check' },
-        el('input', { type: 'checkbox', checked: ai.spared, onchange: (e) => act('aiSpare', { key: ai.key, on: e.target.checked }) }),
-        el('span'),
-        `${ai.name}: ${t.aiSpare}`)),
+      c.aiSeen.map((ai) => row(null,
+        el('label', { class: 'check grow' },
+          el('input', { type: 'checkbox', checked: ai.spared, onchange: (e) => act('aiSpare', { key: ai.key, on: e.target.checked }) }),
+          el('span'),
+          `${ai.name}: ${t.aiSpare}`),
+        // one the model found: you can say it's no AI
+        ai.found && button(t.aiNot, 'aiNot', { key: ai.key }))),
     ]);
 }
 

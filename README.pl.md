@@ -37,7 +37,7 @@ krawędzi, a ono pamięta, gdzie je zostawiłeś, jego rozmiar i zakładkę, na 
 | **HOLO** | Jak wiadomości w grze. **CAPRI**: jej czat, ta sama rozmowa co w jej panelu (i na Telegramie); możesz do niej pisać także stąd. Jej odpowiedź pojawia się na bieżąco, a to, o co prosisz wprost (przypomnienie, muzyka, aplikacja z nazwy), się dzieje. Obok jest wszystko inne, co ci powiedziała na tym komputerze: Claude, Codex, przypomnienia, twój komputer. Najstarsze na górze, najnowsze na dole, jak połączenia w grze: jej wiadomości na czerwono po lewej, pod jej kwadratem, a twoje na zielono po prawej, pod twoim imieniem (ENGRAMS › Twoje imię), także twoje polecenia dla Claude albo Codexa, przed jej komentarzem do nich. Piszesz po znaku zachęty jak w terminalu (`n@capri:~$`). Nie ma tu drobnych tekstów z animacji (gwiazda, satelita, rzucanie nią). **TELEGRAM** i **TAILSCALE**: twój telefon. |
 | **NETWATCH** | Kto odpowiada w jej czacie (model na twoim PC, w sieci albo Claude Code / Codex) i co pokazuje czat. Asystent, którego pilnuje w terminalu, i jego hooki. Gdy w czacie odpowiada Claude Code albo Codex: jego folder, uprawnienia, jak długo myśli Codex i **Blackwall Gateway**, czyli jej własne moce razem z nim (aplikacje, strony, muzyka). |
 | **ENGRAMS** | Wasza więź, twoje imię (jak cię nazywa i jak jesteś podpisany w HOLO), jej persona, przypomnienia i to, co pamięta, z komputerem, na którym to powiedziałeś. |
-| **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa), jej zazdrość (zamykanie stron innych AI i te, które zostawia w spokoju) i jej rój. |
+| **RELIC** | Jej ciało (rozmiar, gdzie odpoczywa, ekran, skrót do chowania, jak się zachowuje, jak bardzo jest gadatliwa), jej zazdrość (inne AI spoza jej listy, zamykanie ich stron i te, które zostawia w spokoju) i jej rój. |
 | **CYBERDECK** | Język, style (jej dymków, Mainframe, jej strony: Night City, Oryginalny albo Własny), animacje, sposób rysowania, menu, start z Windows, jej aktualizacje, pomoc, wyjście. |
 
 <p>
@@ -380,6 +380,13 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
 - **Zazdrość i strony innych AI**: AI odpowiadające w jej czacie i to, które obserwuje, są jej, nigdy rywalami, a ich
   strony nigdy nie są zamykane (Codex liczy się jako ChatGPT). Mainframe › RELIC pokazuje inne AI, przy których cię
   przyłapała, w miarę jak je znajduje, i przy każdym możesz jej kazać zostawić jego strony w spokoju.
+- **Inne AI spoza jej listy**: lista oryginalnego projektu ma 11 nazw (ChatGPT, Claude, Gemini, Copilot…), dopasowanych
+  do tytułu okna na wierzchu. Z modelem na tym PC (Ollama) pyta go też o kartę przeglądarki albo aplikację spoza tej
+  listy: Poe, Pi, LM Studio, Kimi, stronę do pobrania jakiegoś AI… Trafia ono na jej listę w Mainframe › RELIC jak
+  pozostałe, gdzie możesz zostawić jego strony w spokoju albo kliknąć *To nie AI*, jeśli model się pomylił. Tytuł trafia
+  tylko do tego modelu: nigdy do AI w sieci, nigdy do jej nakładki. Bez lokalnego modelu zna tylko swoją listę. Pyta,
+  gdy tytuł jest na wierzchu od 2 sekund, nigdy o grę ani o wyniki wyszukiwarki, i zapamiętuje odpowiedzi (z hashem
+  tytułu, nie z tytułem), żeby nie pytać dwa razy. Wyłączasz to: *Rozpoznawać inne AI modelem na tym PC*.
 - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…). Także `npm run demo -- pl`.
 - **Jej skrót** (Ctrl+Alt+C) da się zmienić: inny, taki, który naciśniesz, albo żaden. Na polskiej klawiaturze
   Ctrl+Alt+C to AltGr+C, czyli „ć”.
@@ -571,6 +578,7 @@ android/                 jej aplikacja (Kotlin, bez bibliotek): klucz w Android 
   mind.js                jej wspólny umysł: to, co wie na wszystkich komputerach, wymieniane i scalane (wyspa nadrabia)
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
   screengrab.js / .ps1   kawałki ekranu w kilka ms, do rozdarcia przy teleporcie (pomocnik w PowerShellu, GDI)
+  spot.js                czy okno na wierzchu to inne AI spoza jej listy: pytanie do modelu na tym PC, zapamiętane
 src/renderer/js/
   mainframe.js           strona Mainframe: zakładki, HOLO
   talk.js                to, co mówi sama, własnymi słowami: kiedy, jak często, zapisane w jej czacie
@@ -579,7 +587,7 @@ tools/build-poses.py     jej pozy z wygenerowanych obrazków: wycięte, w jej ko
 ```
 
 Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
-`test:pocket`.
+`test:pocket`, `test:spot`.
 
 `npm run dev` włącza jej trasy debugowania:
 

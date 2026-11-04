@@ -4,7 +4,10 @@
 # the title of the window in front is only checked against a short list of AI names (ChatGPT,
 # Gemini...) for her jealousy, and all that goes out is which of them matched ("ai"), whether
 # it's their own page in a browser ("pages") and whether it's a page to download one ("dl").
-# Reads "close <hwnd> <key> <n>" lines on its input: she closes that page (see Close).
+# Only once Capri asks for it ("titles 1", her jealousy with a model on this PC: spot.js), the title
+# of the window in front goes out too when none of them matched ("title", "browser"), for that model
+# alone. Reads "close <hwnd> <key> <n>" and "shut <hwnd> <n> <title, base64>" lines on its input:
+# she closes that page (see Close).
 #
 #   powershell -File windows.ps1 <capri hwnd> <capri pid>
 
@@ -89,6 +92,14 @@ public static class CapriWindows {
     return Site(ai, title) || (Regex.IsMatch(title, ai[1], RegexOptions.IgnoreCase) && DL.IsMatch(title));
   }
 
+  // The title of the window in front, when none of them matched: only once Capri asked for it, and
+  // never her own, Windows' own pieces' or a game's.
+  public static volatile bool Titles = false;
+  static readonly HashSet<string> NO_TITLE = new HashSet<string> {
+    "explorer", "electron", "capri", "searchhost", "searchapp", "lockapp", "shellexperiencehost",
+    "startmenuexperiencehost", "textinputhost", "dwm", "ollama", "ollama app",
+  };
+
   static IntPtr procOf = IntPtr.Zero;
   static string proc = "";
   static string game = "";
@@ -125,6 +136,17 @@ public static class CapriWindows {
 
   static string Json(string s) {
     return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+  }
+
+  // Any text as a JSON string, its control characters too (a title can have a tab in it)
+  static string JsonText(string s) {
+    var sb = new StringBuilder("\"");
+    foreach (char c in s) {
+      if (c == '\\' || c == '"') sb.Append('\\').Append(c);
+      else if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4"));
+      else sb.Append(c);
+    }
+    return sb.Append('"').ToString();
   }
 
   // USB sticks (and SD cards) plugged in, by drive letter, looked at every couple of seconds.
@@ -164,7 +186,11 @@ public static class CapriWindows {
       pages.Append('"').Append(ai[0]).Append('"');
     }
     bool dl = browser && keys.Length > 0 && DL.IsMatch(t);
-    return "[" + keys.ToString() + "],\"pages\":[" + pages.ToString() + "],\"dl\":" + (dl ? "true" : "false");
+    string more = "";
+    if (Titles && keys.Length == 0 && game == "" && t != "" && !NO_TITLE.Contains(proc)) {
+      more = ",\"title\":" + JsonText(t) + ",\"browser\":" + (browser ? "true" : "false");
+    }
+    return "[" + keys.ToString() + "],\"pages\":[" + pages.ToString() + "],\"dl\":" + (dl ? "true" : "false") + more;
   }
 
   // She closes that AI's page in window `id` with the browser's own shortcut for its tab (Ctrl+W),
@@ -178,6 +204,22 @@ public static class CapriWindows {
     GetWindowText(fg, title, 512);
     string[] ai = Array.Find(AIS, a => a[0] == key);
     if (ai == null || !Closable(ai, title.ToString())) return "page";
+    return CtrlW();
+  }
+
+  // The same for a page the model on this PC took for another AI's (spot.js): if window `id` still
+  // has that very title.
+  public static string ShutTitle(long id, string want) {
+    IntPtr fg = GetForegroundWindow();
+    if (fg.ToInt64() != id) return "front";
+    if (!BROWSERS.Contains(ProcName(fg))) return "browser";
+    var title = new StringBuilder(512);
+    GetWindowText(fg, title, 512);
+    if (want == "" || title.ToString() != want) return "page";
+    return CtrlW();
+  }
+
+  static string CtrlW() {
     foreach (int held in new[] { 0x10, 0x12, 0x5B, 0x5C }) {
       if ((GetAsyncKeyState(held) & 0x8000) != 0) return "keys";
     }
@@ -194,12 +236,18 @@ public static class CapriWindows {
       string line;
       while ((line = Console.In.ReadLine()) != null) {
         var ask = line.Split(' ');
-        if (ask.Length != 4 || ask[0] != "close") continue;
+        if (ask.Length == 2 && ask[0] == "titles") {
+          Titles = ask[1] == "1";
+          continue;
+        }
+        if (ask.Length != 4 || (ask[0] != "close" && ask[0] != "shut")) continue;
         string why;
         long id;
         int n;
-        if (!long.TryParse(ask[1], out id) || !int.TryParse(ask[3], out n)) continue;
-        try { why = Close(id, ask[2]); } catch { why = "error"; }
+        if (!long.TryParse(ask[1], out id) || !int.TryParse(ask[ask[0] == "close" ? 3 : 2], out n)) continue;
+        try {
+          why = ask[0] == "close" ? Close(id, ask[2]) : ShutTitle(id, Encoding.UTF8.GetString(Convert.FromBase64String(ask[3])));
+        } catch { why = "error"; }
         Console.Out.WriteLine("{\"closed\":" + n + ",\"why\":" + Json(why) + "}");
         Console.Out.Flush();
       }
@@ -313,6 +361,8 @@ public static class CapriWindows {
 }
 "@
 
+# UTF-8 out, without a BOM in front of the first line: titles and device names in any language
+try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } catch {}
 [CapriWindows]::Init()
 [CapriWindows]::Listen()
 $last = ''

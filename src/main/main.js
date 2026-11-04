@@ -31,6 +31,7 @@ const pocket = require('./pocket');
 const attest = require('./attest');
 const update = require('./update');
 const { createMind } = require('./mind');
+const { createSpotter } = require('./spot');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -51,6 +52,9 @@ let tray = null;
 let trayMenu = null; // also what she opens when you right-click her
 let demoTimer = null;
 let windowWatch = null;
+let spot = null;      // her jealousy with a model on this PC: whether the window in front is another AI (spot.js)
+let spotFront = null; // the window in front, as the model took it: { id, key, title } (the title stays here)
+let spotModel = null; // the model on this PC it asked last
 let screenGrab = null; // bits of the screen for her teleports to tear (screengrab.js)
 let mainframe = null; // her settings window (mainframe.js)
 // her swarm (swarm.js): the link to her on your other PCs, and what Tailscale says here
@@ -447,6 +451,7 @@ function rendererConfig() {
 function updateConfig(patch) {
   config.save(patch);
   if (!mindApplying && MIND_KEYS.some((key) => key in patch)) mindCapture();
+  if ('jealous' in patch || 'aiSpot' in patch) syncSpot();
   if ('rest' in patch) {
     fitOverlay(); // the taskbar in her window or not
     windowWatch?.refresh();
@@ -738,6 +743,69 @@ const WATCHED_AI = { claude: ['claude'], codex: ['codex', 'chatgpt'], agy: ['gem
 const CHAT_AI = { claude: ['claude'], codex: ['codex', 'chatgpt'], openai: ['chatgpt'], gemini: ['gemini'], deepseek: ['deepseek'], mistral: ['lechat'] };
 const ownAIs = (cfg) => [...new Set([...(cfg.claude !== false ? WATCHED_AI[cfg.assistant] || [] : []), ...(CHAT_AI[cfg.provider] || [])])];
 
+// The AIs on windows.ps1's list, by the names a model may give them: one it finds is that same AI
+const LISTED_AI = {
+  chatgpt: 'chatgpt', openai: 'chatgpt', claude: 'claude', claudeai: 'claude', codex: 'codex', gemini: 'gemini', googlegemini: 'gemini',
+  copilot: 'copilot', microsoftcopilot: 'copilot', perplexity: 'perplexity', perplexityai: 'perplexity', deepseek: 'deepseek', grok: 'grok',
+  lechat: 'lechat', mistral: 'lechat', mistralai: 'lechat', mistrallechat: 'lechat', characterai: 'characterai', metaai: 'metaai',
+};
+
+// The model her jealousy asks, on this PC only: her chat's if it's an Ollama one on this PC, else Ollama's
+// first one on this PC. Never one online: the window's title would go there.
+async function spotPick(cfg = config.load()) {
+  const list = await ollama.models().catch(() => null);
+  const chat = cfg.provider === 'ollama' ? pickModel(cfg) || cfg.chatModel : null;
+  const model = list?.includes(chat) && !ollama.isCloud(chat) ? chat : await localModel().catch(() => null);
+  return model && llm.isLocal('ollama', cfg, model) ? model : null;
+}
+
+async function spotAsk(prompt, format) {
+  const model = await spotPick();
+  if (spotModel !== model) {
+    spotModel = model;
+    mainframe?.refresh?.();
+  }
+  if (!model) throw new Error('no model on this PC');
+  return ollama.ask({ model, prompt, format });
+}
+
+// Her jealousy asks the model about the window in front: the helper sends its title (never the overlay),
+// while she's jealous and you left it on (Mainframe › RELIC).
+function syncSpot(cfg = config.load()) {
+  const on = cfg.jealous !== false && cfg.aiSpot !== false;
+  windowWatch?.titles(on);
+  if (!on) {
+    spot?.idle();
+    spotFront = null;
+    return;
+  }
+  // which model that'll be, for Mainframe (Ollama not woken up for it: only asking does)
+  ollama.models().then((list) => {
+    const chat = cfg.provider === 'ollama' ? pickModel(cfg) || cfg.chatModel : null;
+    const model = list.includes(chat) && !ollama.isCloud(chat) ? chat : list.find((m) => !ollama.isCloud(m));
+    if (!spotModel && model && llm.isLocal('ollama', cfg, model)) spotModel = model;
+  }, () => {});
+}
+
+// The windows as her overlay gets them: an AI the model found in front written in like one on the list
+// (its name in `found`), and no title.
+function spotted(data) {
+  const { title, browser, ...rest } = data;
+  spotFront = null;
+  if (typeof title !== 'string' || !spot) return rest;
+  if (rest.game) {
+    spot.idle();
+    return rest;
+  }
+  const found = spot.check(title, browser);
+  if (!found || (config.load().aiNot || []).includes(found.key)) return rest;
+  spotFront = { id: rest.fg, key: found.key, title };
+  return {
+    ...rest, ai: [found.key], pages: browser && found.page === 'chat' ? [found.key] : [],
+    dl: Boolean(browser && found.page === 'download'), found: { [found.key]: found.name },
+  };
+}
+
 // What her settings window shows (renderer/js/mainframe.js): her menu's choices, with what's picked.
 function mainframeState() {
   const cfg = config.load();
@@ -786,12 +854,15 @@ function mainframeState() {
       follow: cfg.follow !== false,
       jealous: cfg.jealous !== false,
       closePages: cfg.closePages !== false,
+      // the other AIs a model on this PC finds for her, past her list; which model, or none
+      aiSpot: cfg.aiSpot !== false,
+      aiSpotNote: spotModel ? t.aiSpotModel(spotModel) : t.aiSpotNone,
       lieBack: cfg.lieBack !== false,
       // the other AIs she's caught you on, minus hers (bond.js does the same), and whose pages you spared
       aiOwn: ownAIs(cfg).length ? t.aiOwn(ownAIs(cfg).map((key) => AI_NAMES[key]).join(', ')) : '',
       aiSeen: Object.entries(cfg.aiSeen || {}).filter(([key]) => !ownAIs(cfg).includes(key))
         .sort(([, a], [, b]) => (a.at || 0) - (b.at || 0))
-        .map(([key, ai]) => ({ key, name: ai.name || key, spared: (cfg.aiSpared || []).includes(key) })),
+        .map(([key, ai]) => ({ key, name: ai.name || key, spared: (cfg.aiSpared || []).includes(key), found: Boolean(ai.found) })),
       erebus: cfg.erebus !== false,
       pcReact: cfg.pcReact !== false,
       lookAuto: Boolean(cfg.watchScreen),
@@ -899,7 +970,17 @@ async function mainframeAct(name, value) {
     case 'userName': if (typeof value === 'string') updateConfig({ userName: value.trim().slice(0, 24) }); break;
     case 'help': sendCommand('welcome'); break;
     case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
-    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'closePages': case 'lieBack': case 'erebus': case 'pcReact': case 'talkCloud': updateConfig({ [name]: Boolean(value) }); break;
+    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'closePages': case 'lieBack': case 'erebus': case 'pcReact': case 'talkCloud': case 'aiSpot': updateConfig({ [name]: Boolean(value) }); break;
+    case 'aiNot': {
+      // { key }: one the model took for another AI isn't: off her list, and never taken for one again
+      const key = String(value?.key || '');
+      const cfg = config.load();
+      if (!cfg.aiSeen?.[key]?.found) break;
+      const { [key]: _gone, ...aiSeen } = cfg.aiSeen;
+      spot?.forget(key);
+      updateConfig({ aiSeen, aiSpared: (cfg.aiSpared || []).filter((k) => k !== key), aiNot: [...new Set([...(cfg.aiNot || []), key])] });
+      break;
+    }
     case 'talk': if (one(['quiet', 'normal', 'chatty'])) updateConfig({ talk: value }); break;
     case 'lookNow': sendCommand('look'); break;
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
@@ -1784,7 +1865,9 @@ function registerIpc() {
   ipcMain.handle('claude:found', () => fs.existsSync(path.dirname(activeHooks().status().file))); // Claude Code keeps its settings there
   ipcMain.on('claude:help', () => shell.openExternal(activeAssistant().help));
   ipcMain.handle('windows:get', () => lastWindows);
-  ipcMain.handle('windows:closePage', (_e, { id, key }) => windowWatch?.close(id, key) ?? 'gone');
+  // one the model found: closed if that window still has the very title it was asked about
+  ipcMain.handle('windows:closePage', (_e, { id, key }) => (spotFront?.id === id && spotFront.key === key
+    ? windowWatch?.shut(id, spotFront.title) : windowWatch?.close(id, key)) ?? 'gone');
   // talking to her (chat.js): is Ollama there, with a model to talk with
   ipcMain.handle('chat:status', async () => {
     const cfg = config.load(true); // keys may have been edited by hand
@@ -2885,13 +2968,17 @@ function main() {
     screenGrab = startScreenGrab();
     windowWatch = startWindowWatch({
       overlay,
-      onUpdate: (data) => {
+      onUpdate: (raw) => {
+        const data = spotted(raw);
         // a click on the taskbar brings it up over her: sitting on it, her legs would vanish behind it
         if (data.taskbar && !lastWindows?.taskbar && (config.load().rest === 'taskbar' || onTaskbar)) raiseOverlay();
         lastWindows = data;
         overlay?.webContents.send('windows:update', data);
       },
     });
+    // the model's answer about the window in front: the windows again, with it
+    spot = createSpotter({ file: path.join(app.getPath('userData'), 'ai-titles.json'), ask: spotAsk, known: LISTED_AI, onChange: () => windowWatch?.refresh() });
+    syncSpot();
     createBridge({
       port: PORT,
       // her own Claude Code or Codex chat's hooks would cover its answer with theirs
@@ -2953,6 +3040,7 @@ function main() {
     pocketLink?.stop();
     globalShortcut.unregisterAll();
     windowWatch?.stop();
+    spot?.flush();
     screenGrab?.stop();
   });
   app.on('window-all-closed', (e) => e.preventDefault());

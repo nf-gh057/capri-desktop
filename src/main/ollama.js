@@ -129,6 +129,23 @@ async function chat({ model, messages }, onDelta, signal) {
   return text;
 }
 
+// One short answer in the JSON shape `format` (a JSON schema), not streamed: what a model on this PC
+// says of the window in front (her jealousy, spot.js). Loaded as for her chat, so it isn't loaded twice.
+async function ask({ model, prompt, format }) {
+  const res = await fetch(`${base()}/api/generate`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model, prompt, format, stream: false, ...LOCAL,
+      ...(known.get(model)?.thinking && { think: false }),
+      options: { ...LOCAL.options, temperature: 0, num_predict: 80 },
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) throw await failure(res);
+  return (await res.json()).response || '';
+}
+
 // Whether a model can look at pictures (gemma3 can, llama3.2 can't). Can't tell: yes, try it.
 async function canSee(model) {
   const res = await fetch(`${base()}/api/show`, {
@@ -142,4 +159,4 @@ async function canSee(model) {
   return !Array.isArray(info.capabilities) || info.capabilities.includes('vision');
 }
 
-module.exports = { base, models, isCloud, account, freeModels, warm, chat, canSee };
+module.exports = { base, models, isCloud, account, freeModels, warm, chat, ask, canSee };
