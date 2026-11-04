@@ -315,6 +315,25 @@ was on all of them.
 Pair the Telegram bot on one PC, and the others send their messages through it. "Away" then means away from all of them,
 and her chat on Telegram locks when you're back at any of them.
 
+### Her voice
+
+She can speak her lines out loud, in a voice cloned from 10 to 15 seconds of a clean recording. Her voice runs on
+your PC: [Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox), in all six of her languages, with an
+NVIDIA card (on the processor alone it works, slowly).
+
+- **Setting it up**: Mainframe › CYBERWARE › Voice › *Install her voice*. That's about 6 GB: a Python environment with
+  PyTorch and the model in `%USERPROFILE%\.capri\voice`, outside the repo. Then *A voice from a recording…*: her
+  voice is made from its speech, in the language she speaks then. The recording stays on your PC; no voice comes with
+  the repo.
+- **When she speaks**: her chat's answers only, or every line in her bubble. Volume, which voice (by default the one
+  made in her language), and how *electronic* she sounds: on top of the cloned voice, a shadow an octave down, a hint
+  of tin and some digital grain, like a construct. *Listen* plays a line.
+- **No waiting for long answers**: what she says goes out a sentence at a time, a short one first. Each sentence is
+  made while the one before plays, and an answer still coming in from her chat is said as its sentences arrive. On an
+  RTX 3060 laptop a sentence takes about half as long to make as to say, and what she's said before comes back at once.
+- **Quiet otherwise**: her typing blips stop while she speaks, closing her chat stops her mid-sentence, and muting her
+  mutes her voice too. Her voice holds about 3 GB of the graphics card while it's on.
+
 ### Her animations
 
 New drawings of her in the show's style, swapped in for her rigged cut-out while she's in them:
@@ -573,15 +592,20 @@ android/                 her app (Kotlin, no libraries): her key in Android Keys
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
   screengrab.js / .ps1   bits of the screen in a few ms, for her teleports to tear open (a PowerShell helper, GDI)
   spot.js                whether the window in front is another AI, past her list: asked of a model on this PC, remembered
+  tts.js                 her voice: its server started and stopped, her lines cut into sentences and sent a piece at a time
 src/renderer/js/
   mainframe.js           Mainframe's page: its tabs, HOLO
   talk.js                what she says of her own, in her words: when, how often, and kept in her chat
+  speech.js              her voice out loud: each piece queued behind the one before, an answer said as it comes in
 tools/build-ninepatch.py her chat's frames for Android (bubbles, HUD bar) as 9-patch images, cut corners drawn whole
 tools/build-poses.py     her pose drawings from generated pictures: keyed, her colours, placed on her sprite (POSES)
+voice/                   her voice (Python, its own environment in ~/.capri/voice): server.py (127.0.0.1, a token),
+                         fast_t3.py (Chatterbox's decoder from a CUDA graph, ~5x), fx.py (her construct sound),
+                         setup.ps1 / requirements.txt (the environment, from Mainframe)
 ```
 
 Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
-`test:pocket`, `test:spot`.
+`test:pocket`, `test:spot`, `test:voice`.
 
 `npm run dev` turns on her debug routes:
 
@@ -600,6 +624,7 @@ Environment variables:
 | `CAPRI_UPDATE_DEV=1` | In `--dev` (a developer's clone) she only tells of a new version; this lets her update that clone too |
 | `CAPRI_POCKET_PLAIN=1` | In `--dev`, her phone page on `127.0.0.1` over plain HTTP, whoever opens it taken for a phone of yours (to try it in a browser) |
 | `CAPRI_POCKET_PORT` | That page's port (47825 by default) |
+| `CAPRI_VOICE_HOME` | Where her voice lives (its environment, voices and cache), `~/.capri/voice` by default |
 
 Capri was made by [mochiiwuff](https://github.com/mochiiwuff/capri-desktop). This fork
 ([nf-gh057](https://github.com/nf-gh057/capri-desktop)) adds what's described above, under the same license.

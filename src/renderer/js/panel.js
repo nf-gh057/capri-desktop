@@ -53,6 +53,10 @@ export class Panel {
     this.view = { w: innerWidth, h: innerHeight };
     this.onChar = null;    // (mood) => void, for the voice blips
     this.onTalk = null;    // (talking: boolean) => void
+    this.onLine = null;    // (message) => void, a line of hers shown (her voice says it)
+    this.onTurn = null;    // () => void, a chat answer starting
+    this.onStream = null;  // (text, done) => void, the answer so far
+    this.onGone = null;    // (message) => void, it went (closed or timed out)
     this.possessed = null; // () => boolean: Erebus has her (her face is his)
     this.suspended = false;
     this.tickerAction = null;
@@ -156,6 +160,7 @@ export class Panel {
     this.el.classList.remove('is-leaving');
     this.replayEnter();
     this.place();
+    this.onLine?.(msg);
     this.decode(msg.line || '', msg.kind);
 
     if (msg.hold) this.hideTimer = setTimeout(() => this.hide(), msg.hold);
@@ -323,6 +328,7 @@ export class Panel {
   // announcing the panel all over again.
   chatTurn({ quote, face }) {
     if (!this.current?.chat) return;
+    this.onTurn?.();
     clearInterval(this.decodeTimer);
     this.stopStream();
     this.setFace(face);
@@ -337,6 +343,7 @@ export class Panel {
   // up faster the further behind it is (Claude Code's answer comes in one piece), and glitches once done.
   stream(text, { done = false } = {}) {
     if (!this.current?.chat) return;
+    this.onStream?.(text, done);
     this.streamTo = [...text];
     this.streamDone = done;
     // an answer rewritten rather than added to (a reasoning block cut out, an error): from where they part
@@ -463,6 +470,7 @@ export class Panel {
     this.leaving = true;
     if (gone) {
       this.onDismiss?.(gone);
+      this.onGone?.(gone);
       gone.onLeave?.();
     }
     // what Claude said while you were talking with her, now that you're done

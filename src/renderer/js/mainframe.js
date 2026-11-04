@@ -194,7 +194,36 @@ function cyberware(s, t) {
       check(t.mute, c.muted, 'muted'),
       check(t.lookAuto, c.lookAuto, 'lookAuto'),
       row(null, button(t.lookNow, 'lookNow', null, { class: 'grow' }))),
+    voice(s.voice, t),
   ];
+}
+
+// Her voice out loud, cloned from a recording, on this PC (tts.js): set up here first
+function voice(v, t) {
+  if (!v.installed) {
+    return section(t.secVoice,
+      el('p', { class: 'note' }, v.note),
+      row(null, button(t.voiceInstall, 'voiceInstall', null, { class: 'grow', disabled: v.installing })));
+  }
+  return section(t.secVoice,
+    check(t.voiceOn, v.on, 'voiceOn'),
+    el('p', { class: `note ${v.error ? 'is-error' : ''}` }, v.note),
+    v.added && el('p', { class: 'note' }, v.added),
+    v.on && [
+      row(t.voiceMode, choice('split grow', [['chat', t.voiceModeChat], ['all', t.voiceModeAll]], v.mode, 'voiceMode')),
+      row(t.voiceVolume, el('input', {
+        type: 'range', class: 'range grow', min: 0, max: 100, step: 5, value: v.volume, 'aria-label': t.voiceVolume,
+        style: `--at: ${v.volume}%`,
+        oninput: (e) => e.target.style.setProperty('--at', `${e.target.value}%`),
+        onchange: (e) => act('voiceVolume', Number(e.target.value)),
+      })),
+      row(t.voiceProfile, select(v.profiles, v.profile, 'voiceProfile', { label: t.voiceProfile })),
+      row(t.voiceFx, choice('quad grow', [['0', t.voiceFxOff], ['0.5', t.voiceFxLight], ['1', t.voiceFxNormal], ['1.5', t.voiceFxStrong]],
+        v.fx, 'voiceFx')),
+      el('div', { class: 'split' },
+        button(t.voiceTest, 'voiceTest', null, { disabled: !v.ready }),
+        button(t.voiceAdd, 'voiceAdd', null, { disabled: !v.running })),
+    ]);
 }
 
 // Jealous: closing other AIs' pages, the ones she's caught you on (each one's pages can be spared),

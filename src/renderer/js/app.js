@@ -16,6 +16,7 @@ import { Reminders, clock } from './reminders.js';
 import { Look } from './look.js';
 import { Pc } from './pc.js';
 import { Talk } from './talk.js';
+import { Speech } from './speech.js';
 import { linesFor } from './lines.js';
 import { pick, fmt, reducedMotion, sleep } from './util.js';
 
@@ -93,6 +94,10 @@ async function boot() {
   const voice = new Voice();
   voice.configure(config);
   host.listSounds().then((list) => list.length && voice.loadCustom(list));
+  // her voice out loud, cloned from a recording (speech.js): her typing blips stay quiet while she speaks
+  const speech = new Speech({ host, voice });
+  speech.configure(config);
+  voice.quiet = () => speech.active;
 
   const panel = new Panel({
     panel: document.getElementById('panel'),
@@ -276,6 +281,11 @@ async function boot() {
   };
   panel.onChar = (kind) => voice.play('blip', { mood: kind });
   panel.onTalk = (talking) => talking && capri.perform('talk');
+  panel.onLine = (msg) => msg.line && speech.say(msg.line, { chat: Boolean(msg.chat), force: Boolean(msg.voiceTest) });
+  panel.onTurn = () => speech.turn();
+  panel.onStream = (text, done) => speech.stream(text, done);
+  panel.onGone = (msg) => msg.chat && speech.stop(); // her chat closed: she stops mid-sentence
+  speech.onPiece = () => capri.perform('talk');
   capri.onMenu = () => host.openMenu();
 
   // Her guide (guide.js): her welcome on first launch, and "How does it work?" in her menu,
@@ -702,7 +712,7 @@ async function boot() {
   };
 
   // what's in here, for --dev scripts (debug route `eval`)
-  window.dev = { capri, brain, panel, chat, guide, fx, voice, bond, jealousy, reminders, look, pc, setup, screens: () => screens, hit: () => ({ interactive, mouse }) };
+  window.dev = { capri, brain, panel, chat, guide, fx, voice, speech, bond, jealousy, reminders, look, pc, setup, screens: () => screens, hit: () => ({ interactive, mouse }) };
 
   host.onClaudeEvent((evt) => brain.handle(evt));
   host.onWindows((data) => {
@@ -814,6 +824,7 @@ async function boot() {
     chatShows(cfg);
     talk.configure(cfg);
     voice.configure(cfg);
+    speech.configure(cfg);
     jealousy.enabled = cfg.jealous !== false;
     capri.erebusOn = cfg.erebus !== false;
     if (!capri.erebusOn) capri.erebusOut(); // turned off while he has her: her ICE throws him out
@@ -957,6 +968,9 @@ async function boot() {
       }
       case 'assistantChanged': // Claude Code, Codex or Antigravity, picked in her menu
         guide.welcome();
+        break;
+      case 'voiceTest': // "Listen" in Mainframe's Voice: a line of hers, said whatever she says out loud
+        panel.say({ kind: 'info', line: pick(t.chat.hello), hold: 6000, voiceTest: true });
         break;
       case 'welcome': // "How does it work?" in her menu
         guide.menu();

@@ -1,0 +1,10 @@
+# Her voice's Python environment (voice/setup.ps1 installs torch first, from PyTorch's CUDA index).
+# Pinned: fast_t3.py reaches into Chatterbox's and transformers' internals.
+chatterbox-tts==0.1.7
+transformers==5.2.0
+diffusers==0.29.0
+numpy==1.26.4
+librosa==0.11.0
+soundfile==0.14.0
+scipy==1.17.1
+setuptools<81

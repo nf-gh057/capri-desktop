@@ -70,6 +70,11 @@ const DEFAULTS = {
   aiSpot: true,      // a model on this PC tells her whether the window in front is another AI, past her list (spot.js)
   aiNot: [],         // the keys of ones it found that you said are no AI (Mainframe): never taken for one again
   lieBack: true,     // sitting on a window, she lies back on it now and then (capri.js lieDown)
+  voiceOn: false,    // she speaks her lines out loud, in a voice cloned from a recording (voice/server.py, tts.js)
+  voiceMode: 'chat', // 'chat': her answers in her chat only; 'all': every line in her bubble
+  voiceVolume: 0.9,
+  voiceProfile: null, // the voice (a folder in ~/.capri/voice/profiles); null: the one in her language
+  voiceFx: 1,        // how electronic her voice is: 0 (as cloned) .. 1.5
   reminders: [],     // the reminders she keeps: [{ id, at, text, made }] (reminders.js)
   bond: null,        // how close she is to you: { xp, first, last, days, streak, caps } (bond.js)
   pcReact: true,     // she reacts to your PC: the processor at full tilt, the battery, the network, a USB stick, a game (pc.js)

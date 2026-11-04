@@ -584,9 +584,42 @@ body {
   gap: 12px;
   margin-top: 16px;
 }
+/* four in a row (her voice: how electronic) */
+.quad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
 .row .trio,
+.row .quad,
 .row .split {
   margin-top: 0;
+}
+
+/* a slider (her voice's volume): a thin line, the part up to the knob in cyan, a square knob */
+.range {
+  appearance: none;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(to right, var(--cyan) var(--at, 50%), var(--red-dim) var(--at, 50%));
+}
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  background: var(--cyan);
+  border: none;
+}
+.range:focus-visible {
+  outline: 1px solid var(--cyan);
+  outline-offset: 2px;
 }
 
 /* the bottom line, like her game's key hints: "?" at the right */

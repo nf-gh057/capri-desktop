@@ -330,6 +330,24 @@ zmieniło, i daje **Cofnij**. Cofnij przywraca poprzedni stan na wszystkich.
 Sparuj bota Telegrama na jednym komputerze, a pozostałe wysyłają swoje wiadomości przez niego. „Nie ma cię” znaczy wtedy:
 nie ma cię przy żadnym z nich, a rozmowa przez Telegram blokuje się, gdy wrócisz do któregokolwiek.
 
+### Jej głos
+
+Może mówić swoje kwestie na głos, głosem sklonowanym z 10–15 sekund czystego nagrania. Jej głos działa na twoim PC:
+[Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox), we wszystkich sześciu jej językach, z kartą
+NVIDIA (na samym procesorze też działa, ale wolno).
+
+- **Instalacja**: Mainframe › CYBERWARE › Głos › *Zainstaluj jej głos*. To około 6 GB: środowisko Pythona z PyTorchem
+  i model w `%USERPROFILE%\.capri\voice`, poza repo. Potem *Głos z nagrania…*: jej głos powstaje z mowy na nagraniu,
+  w języku, którym wtedy mówi. Nagranie zostaje na twoim PC; z repo nie przychodzi żaden głos.
+- **Kiedy mówi**: tylko odpowiedzi w czacie albo każda kwestia w dymku. Głośność, który głos (domyślnie ten zrobiony
+  w jej języku) i jak bardzo *elektronicznie* brzmi: na sklonowany głos nakłada cień oktawę niżej, trochę blachy
+  i cyfrowego ziarna, jak konstrukt. *Posłuchaj* odtwarza kwestię.
+- **Bez czekania na długie odpowiedzi**: to, co mówi, idzie zdanie po zdaniu, najpierw krótkie. Każde zdanie powstaje,
+  gdy poprzednie gra, a odpowiedź z czatu, która jeszcze spływa, wypowiada w miarę, jak przychodzą zdania. Na laptopowym
+  RTX 3060 zdanie powstaje w mniej więcej połowę czasu, jaki trwa, a to, co już mówiła, wraca od razu.
+- **Poza tym cicho**: kiedy mówi, milkną piknięcia pisania; zamknięcie czatu przerywa jej w pół zdania, a wyciszenie
+  wycisza też głos. Włączony głos zajmuje około 3 GB karty graficznej.
+
 ### Jej animacje
 
 Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją animowaną postać:
@@ -589,15 +607,20 @@ android/                 jej aplikacja (Kotlin, bez bibliotek): klucz w Android 
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
   screengrab.js / .ps1   kawałki ekranu w kilka ms, do rozdarcia przy teleporcie (pomocnik w PowerShellu, GDI)
   spot.js                czy okno na wierzchu to inne AI spoza jej listy: pytanie do modelu na tym PC, zapamiętane
+  tts.js                 jej głos: uruchamianie i zatrzymywanie serwera, kwestie cięte na zdania i wysyłane kawałkami
 src/renderer/js/
   mainframe.js           strona Mainframe: zakładki, HOLO
   talk.js                to, co mówi sama, własnymi słowami: kiedy, jak często, zapisane w jej czacie
+  speech.js              jej głos na głos: każdy kawałek w kolejce za poprzednim, odpowiedź mówiona w miarę, jak spływa
 tools/build-ninepatch.py ramki jej czatu dla Androida (dymki, listwa HUD) jako obrazy 9-patch, z całymi ściętymi rogami
 tools/build-poses.py     jej pozy z wygenerowanych obrazków: wycięte, w jej kolorach, ułożone na jej sprite (POSES)
+voice/                   jej głos (Python, własne środowisko w ~/.capri/voice): server.py (127.0.0.1, token),
+                         fast_t3.py (dekoder Chatterboxa z grafu CUDA, ~5x), fx.py (jej brzmienie konstruktu),
+                         setup.ps1 / requirements.txt (środowisko, z Mainframe)
 ```
 
 Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
-`test:pocket`, `test:spot`.
+`test:pocket`, `test:spot`, `test:voice`.
 
 `npm run dev` włącza jej trasy debugowania:
 
@@ -616,6 +639,7 @@ Zmienne środowiskowe:
 | `CAPRI_UPDATE_DEV=1` | W trybie `--dev` (klon programisty) Capri tylko mówi o nowej wersji; to pozwala jej zaktualizować także taki klon |
 | `CAPRI_POCKET_PLAIN=1` | W trybie `--dev` jej strona na telefon na `127.0.0.1` przez zwykłe HTTP, a każdy, kto ją otworzy, liczy się jako twój telefon (do wypróbowania w przeglądarce) |
 | `CAPRI_POCKET_PORT` | Port tej strony (domyślnie 47825) |
+| `CAPRI_VOICE_HOME` | Gdzie mieszka jej głos (środowisko, głosy i pamięć podręczna), domyślnie `~/.capri/voice` |
 
 Capri to projekt [mochiiwuff](https://github.com/mochiiwuff/capri-desktop). Ten fork
 ([nf-gh057](https://github.com/nf-gh057/capri-desktop)) dokłada to, co opisane wyżej, na tej samej licencji.

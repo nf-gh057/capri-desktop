@@ -24,6 +24,7 @@ const launch = require('./launch');
 const files = require('./files');
 const { ASSISTANTS, assistant } = require('./assistants');
 const { createMainframe } = require('./mainframe');
+const { createVoice } = require('./tts');
 const phone = require('./phone');
 const totp = require('./totp');
 const swarm = require('./swarm');
@@ -57,6 +58,8 @@ let spotFront = null; // the window in front, as the model took it: { id, key, t
 let spotModel = null; // the model on this PC it asked last
 let screenGrab = null; // bits of the screen for her teleports to tear (screengrab.js)
 let mainframe = null; // her settings window (mainframe.js)
+let voice = null;     // her voice: the local text-to-speech server (tts.js, voice/server.py)
+let voiceNote = null; // what came of the last voice made from a recording, for Mainframe
 // her swarm (swarm.js): the link to her on your other PCs, and what Tailscale says here
 let hive = null;
 let hiveTailscale = null; // { ip, name, state } or null (not there)
@@ -452,6 +455,7 @@ function updateConfig(patch) {
   config.save(patch);
   if (!mindApplying && MIND_KEYS.some((key) => key in patch)) mindCapture();
   if ('jealous' in patch || 'aiSpot' in patch) syncSpot();
+  if ('voiceOn' in patch) syncVoice();
   if ('rest' in patch) {
     fitOverlay(); // the taskbar in her window or not
     windowWatch?.refresh();
@@ -806,6 +810,56 @@ function spotted(data) {
   };
 }
 
+// Her voice's server runs while her voice is on (it holds ~3 GB of the graphics card).
+function syncVoice() {
+  if (config.load().voiceOn) voice?.start();
+  else voice?.stop();
+}
+
+const VOICE_FX = [0, 0.5, 1, 1.5];
+
+function voiceState(cfg, t) {
+  const v = voice?.status() || { installed: false, profiles: [] };
+  const note = typeof v.installing === 'string' ? t.voiceInstalling(v.installing)
+    : !v.installed ? t.voiceNone
+      : !cfg.voiceOn ? t.voiceOff
+        : v.state === 'ready' ? (v.profiles.length ? t.voiceReady(v.device) : t.voiceNoProfile)
+          : v.state === 'error' ? t.voiceError(v.error)
+            : t.voiceLoading;
+  return {
+    installed: v.installed,
+    installing: typeof v.installing === 'string',
+    on: Boolean(cfg.voiceOn),
+    ready: v.state === 'ready' && v.profiles.length > 0,
+    running: v.state === 'ready', // a voice can be made from a recording
+    note,
+    added: voiceNote,
+    error: v.state === 'error',
+    mode: cfg.voiceMode === 'all' ? 'all' : 'chat',
+    volume: Math.round((cfg.voiceVolume ?? 0.9) * 100),
+    fx: String(VOICE_FX.includes(cfg.voiceFx) ? cfg.voiceFx : 1),
+    profile: cfg.voiceProfile || 'auto',
+    profiles: [{ id: 'auto', label: t.voiceAuto }, ...v.profiles.map((p) => ({ id: p.id, label: `${p.name} · ${p.lang}` }))],
+  };
+}
+
+// A voice from a recording you pick: its speech goes into a new profile, in the language she speaks now.
+async function addVoice() {
+  const t = trayLabels();
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: t.voiceAddTitle, properties: ['openFile'],
+    filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'flac', 'ogg', 'm4a'] }],
+  });
+  if (canceled || !filePaths[0]) return;
+  try {
+    const made = await voice.addProfile({ src: filePaths[0], lang: resolveLang(config.load().lang) });
+    voiceNote = t.voiceAdded(made.name, made.seconds);
+    updateConfig({ voiceProfile: made.id });
+  } catch (err) {
+    voiceNote = t.voiceError(err.message);
+  }
+}
+
 // What her settings window shows (renderer/js/mainframe.js): her menu's choices, with what's picked.
 function mainframeState() {
   const cfg = config.load();
@@ -902,6 +956,7 @@ function mainframeState() {
       hours: String(phoneHours(cfg)),
       open: phoneOpen ? t.phoneOpenUntil(phoneTime(phoneOpen.until, cfg)) : null,
     },
+    voice: voiceState(cfg, t),
     pocket: pocketState(cfg, t), // her page on your phone, over Tailscale
     update: updateState(cfg, t),
     // HOLO: her chat (as on all your PCs) and what she said on this one, and your message being answered
@@ -983,6 +1038,19 @@ async function mainframeAct(name, value) {
     }
     case 'talk': if (one(['quiet', 'normal', 'chatty'])) updateConfig({ talk: value }); break;
     case 'lookNow': sendCommand('look'); break;
+    case 'voiceOn': updateConfig({ voiceOn: Boolean(value) && voice?.installed() }); break;
+    case 'voiceMode': if (one(['chat', 'all'])) updateConfig({ voiceMode: value }); break;
+    case 'voiceVolume': { const v = Number(value); if (v >= 0 && v <= 100) updateConfig({ voiceVolume: v / 100 }); break; }
+    case 'voiceFx': { const v = Number(value); if (VOICE_FX.includes(v)) updateConfig({ voiceFx: v }); break; }
+    case 'voiceProfile':
+      if (value === 'auto' || value === null) updateConfig({ voiceProfile: null });
+      else if (voice?.status().profiles.some((p) => p.id === value)) updateConfig({ voiceProfile: value });
+      break;
+    case 'voiceInstall':
+      voice?.install().then((ok) => { if (ok) updateConfig({ voiceOn: true }); mainframe?.refresh(); });
+      break;
+    case 'voiceAdd': await addVoice(); break;
+    case 'voiceTest': sendCommand('voiceTest'); break;
     case 'lookAuto': sendCommand('watchScreen', { on: Boolean(value) }); break; // she asks first, then turns it on herself
     case 'cancelReminder': cancelReminder(value); break;
     case 'forgetMemory': forgetMemory(value); break;
@@ -2176,6 +2244,15 @@ function registerIpc() {
     else shell.openPath(dir);
     return { found: true, dir, file: fs.existsSync(file), label: fs.existsSync(file) ? path.basename(file) : path.basename(dir) };
   });
+  // her voice: what she says goes out a sentence at a time, each piece of audio back as it's made
+  ipcMain.handle('voice:speak', (_e, { id, text }) => {
+    const cfg = config.load();
+    if (!cfg.voiceOn || typeof text !== 'string') return false;
+    return voice?.speak({ id: String(id), text, lang: resolveLang(cfg.lang), profile: cfg.voiceProfile, fx: cfg.voiceFx ?? 1 },
+      ({ id: pieceId, wav, error }) => overlay?.webContents.send('voice:piece', { id: pieceId, wav, error })) || false;
+  });
+  ipcMain.on('voice:hush', (_e, id) => voice?.hush(id ? String(id) : null));
+
   ipcMain.handle('sounds:list', () => {
     try {
       return fs.readdirSync(userSoundsDir())
@@ -2985,6 +3062,14 @@ function main() {
     // the model's answer about the window in front: the windows again, with it
     spot = createSpotter({ file: path.join(app.getPath('userData'), 'ai-titles.json'), ask: spotAsk, known: LISTED_AI, onChange: () => windowWatch?.refresh() });
     syncSpot();
+    voice = createVoice({
+      log: (line) => DEV && console.log(line),
+      onChange: () => {
+        mainframe?.refresh();
+        overlay?.webContents.send('capri:config', rendererConfig()); // whether her voice is ready
+      },
+    });
+    syncVoice();
     createBridge({
       port: PORT,
       // her own Claude Code or Codex chat's hooks would cover its answer with theirs
@@ -3047,6 +3132,7 @@ function main() {
     globalShortcut.unregisterAll();
     windowWatch?.stop();
     spot?.flush();
+    voice?.stop();
     screenGrab?.stop();
   });
   app.on('window-all-closed', (e) => e.preventDefault());

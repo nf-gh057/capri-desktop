@@ -18,6 +18,7 @@ export class Voice {
     this.volume = 0.7;
     this.custom = new Map(); // cue -> AudioBuffer
     this.lastBlip = 0;
+    this.quiet = null; // () => boolean: her voice is speaking, no typing blips (app.js)
   }
 
   ensure() {
@@ -63,6 +64,7 @@ export class Voice {
 
   play(cue, opts = {}) {
     if (this.muted) return;
+    if (cue === 'blip' && this.quiet?.()) return; // she's speaking out loud (speech.js)
     const ctx = this.ensure();
     if (ctx.state === 'suspended') ctx.resume();
     const custom = this.custom.get(cue);
