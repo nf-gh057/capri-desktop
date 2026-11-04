@@ -527,6 +527,55 @@ export const ACTS = {
     ],
   },
 
+  // "Pick one": several windows behind one button on the taskbar. Her head snaps to it, she draws
+  // both arms in, crouching, then throws them open over it like a dealer spreading a hand of cards:
+  // the near arm swept out at it, the far one flung wide and high, her head cocked back at you
+  // ('fan': the windows fan out of the button). The arms bounce once and settle open.
+  offer: {
+    priority: 2,
+    fps: 24,
+    directional: true,
+    keys: [
+      [2, { head: 0.16, mane: 0.15, tilt: 1, smear: [-8, 2] }, 'spot'],
+      [3, { arms: -0.3, reach: -0.25, head: 0.12, sy: 0.93, sx: 1.04, bob: 4, mane: -0.12 }],
+      [2, { arms: -0.42, reach: -0.38, head: 0.1, sy: 0.88, sx: 1.07, bob: 7, mane: -0.26 }, 'coil'],
+      [1, { arms: 2.03, reach: 0.38, long: 1.4, head: -0.1, tilt: 3, sx: 0.95, sy: 1.1, bob: -4, mane: 0.6, smear: [0, 12], echo: [0, -8] }, 'fan'],
+      [2, { arms: 1.8, reach: 0.31, long: 1.3, head: -0.14, tilt: 2, bob: -3, mane: 0.48 }],
+      [2, { arms: 1.59, reach: 0.28, long: 1.2, head: -0.16, tilt: 2, bob: -2, mane: 0.34 }],
+      [2, { arms: 1.67, reach: 0.29, long: 1.22, head: -0.15, tilt: 2, bob: -2, mane: 0.28 }],
+    ],
+  },
+
+  // ...and held open while you pick: her arms sway a little over it, she looks it over, a flick of
+  // the near hand runs a ripple through the cards ('tap'), and a glance back at you.
+  offering: {
+    loop: true,
+    directional: true,
+    keys: [
+      [12, { arms: 1.67, reach: 0.29, long: 1.22, head: 0.14, tilt: 2, mane: 0.22 }],
+      [8, { arms: 1.59, reach: 0.28, long: 1.2, head: 0.16, tilt: 2, bob: -2, mane: 0.2 }],
+      [1, { arms: 1.62, reach: 0.36, long: 1.3, head: 0.18, tilt: 3, mane: 0.26, smear: [-6, 0] }, 'tap'],
+      [3, { arms: 1.65, reach: 0.3, long: 1.24, head: 0.16, tilt: 2, mane: 0.22 }],
+      [10, { arms: 1.67, reach: 0.29, long: 1.22, head: 0.15, tilt: 2, bob: -1, mane: 0.2 }],
+      [1, { arms: 1.67, reach: 0.29, long: 1.22, head: 0.02, tilt: 2, mane: 0.16, smear: [8, 0] }],
+      [10, { arms: 1.71, reach: 0.3, long: 1.22, head: -0.14, tilt: 1, mane: 0.18 }],
+      [1, { arms: 1.67, reach: 0.29, long: 1.22, head: 0.08, tilt: 2, mane: 0.2, smear: [-8, 0] }],
+    ],
+  },
+
+  // Done offering: the fan folds back into the button, her arms sweep down and in.
+  unoffer: {
+    priority: 2,
+    fps: 24,
+    directional: true,
+    keys: [
+      [1, { arms: 1.16, reach: 0.2, long: 1.05, head: 0.06, smear: [0, -10], mane: 0.14 }],
+      [2, { arms: 0.36, reach: 0.06, long: 0.95, head: 0.03, bob: 2 }],
+      [2, { arms: -0.06, reach: -0.04, long: 1, bob: 0 }],
+      [1, {}],
+    ],
+  },
+
   // Folding herself away into her biochip: a little cock of the head at you, then the mane
   // and the arms pulled in tight, crouching small.
   fold: {

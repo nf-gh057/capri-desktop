@@ -336,6 +336,11 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   superior. Then her ICE throws him out; grabbing her does too. Meanwhile her face in her panel is his, and what he
   says goes to HOLO too, in red under his own square. With reduced motion, none of it; untick *Erebus can take her
   over* in Mainframe › RELIC to keep him out.
+- **"Pick one"**: ask her for an app with several windows ("where's Firefox?") and, rather than just pointing at its
+  taskbar button, she stands beside it and throws her arms open over it. Its windows fan out of the button like a hand
+  of cards, dealt one after another, each with its title (a "+N" card for the rest past five), and her near hand holds
+  a thread to the fan. The one you pick in her panel lifts out of it, lit, before she brings it up; then the fan folds
+  back into the button.
 - **Her mane in her intro**, as she holds your screen: her real one from the show, broad crimson planes layered over
   each other with black shards among them, instead of a flat red star.
 - **Smoother**: every animation of hers, the original project's included, gets a drawing in between each two of its

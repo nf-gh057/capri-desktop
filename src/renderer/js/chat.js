@@ -1038,9 +1038,18 @@ export class Chat {
   // Several windows of that app (or one she only sees there): its button on the taskbar, where you pick
   // the one you want, and each one by its title, a button each (`pick`). No button for it on her
   // screen: she only says so.
+  // With several, she spreads her arms over its button and they fan out of it ("pick one"), held while
+  // you choose.
   showStack({ name, count, rect, pick: wins = [] }) {
-    const { t } = this;
-    if (rect) this.point(rect, count >= 2 ? `${name} ×${count}` : name);
+    const { t, capri } = this;
+    if (rect && count >= 2) {
+      capri.offerAt(rect, { label: `${name} ×${count}`, count, titles: wins.map((w) => w.title) }).then(() => {
+        const at = capri.pointing;
+        setTimeout(() => {
+          if (at && capri.pointing === at) capri.stopPointing();
+        }, wins.length >= 2 ? 30000 : 9000);
+      });
+    } else if (rect) this.point(rect, name);
     return { line: fmt(pick(count >= 2 ? t.windowMany : t.windowHere), { app: name, count }), face: 'smug', choose: wins.length >= 2 ? wins : null };
   }
 
@@ -1120,6 +1129,12 @@ export class Chat {
         const win = done.choose.find((w) => String(w.id) === id);
         this.panel.setActions([]);
         if (!win) return;
+        // her fan of them out of the button: the one you picked lifts out of it, lit, a moment
+        const fan = this.capri.pointing?.fan && this.capri.pointing.pointer;
+        if (fan) {
+          fan.pick(done.choose.indexOf(win));
+          await new Promise((resolve) => setTimeout(resolve, 380));
+        }
         const shown = await this.showWindow({ id: win.id, name: win.title });
         this.addLine(answer, shown.line, shown.face);
       });

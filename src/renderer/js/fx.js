@@ -19,6 +19,9 @@ export const COLORS = {
 const SHARD_PALETTE = ['red', 'red', 'red', 'red', 'ink', 'ink', 'green', 'green', 'violet', 'paper'];
 const GLYPHS = ['01', '10', '▚', '▞', '◢', '◣', '>_', '{}', '#', '⌁', '//', '0x'];
 const FRAME_MS = 1000 / 24;
+// her fan of windows out of a taskbar button (fan()): cards at most, their size, how far up from the
+// button they stand, and the angle between two of them
+export const FAN = { cards: 5, w: 132, h: 84, reach: 210, step: 0.4 };
 const CUTIN = { w: 360, h: 240 }; // assets/capri/cutin-*.png
 // her intro (see intro()): her close-up holding your screen by its edges
 // (assets/capri/intro-grab.webp, cut out by tools/build-intro.py), where things are on it in its
@@ -295,6 +298,28 @@ export class FxLayer {
     const item = this.add({ type: 'pointer', life: 10 * 60 * 1000, from, rect, aim, label, fadeAt: 0, tapAt: 0, retractAt: 0 });
     return {
       tap: () => { item.tapAt = performance.now(); },
+      retract: () => { item.retractAt ||= performance.now(); },
+      fade: () => { item.fadeAt ||= performance.now(); },
+    };
+  }
+
+  // Several windows of one app, fanned out of its taskbar button (`rect`) like a hand of cards, from
+  // `pivot` (the button's top middle): `count` of them, the first by their `titles`, a "+N" card for
+  // the rest past five. Dealt out one after another, away from her side (`dir`: where the fan is from
+  // her), with a thread from each of her `hands()` to the outer cards. tap() ripples them; pick(i)
+  // lifts that one, lit, and dims the others; retract() folds them back into the button.
+  fan(rect, pivot, { count = 2, titles = [], label = '', dir = 1, hands = null } = {}) {
+    const n = Math.min(Math.max(count, 2), FAN.cards);
+    const cards = Array.from({ length: n }, (_, i) => (i === n - 1 && count > n ? `+${count - n + 1}` : titles[i] || ''));
+    const item = this.add({
+      type: 'fan', life: 10 * 60 * 1000, rect, pivot, cards, label, dir, hands, fadeAt: 0, tapAt: 0, retractAt: 0, picked: -1, pickAt: 0,
+    });
+    return {
+      tap: () => { item.tapAt = performance.now(); },
+      pick: (i) => {
+        item.picked = i;
+        item.pickAt = performance.now();
+      },
       retract: () => { item.retractAt ||= performance.now(); },
       fade: () => { item.fadeAt ||= performance.now(); },
     };
@@ -2437,6 +2462,133 @@ export class FxLayer {
           const drop = frame < 6 ? (6 - frame) * 4 : 0;
           const tx = clamp(tagAt ? tagAt.x - tw / 2 : x0, 4, vw - tw - 4);
           const ty = (tagAt ? clamp(tagAt.y - 10, 4, vh - 23) : y0 > 30 ? y0 - 24 : y1 + 6) - drop;
+          ctx.fillStyle = COLORS.violet;
+          ctx.fillRect(tx - 2, ty + 2, tw, 19);
+          ctx.fillStyle = COLORS.red;
+          ctx.fillRect(tx, ty, tw, 19);
+          ctx.fillStyle = COLORS.paper;
+          ctx.fillText(it.label, tx + 7, ty + 13.5);
+        }
+        ctx.restore();
+        break;
+      }
+      case 'fan': {
+        const fade = this.fadeStep(it, now, 260);
+        if (!fade) break;
+        const { w: vw, h: vh } = this.size || { w: 1e5, h: 1e5 };
+        const frame = Math.floor((now - it.born) / FRAME_MS);
+        // folding back: four drawings, the cards closing up and sinking into the button
+        const back = it.retractAt ? Math.floor((now - it.retractAt) / FRAME_MS) / 4 : 0;
+        if (back >= 1) {
+          it.life = 0;
+          break;
+        }
+        const { pivot, cards, dir } = it;
+        const n = cards.length;
+        const name = it.label.replace(/\s*×\d+$/, '');
+        // dealt one after another from her side outward: each card snaps open over a few drawings,
+        // overshoots and settles
+        const OPEN = [0.2, 0.62, 1.1, 0.96, 1];
+        const tapK = it.tapAt ? Math.floor((now - it.tapAt) / FRAME_MS) : 99;
+        const pickK = it.pickAt ? Math.floor((now - it.pickAt) / FRAME_MS) : -1;
+        const placed = cards.map((text, i) => {
+          const order = dir > 0 ? i : n - 1 - i;
+          const k = frame - 1 - order * 2;
+          if (k < 0) return null;
+          const open = (k < OPEN.length ? OPEN[k] : 1) * (1 - back);
+          const angle = ((i - (n - 1) / 2) * FAN.step + dir * 0.2) * open;
+          const picked = it.picked === i && pickK >= 0;
+          let lift = picked ? Math.min(2, pickK + 1) * 12 : 0;
+          if (tapK >= order && tapK < order + 2) lift += 6; // a ripple through them, one after another
+          const r = FAN.reach * Math.min(1, open) + lift;
+          return { i, text, k, angle, r, picked, x: pivot.x + Math.sin(angle) * r, y: pivot.y - Math.cos(angle) * r };
+        }).filter(Boolean);
+        ctx.save();
+        ctx.globalAlpha = fade;
+
+        // the button's brackets, if it's on her screen
+        if (it.rect.y < vh - 2) {
+          const pad = 4 + back * 30;
+          const x0 = Math.max(2, it.rect.x - pad), y0 = Math.max(2, it.rect.y - pad);
+          const x1 = Math.min(vw - 2, it.rect.x + it.rect.w + pad), y1 = Math.min(vh - 2, it.rect.y + it.rect.h + pad);
+          const arm = Math.min(14, (x1 - x0) / 3, (y1 - y0) / 3);
+          for (const [dx, dy, color] of [[-2, 2, COLORS.violet], [0, 0, frame < 3 ? COLORS.paper : COLORS.red]]) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) {
+              ctx.beginPath();
+              ctx.moveTo(cx + dx, cy + sy * arm + dy);
+              ctx.lineTo(cx + dx, cy + dy);
+              ctx.lineTo(cx + sx * arm + dx, cy + dy);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // a wire from the button up to each card, dashes crawling up it on twos
+        ctx.setLineDash([6, 5]);
+        ctx.lineDashOffset = Math.floor(frame / 2) * 4;
+        for (const c of placed) {
+          const r = Math.max(0, c.r - FAN.h / 2);
+          this.stroke([[pivot.x, pivot.y], [pivot.x + Math.sin(c.angle) * r, pivot.y - Math.cos(c.angle) * r]], c.picked ? COLORS.green : COLORS.violet, 2);
+        }
+        // her thread: from the hand nearer the fan to its card on her side, once they're all out
+        const hands = it.hands?.();
+        if (hands && !back && placed.length === n && placed[n - 1].k >= OPEN.length) {
+          const c = dir > 0 ? placed[0] : placed[n - 1];
+          const hand = hands.reduce((a, b) => (Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a));
+          this.stroke([[hand.x, hand.y], [c.x, c.y]], COLORS.green, 1.5);
+        }
+        ctx.setLineDash([]);
+
+        // the cards, the picked one on top
+        ctx.font = '600 10px "JetBrains Mono", monospace';
+        for (const c of [...placed].sort((a, b) => a.picked - b.picked)) {
+          const { w, h } = FAN;
+          const lit = c.k < 2 || c.picked || (tapK >= 0 && tapK < 2);
+          ctx.save();
+          ctx.translate(Math.round(c.x), Math.round(c.y));
+          ctx.rotate(c.angle);
+          ctx.globalAlpha = fade * (it.picked >= 0 && !c.picked ? 0.45 : 1);
+          ctx.fillStyle = COLORS.violet;
+          ctx.fillRect(-w / 2 - 3, -h / 2 + 3, w, h);
+          ctx.fillStyle = COLORS.ink;
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+          // its title bar: the window's title (or the app's name), cut to fit
+          ctx.fillStyle = c.picked ? COLORS.green : COLORS.red;
+          ctx.fillRect(-w / 2, -h / 2, w, 16);
+          const plus = c.text.startsWith('+');
+          let title = plus ? name : c.text || name;
+          while (title.length > 1 && ctx.measureText(title).width > w - 12) title = `${title.slice(0, -2)}…`;
+          ctx.fillStyle = c.picked ? COLORS.ink : COLORS.paper;
+          ctx.fillText(title, -w / 2 + 6, -h / 2 + 11.5);
+          if (plus) {
+            // the rest of them, past five: "+3"
+            ctx.font = '700 22px "JetBrains Mono", monospace';
+            ctx.fillStyle = COLORS.paper;
+            ctx.fillText(c.text, -ctx.measureText(c.text).width / 2, 16);
+            ctx.font = '600 10px "JetBrains Mono", monospace';
+          } else {
+            // what's in it, as bars (the same each time for the same card)
+            for (let row = 0; row < 3; row++) {
+              const len = 0.35 + (((c.i * 7 + row * 5) % 9) / 9) * 0.55;
+              ctx.fillStyle = row === 1 ? COLORS.green : COLORS.violet;
+              ctx.fillRect(-w / 2 + 8, -h / 2 + 26 + row * 14, Math.round((w - 16) * len), 5);
+            }
+          }
+          ctx.strokeStyle = lit ? COLORS.paper : COLORS.red;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-w / 2, -h / 2, w, h);
+          ctx.restore();
+        }
+
+        // the app's name and how many, on a red tag over the fan once it's all out
+        if (it.label && !back && placed.length === n && placed[n - 1].k >= 2) {
+          const top = Math.min(...placed.map((c) => c.y)) - FAN.h / 2 - 34;
+          ctx.font = '600 11px "JetBrains Mono", monospace';
+          const tw = ctx.measureText(it.label).width + 14;
+          const tx = clamp(pivot.x - tw / 2, 4, vw - tw - 4);
+          const ty = clamp(top, 4, vh - 23);
           ctx.fillStyle = COLORS.violet;
           ctx.fillRect(tx - 2, ty + 2, tw, 19);
           ctx.fillStyle = COLORS.red;

@@ -350,6 +350,11 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   i rozdziera się. Erebus mówi, chłodno i z wyższością. Potem jej LÓD go wyrzuca; złapanie jej też. W tym czasie jej
   twarz w dymku jest jego, a to, co mówi, trafia też do HOLO, na czerwono pod jego własnym kwadratem. Przy
   ograniczonych animacjach nic z tego; odznacz *Erebus może ją opętać* w Mainframe › RELIC, żeby go nie wpuszczać.
+- **„Wybierz sobie”**: zapytaj ją o aplikację z kilkoma oknami („gdzie jest Firefox?”), a zamiast samego wskazania
+  jej przycisku na pasku zadań staje obok i rozkłada nad nim ręce. Z przycisku wysuwa się wachlarz jej okien jak karty
+  w dłoni, jedna po drugiej, każda ze swoim tytułem (powyżej pięciu karta „+N” na resztę), a bliższa ręka trzyma nić
+  do wachlarza. Okno, które wybierzesz w jej panelu, wysuwa się z niego podświetlone, zanim je wywoła; potem wachlarz
+  składa się z powrotem w przycisk.
 - **Jej grzywa w intro**, kiedy trzyma twój ekran: prawdziwa, jak w serialu, szerokie karmazynowe płaty nałożone na
   siebie z czarnymi odłamkami między nimi, zamiast płaskiej czerwonej gwiazdy.
 - **Płynniej**: każda jej animacja, także te z oryginalnego projektu, dostaje rysunek pośredni między każdymi dwoma

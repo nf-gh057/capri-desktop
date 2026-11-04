@@ -16,6 +16,7 @@
 
 import { SpriteRenderer, SPRITE, POSES } from './sprite.js';
 import { ACTS, NEUTRAL, Player } from './acting.js';
+import { FAN } from './fx.js';
 import { sleep, rand, pick, clamp, lerp, ease, tween, reducedMotion, today } from './util.js';
 
 const ON_TWOS = 1000 / 12;
@@ -1221,6 +1222,7 @@ export class Capri {
   // The cycle under her acts: her stance's, or holding her arm out at what she's showing you.
   restBase(dir = 0) {
     const pt = this.pointing;
+    if (pt?.fan && this.stance === 'stand') return new Player('offering', { dir: pt.dir, reach: pt.reach });
     if (pt && (this.stance === 'stand' || this.stance === 'sit')) return new Player('pointing', { dir: pt.dir, reach: pt.reach });
     return new Player(this.baseAct(), { dir });
   }
@@ -1562,6 +1564,20 @@ export class Capri {
             this.fx.cutin(...this.cutinAt(-pt.dir, { flip: false }), { kind: 'eyes', life: 480 });
           }
           this.voice.play('bolt');
+        }
+        break;
+      }
+      case 'fan': { // her arms thrown open: the windows fan out of their button
+        const pt = this.pointing;
+        if (pt?.fan && !pt.pointer) {
+          pt.pointer = this.fx.fan(pt.rect, pt.aim, {
+            ...pt.fan, label: pt.label, dir: pt.dir, hands: () => [this.limb('L').hand, this.limb('R').hand],
+          });
+          if (!reducedMotion.matches) {
+            this.fx.burst(pt.aim.x, pt.aim.y, { count: 14, power: 0.55, spread: 30 });
+            this.fx.ring(pt.aim.x, pt.aim.y, { size: 0.4 });
+          }
+          this.voice.play('bolt', { soft: true });
         }
         break;
       }
@@ -2322,14 +2338,54 @@ export class Capri {
     return true;
   }
 
-  // Done showing: the line reels back into her finger, the reticle lets go, the arm snaps back.
+  // Several windows of one app behind its button on the taskbar (`rect`): "pick one". She stands
+  // beside it and throws her arms open over it, and its windows fan out of the button like a hand of
+  // cards (`count` of them, the first ones by their `titles`), to pick from in her panel. Kept until
+  // stopPointing(), like pointAt; pointing.pointer.pick(i) lifts the one you picked.
+  async offerAt(rect, { label = '', count = 2, titles = [] } = {}) {
+    if (this.stowed) return false;
+    if (this.erebus) {
+      this.corruptWin(rect);
+      return false;
+    }
+    this.stopPointing();
+    const { w, h } = this.view;
+    // the fan's pivot: the button's top middle (the edge of her screen when the taskbar is off it)
+    const aim = { x: clamp(rect.x + rect.w / 2, 6, w - 6), y: clamp(rect.y, 6, h - 4) };
+    const spot = this.offerSpot(aim);
+    if (this.stance !== 'stand' || Math.hypot(spot.x - this.pos.x, spot.y - this.pos.y) > 140) {
+      await this.teleport({ x: spot.x, y: spot.y }, { face: spot.face });
+    }
+    if (this.stowed || this.hidden) return false;
+    const dir = aim.x < this.pos.x ? -1 : 1;
+    this.pointing = { rect, aim, dir, side: this.armToward(dir), reach: 1, label, pointer: null, fan: { count, titles } };
+    this.base = this.restBase();
+    await this.perform('offer', dir);
+    if (this.pointing && !this.pointing.pointer) this.onCue('fan'); // the act was cut short
+    return true;
+  }
+
+  // Where she stands to offer you a fan of windows out of `aim`: on the floor beside it, clear of the
+  // fan, on the side with more room.
+  offerSpot(aim) {
+    const s = this.scale;
+    const { w } = this.view;
+    const side = 150 * s + 30;
+    const gap = FAN.reach + 70 + 60 * s; // the fan's half width, and room for her open arms
+    const x = aim.x + gap <= w - side && (aim.x < w / 2 || aim.x - gap < side) ? aim.x + gap : aim.x - gap;
+    const at = clamp(x, side, w - side);
+    return { x: at, y: this.floor, face: aim.x < at ? 1 : -1 };
+  }
+
+  // Done showing: the line reels back into her finger, the reticle lets go, the arm snaps back
+  // (or the fan folds back into its button, and her arms come down).
   stopPointing() {
     const pt = this.pointing;
     if (!pt) return;
     this.pointing = null;
     pt.pointer?.retract();
     this.base = this.restBase();
-    if (!this.busy && !this.hidden && this.stance === 'stand') this.perform('unpoint', pt.dir);
+    if (!this.busy && !this.hidden && this.stance === 'stand') this.perform(pt.fan ? 'unoffer' : 'unpoint', pt.dir);
   }
 
   // What of a window she points at: all of it, or, maximized (the whole screen, nowhere beside it to
