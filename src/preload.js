@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('host', {
   // her voice: text out (more of it under the same id), audio back a sentence at a time
   voiceSpeak: (id, text) => ipcRenderer.invoke('voice:speak', { id, text }),
   voiceHush: (id) => ipcRenderer.send('voice:hush', id),
+  voiceWarm: (lines) => ipcRenderer.send('voice:warm', lines),
   onVoicePiece: on('voice:piece'),
   lookSnap: () => ipcRenderer.invoke('look:snap'),
   screenBits: (rects) => ipcRenderer.invoke('fx:screen', rects),

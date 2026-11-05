@@ -35,9 +35,13 @@ async function models() {
   const res = await fetch(`${base()}/api/tags`, { signal: AbortSignal.timeout(2500) });
   if (!res.ok) throw await failure(res);
   const { models: list = [] } = await res.json();
-  for (const m of list) known.set(m.name, { cloud: Boolean(m.remote_host), thinking: Boolean(m.capabilities?.includes('thinking')) });
+  for (const m of list) known.set(m.name, { cloud: Boolean(m.remote_host), thinking: Boolean(m.capabilities?.includes('thinking')), size: m.size || 0 });
   return list.map((m) => m.name);
 }
+
+// The smallest of these on this PC (the one that fits beside a game or her voice, and answers fastest), or null
+const smallest = (names) => names.filter((m) => !isCloud(m))
+  .sort((a, b) => (known.get(a)?.size || Infinity) - (known.get(b)?.size || Infinity))[0] || null;
 
 // Run on Ollama's servers rather than this PC
 const isCloud = (model) => known.get(model)?.cloud ?? /[:-]cloud$/.test(model || '');
@@ -159,4 +163,4 @@ async function canSee(model) {
   return !Array.isArray(info.capabilities) || info.capabilities.includes('vision');
 }
 
-module.exports = { base, models, isCloud, account, freeModels, warm, chat, ask, canSee };
+module.exports = { base, models, isCloud, smallest, account, freeModels, warm, chat, ask, canSee };

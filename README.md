@@ -15,7 +15,9 @@ everything it describes is in this fork too.
 - **Her swarm**: one Capri on all your PCs.
 - **More of her animation**: poses when she's bored, walking along windows and hanging off them, teleports that tear
   the screen open, and Erebus, a rogue AI from beyond the Blackwall, taking her over now and then.
-- **Polish**: she speaks it, and understands it in her chat.
+- **Polish and English only**: she speaks Polish, and understands it in her chat. The original project's French,
+  Spanish, Portuguese and Russian are gone from this fork (her texts, Mainframe, her Android app): one language fewer
+  to keep in step is one less thing to break.
 - **A one-line installer** for Windows, and **her own updates** from GitHub.
 - Smaller things, listed further down.
 
@@ -318,7 +320,7 @@ and her chat on Telegram locks when you're back at any of them.
 ### Her voice
 
 She can speak her lines out loud, in a voice cloned from 10 to 15 seconds of a clean recording. Her voice runs on
-your PC: [Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox), in all six of her languages, with an
+your PC: [Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox), in both her languages, with an
 NVIDIA card (on the processor alone it works, slowly).
 
 - **Setting it up**: Mainframe › CYBERWARE › Voice › *Install her voice*. That's about 6 GB: a Python environment with
@@ -331,6 +333,12 @@ NVIDIA card (on the processor alone it works, slowly).
 - **No waiting for long answers**: what she says goes out a sentence at a time, a short one first. Each sentence is
   made while the one before plays, and an answer still coming in from her chat is said as its sentences arrive. On an
   RTX 3060 laptop a sentence takes about half as long to make as to say, and what she's said before comes back at once.
+- **Her lines ready ahead of time**: while she's quiet, she makes her fixed lines one at a time (her chat's, or all of
+  them when every line speaks: about 450, 16 minutes of voice, ~45 MB in her cache). Those she then says at once.
+  Mainframe shows how far she's got.
+- **When the PC can't keep up**: no NVIDIA card, or one busy with a game or a big model. She times herself on a line
+  once loaded and on each line she makes; slower than she talks, and for 10 minutes she says only the lines she has
+  said before, the rest in text alone (Mainframe says so), then tries again.
 - **Quiet otherwise**: her typing blips stop while she speaks, closing her chat stops her mid-sentence, and muting her
   mutes her voice too. Her voice holds about 3 GB of the graphics card while it's on.
 
@@ -403,8 +411,10 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   any name for one: an e-register, a password manager, a friend's name). A name it doesn't know counts only with
   "AI", "chat" or "assistant" beside it in the title. She asks once a title has been in front for 2 seconds, never
   about a game, her own windows, a search engine's results or a page of a site of everything else (YouTube, Reddit, a
-  wiki, GitHub, a messenger, a shop), and keeps the answers (with a hash of the title, not the title) so she doesn't ask twice. Off: *Spot other AIs with a model
-  on this PC*.
+  wiki, GitHub, a messenger, a shop), and keeps the answers (with a hash of the title, not the title) so she doesn't
+  ask twice. The model is your chat's if it's an Ollama one on this PC, else Ollama's smallest (one that fits beside
+  a game or her voice). If it fails or answers too late (over 15 s: a model too big for the graphics card), she keeps
+  to her list for a while, longer each time, and Mainframe says so. Off: *Spot other AIs with a model on this PC*.
 - **Polish**: she speaks it, and understands it in her chat (reminders, music, files…). `npm run demo -- pl` too.
 - **Her shortcut** (Ctrl+Alt+C) can be changed: another one, one you press, or none. On a Polish keyboard Ctrl+Alt+C is
   AltGr+C ("ć").

@@ -96,7 +96,7 @@ async function boot() {
   host.listSounds().then((list) => list.length && voice.loadCustom(list));
   // her voice out loud, cloned from a recording (speech.js): her typing blips stay quiet while she speaks
   const speech = new Speech({ host, voice });
-  speech.configure(config);
+  speech.configure(config, linesFor(config.lang, config.assistant, config.stowKey));
   voice.quiet = () => speech.active;
 
   const panel = new Panel({
@@ -824,7 +824,7 @@ async function boot() {
     chatShows(cfg);
     talk.configure(cfg);
     voice.configure(cfg);
-    speech.configure(cfg);
+    speech.configure(cfg, linesFor(cfg.lang, cfg.assistant, cfg.stowKey));
     jealousy.enabled = cfg.jealous !== false;
     capri.erebusOn = cfg.erebus !== false;
     if (!capri.erebusOn) capri.erebusOut(); // turned off while he has her: her ICE throws him out

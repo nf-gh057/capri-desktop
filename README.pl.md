@@ -15,7 +15,9 @@ wszystko, co opisuje, jest też w tym forku.
 - **Rój**: jedna Capri na wszystkich twoich komputerach.
 - **Więcej jej animacji**: pozy, gdy się nudzi, chodzenie po oknach i wiszenie na nich, teleporty, które rozdzierają
   ekran, i Erebus, wrogie AI zza Blackwalla, które od czasu do czasu ją przejmuje.
-- **Polski**: mówi po polsku i rozumie polski w czacie.
+- **Tylko polski i angielski**: mówi po polsku i rozumie polski w czacie. Francuskiego, hiszpańskiego, portugalskiego
+  i rosyjskiego z oryginalnego projektu w tym forku już nie ma (jej teksty, Mainframe, aplikacja na Androida): każdy
+  język mniej do pilnowania to jedna rzecz mniej, która może się zepsuć.
 - **Instalator w jednej linijce** dla Windows i **aktualizacje**, które robi sama z GitHuba.
 - Drobniejsze rzeczy, wypisane niżej.
 
@@ -333,7 +335,7 @@ nie ma cię przy żadnym z nich, a rozmowa przez Telegram blokuje się, gdy wró
 ### Jej głos
 
 Może mówić swoje kwestie na głos, głosem sklonowanym z 10–15 sekund czystego nagrania. Jej głos działa na twoim PC:
-[Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox), we wszystkich sześciu jej językach, z kartą
+[Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox), w obu jej językach, z kartą
 NVIDIA (na samym procesorze też działa, ale wolno).
 
 - **Instalacja**: Mainframe › CYBERWARE › Głos › *Zainstaluj jej głos*. To około 6 GB: środowisko Pythona z PyTorchem
@@ -345,6 +347,12 @@ NVIDIA (na samym procesorze też działa, ale wolno).
 - **Bez czekania na długie odpowiedzi**: to, co mówi, idzie zdanie po zdaniu, najpierw krótkie. Każde zdanie powstaje,
   gdy poprzednie gra, a odpowiedź z czatu, która jeszcze spływa, wypowiada w miarę, jak przychodzą zdania. Na laptopowym
   RTX 3060 zdanie powstaje w mniej więcej połowę czasu, jaki trwa, a to, co już mówiła, wraca od razu.
+- **Kwestie gotowe z wyprzedzeniem**: kiedy nic nie mówi, nagrywa po jednej swoje stałe kwestie (te z czatu albo
+  wszystkie, gdy mówi każdą kwestię: około 450, 16 minut głosu, ~45 MB w jej pamięci podręcznej). Te mówi potem od razu.
+  Mainframe pokazuje, ile już ma.
+- **Gdy PC nie nadąża**: brak karty NVIDIA albo karta zajęta grą lub dużym modelem. Mierzy się na jednej kwestii po
+  wczytaniu i na każdej, którą robi; wolniej, niż mówi, i przez 10 minut mówi tylko kwestie, które już kiedyś
+  powiedziała, resztę samym tekstem (Mainframe o tym mówi), potem próbuje znowu.
 - **Poza tym cicho**: kiedy mówi, milkną piknięcia pisania; zamknięcie czatu przerywa jej w pół zdania, a wyciszenie
   wycisza też głos. Włączony głos zajmuje około 3 GB karty graficznej.
 
@@ -418,7 +426,10 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   „asystent” obok niej w tytule. Pyta, gdy tytuł jest na wierzchu od 2 sekund, nigdy o grę, jej własne okna, wyniki
   wyszukiwarki ani stronę serwisu od wszystkiego innego (YouTube, Reddit, wiki, GitHub, komunikator, sklep),
   i zapamiętuje odpowiedzi (z hashem
-  tytułu, nie z tytułem), żeby nie pytać dwa razy. Wyłączasz to: *Rozpoznawać inne AI modelem na tym PC*.
+  tytułu, nie z tytułem), żeby nie pytać dwa razy. Model to ten z jej czatu, jeśli to Ollama na tym PC, a jeśli nie,
+  najmniejszy model z Ollamy (taki, który zmieści się obok gry albo jej głosu). Gdy się wywraca albo odpowiada za
+  późno (ponad 15 s: model za duży na kartę graficzną), Capri przez jakiś czas, za każdym razem dłużej, zna tylko
+  swoją listę, a Mainframe o tym mówi. Wyłączasz to: *Rozpoznawać inne AI modelem na tym PC*.
 - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…). Także `npm run demo -- pl`.
 - **Jej skrót** (Ctrl+Alt+C) da się zmienić: inny, taki, który naciśniesz, albo żaden. Na polskiej klawiaturze
   Ctrl+Alt+C to AltGr+C, czyli „ć”.

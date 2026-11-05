@@ -60,6 +60,7 @@ let screenGrab = null; // bits of the screen for her teleports to tear (screengr
 let mainframe = null; // her settings window (mainframe.js)
 let voice = null;     // her voice: the local text-to-speech server (tts.js, voice/server.py)
 let voiceNote = null; // what came of the last voice made from a recording, for Mainframe
+let quitting = false;  // on her way out (will-quit): her windows may be gone already
 // her swarm (swarm.js): the link to her on your other PCs, and what Tailscale says here
 let hive = null;
 let hiveTailscale = null; // { ip, name, state } or null (not there)
@@ -786,7 +787,7 @@ function syncSpot(cfg = config.load()) {
   // which model that'll be, for Mainframe (Ollama not woken up for it: only asking does)
   ollama.models().then((list) => {
     const chat = cfg.provider === 'ollama' ? pickModel(cfg) || cfg.chatModel : null;
-    const model = list.includes(chat) && !ollama.isCloud(chat) ? chat : list.find((m) => !ollama.isCloud(m));
+    const model = list.includes(chat) && !ollama.isCloud(chat) ? chat : ollama.smallest(list);
     if (!spotModel && model && llm.isLocal('ollama', cfg, model)) spotModel = model;
   }, () => {});
 }
@@ -823,7 +824,10 @@ function voiceState(cfg, t) {
   const note = typeof v.installing === 'string' ? t.voiceInstalling(v.installing)
     : !v.installed ? t.voiceNone
       : !cfg.voiceOn ? t.voiceOff
-        : v.state === 'ready' ? (v.profiles.length ? t.voiceReady(v.device) : t.voiceNoProfile)
+        : v.state === 'ready' ? (!v.profiles.length ? t.voiceNoProfile
+          : v.slow ? t.voiceSlow(v.device)
+            : v.ahead && v.ahead.done < v.ahead.total && !/^cpu$/i.test(v.device || '') ? `${t.voiceReady(v.device)} ${t.voiceAhead(v.ahead.done, v.ahead.total)}`
+              : t.voiceReady(v.device))
           : v.state === 'error' ? t.voiceError(v.error)
             : t.voiceLoading;
   return {
@@ -910,7 +914,10 @@ function mainframeState() {
       closePages: cfg.closePages !== false,
       // the other AIs a model on this PC finds for her, past her list; which model, or none
       aiSpot: cfg.aiSpot !== false,
-      aiSpotNote: spotModel ? t.aiSpotModel(spotModel) : t.aiSpotNone,
+      aiSpotNote: !spotModel ? t.aiSpotNone
+        : spot?.health() === 'slow' ? t.aiSpotSlow(spotModel)
+          : spot?.health() === 'down' ? t.aiSpotDown(spotModel)
+            : t.aiSpotModel(spotModel),
       lieBack: cfg.lieBack !== false,
       // the other AIs she's caught you on, minus hers (bond.js does the same), and whose pages you spared
       aiOwn: ownAIs(cfg).length ? t.aiOwn(ownAIs(cfg).map((key) => AI_NAMES[key]).join(', ')) : '',
@@ -1689,7 +1696,8 @@ function runHooks(action, { quiet = false } = {}) {
 function pickModel(cfg = config.load()) {
   if (!chatModels?.length) return null;
   if (chatModels.includes(cfg.chatModel)) return cfg.chatModel;
-  return chatModels.find((m) => !ollama.isCloud(m)) || chatModels[0];
+  // none picked: Ollama's smallest on this PC (a big one may not fit beside her voice), else the first
+  return (cfg.provider === 'ollama' && ollama.smallest(chatModels)) || chatModels.find((m) => !ollama.isCloud(m)) || chatModels[0];
 }
 
 async function refreshModels() {
@@ -1777,12 +1785,12 @@ function brainCut(cfg = config.load()) {
   return !online && !llm.isLocal(cfg.provider, cfg, pickModel(cfg) || cfg.chatModel);
 }
 
-// A model on this PC to think with meanwhile: Ollama's first one that isn't in its cloud (Ollama woken
+// A model on this PC to think with meanwhile: Ollama's smallest one that isn't in its cloud (Ollama woken
 // up if it's installed but asleep). null without one.
 async function localModel() {
   let list = await ollama.models().catch(() => null);
   if (!list && (await setup.ollamaState()).installed && (await setup.startOllama()).ok) list = await ollama.models().catch(() => null);
-  return list?.find((m) => !ollama.isCloud(m)) || null;
+  return list ? ollama.smallest(list) : null; // the smallest: it fits beside a game or her voice
 }
 
 // Who writes what she says of her own (talk.js): her chat's model if it's on this PC, else a model of
@@ -2249,9 +2257,15 @@ function registerIpc() {
     const cfg = config.load();
     if (!cfg.voiceOn || typeof text !== 'string') return false;
     return voice?.speak({ id: String(id), text, lang: resolveLang(cfg.lang), profile: cfg.voiceProfile, fx: cfg.voiceFx ?? 1 },
-      ({ id: pieceId, wav, error }) => overlay?.webContents.send('voice:piece', { id: pieceId, wav, error })) || false;
+      ({ id: pieceId, wav, error, skip }) => overlay?.webContents.send('voice:piece', { id: pieceId, wav, error, skip })) || false;
   });
   ipcMain.on('voice:hush', (_e, id) => voice?.hush(id ? String(id) : null));
+  // her fixed lines in her language, to say ahead of time (tts.js warm)
+  ipcMain.on('voice:warm', (_e, lines) => {
+    const cfg = config.load();
+    if (!cfg.voiceOn || !Array.isArray(lines)) return;
+    voice?.warm(lines.slice(0, 2000), { lang: resolveLang(cfg.lang), profile: cfg.voiceProfile, fx: cfg.voiceFx ?? 1 });
+  });
 
   ipcMain.handle('sounds:list', () => {
     try {
@@ -3060,13 +3074,14 @@ function main() {
       },
     });
     // the model's answer about the window in front: the windows again, with it
-    spot = createSpotter({ file: path.join(app.getPath('userData'), 'ai-titles.json'), ask: spotAsk, known: LISTED_AI, onChange: () => windowWatch?.refresh() });
+    spot = createSpotter({ file: path.join(app.getPath('userData'), 'ai-titles.json'), ask: spotAsk, known: LISTED_AI, onChange: () => windowWatch?.refresh(), onHealth: () => mainframe?.refresh?.() });
     syncSpot();
     voice = createVoice({
       log: (line) => DEV && console.log(line),
       onChange: () => {
+        if (quitting) return; // her windows may already be gone (voice.stop() on the way out)
         mainframe?.refresh();
-        overlay?.webContents.send('capri:config', rendererConfig()); // whether her voice is ready
+        if (overlay && !overlay.isDestroyed()) overlay.webContents.send('capri:config', rendererConfig()); // whether her voice is ready
       },
     });
     syncVoice();
@@ -3124,6 +3139,7 @@ function main() {
   });
 
   app.on('will-quit', () => {
+    quitting = true;
     llm.stopAgents();
     stopPairing();
     phoneListener?.abort();

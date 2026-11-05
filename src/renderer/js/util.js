@@ -43,14 +43,13 @@ export const fmt = (str, vars = {}) => str.replace(/\{(\w+)\}/g, (_, k) => (vars
 // "Control+Alt+C" (Electron's way) as people write it: "Ctrl+Alt+C"
 export const keyLabel = (accelerator) => String(accelerator).replace(/\bControl\b/g, 'Ctrl').replace(/\bSuper\b/g, 'Win');
 
-export function duration(ms, lang = 'fr') {
-  const ru = lang === 'ru';
+export function duration(ms, lang = 'en') {
   const s = Math.max(0, Math.round(ms / 1000));
-  if (s < 60) return ru ? `${s} с` : `${s} s`;
+  if (s < 60) return `${s} s`;
   const m = Math.floor(s / 60);
   const ss = String(s % 60).padStart(2, '0');
-  if (m < 60) return lang === 'en' ? `${m}m ${ss}s` : ru ? `${m} мин ${ss} с` : `${m} min ${ss}`;
-  return `${Math.floor(m / 60)} ${ru ? 'ч' : 'h'} ${String(m % 60).padStart(2, '0')}`;
+  if (m < 60) return lang === 'en' ? `${m}m ${ss}s` : `${m} min ${ss}`;
+  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
 }
 
 export const basename = (p = '') => String(p).replace(/[\\/]+$/, '').split(/[\\/]/).pop() || '';

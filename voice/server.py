@@ -6,9 +6,15 @@
 # ({ name, lang, exaggeration, cfg, temperature, fx }). Which one speaks: the one asked for, else the one
 # made from a recording in the language she speaks, else any.
 #
-#   GET  /health                       -> { state: loading|ready|error, error, device, profiles: [...] }
-#   POST /say { text, lang, profile, fx } -> audio/wav (24 kHz mono), kept in home\cache
+#   GET  /health                       -> { state: loading|ready|error, error, device, speed, profiles: [...] }
+#   POST /say { text, lang, profile, fx } -> audio/wav (24 kHz mono), kept in home\cache; x-speed: how long it took
+#        to make for each second of it (only when made now: 0.5 is twice as fast as she talks)
+#        { ..., cached: true }  -> only if she's said it before, else 204 (no time to make it now)
+#        { ..., warm: true }    -> made now if need be and kept for later, no audio back: { cached, speed }
 #   POST /profile { src, id, name, lang } -> a new profile from a recording: its speech, up to ~12 s
+#
+# `speed` in /health: the same, measured on a line of hers once loaded (her card shared with a game or a big model
+# can make it slower than she talks: Capri then keeps to text, and to the lines she has already said).
 #
 # Every request carries the token Capri passes in CAPRI_VOICE_TOKEN (x-voice-token): nothing else on the PC
 # gets to make her say things.
@@ -24,7 +30,12 @@ SPELL = {
     'pl': {'choom': 'czum', 'Choom': 'Czum'},
 }
 
-state = {'state': 'loading', 'error': None, 'device': None}
+state = {'state': 'loading', 'error': None, 'device': None, 'speed': None}
+# a line to time her by once loaded, in each language (about 4 s): never kept, never heard
+PROBE = {
+    'pl': 'Hej, choom! Sprawdzam tylko, czy mój głos jeszcze działa na tej karcie.',
+    'en': 'Hey, choom! Just checking that my voice still runs on this card.',
+}
 model = None
 conds = {}             # a profile's recording (stamp) -> its conditionals, computed once
 lock = threading.Lock()
@@ -75,10 +86,14 @@ def load(home):
             torch.cuda.empty_cache()
         model = m
         p = pick(home, None, None)
-        if p:  # warm up (and record the CUDA graph) before her first line
-            synth(home, p, 'Ok.', p.get('lang') or 'en')
+        if p:  # warm up (and record the CUDA graph) before her first line, then time one
+            lang = p.get('lang') or 'en'
+            synth(home, p, 'Ok.', lang)
+            t = time.time()
+            x = synth(home, p, PROBE.get(lang, PROBE['en']), lang)
+            state['speed'] = round((time.time() - t) / max(len(x) / model.sr, 0.1), 2)
         state['state'] = 'ready'
-        log('ready on', state['device'])
+        log('ready on', state['device'], 'speed', state['speed'])
     except Exception as e:  # noqa: BLE001 - shown in Mainframe
         traceback.print_exc()
         state.update(state='error', error=f'{type(e).__name__}: {e}')
@@ -201,17 +216,20 @@ def say(home, body):
     if os.path.isfile(path):
         os.utime(path)
         with open(path, 'rb') as f:
-            return f.read(), True
+            return f.read(), None
+    if body.get('cached'):
+        return None, None
     with lock:
         t = time.time()
         x = synth(home, p, text, lang)
         x = fx.apply(x, model.sr, p.get('fx') or {}, strength)
         data = to_wav(x, model.sr)
-        log(f'{len(x) / model.sr:.1f}s in {time.time() - t:.1f}s: {text[:60]}')
+        took = time.time() - t
+        log(f'{len(x) / model.sr:.1f}s in {took:.1f}s: {text[:60]}')
     with open(path, 'wb') as f:
         f.write(data)
     prune(cache)
-    return data, False
+    return data, round(took / max(len(x) / model.sr, 0.1), 2)
 
 
 def make_profile(home, body):
@@ -280,8 +298,15 @@ def serve(home, token, port):
                 if self.path == '/say':
                     if state['state'] != 'ready':
                         return self.reply(503, {'error': state['error'] or 'loading'})
-                    data, cached = say(home, body)
-                    return self.reply(200, data, 'audio/wav', {'x-cached': '1' if cached else '0'})
+                    data, speed = say(home, body)
+                    if body.get('warm'):
+                        return self.reply(200, {'cached': speed is None, 'speed': speed})
+                    if data is None:
+                        return self.reply(204, b'', 'text/plain')
+                    extra = {'x-cached': '1' if speed is None else '0'}
+                    if speed is not None:
+                        extra['x-speed'] = str(speed)
+                    return self.reply(200, data, 'audio/wav', extra)
                 if self.path == '/profile':
                     return self.reply(200, make_profile(home, body))
                 self.reply(404, {'error': 'not found'})

@@ -21,7 +21,9 @@ pracy nad Capri: `docs/ROZWOJ.md`.
   mogłyby cofnąć zabezpieczenie tokenem). **Nie scalaj sam**: zgłoś i zapytaj. Gdy nic nowego, jedno zdanie.
 - Scalanie upstreamu (gdy użytkownik o nie poprosi): `README.fr.md` zostaje usunięty (`git rm`). W `README.md` część
   pod linią `---` („Below: the original project's README”) zastąp README autora bez zmian (bez jego pierwszej linii
-  z językami), a jego zmiany przetłumacz w tej samej części `README.pl.md`; część forka na górze zostaje. Po scaleniu
+  z językami), a jego zmiany przetłumacz w tej samej części `README.pl.md`; część forka na górze zostaje. Jego teksty
+  w fr, es, pt, ru (`labels.js`, `lines.js`, `chat.js` `IN_LANGUAGE`, `demo-sequence.js`, `android/.../values-fr`…)
+  nie wchodzą: przy konflikcie zostaw tylko en i pl, a nowe kwestie autora bez `pl` przetłumacz. Po scaleniu
   testy i sprawdzenie na żywo, dopiero potem push.
 
 ## Wersje i commity
@@ -49,8 +51,9 @@ pracy nad Capri: `docs/ROZWOJ.md`.
 - **Wszystko dla nowego użytkownika ustawia się w Mainframe** (okno ustawień, `src/renderer/js/mainframe.js`
   i `mainframeState`/`mainframeAct` w `src/main/main.js`): Claude, Codex, Telegram, rój, aktualizacje… Nic nie jest
   zaszyte w kodzie pod jednego użytkownika.
-- **Każdy nowy tekst w 6 językach**: fr, en, es, pt, ru, pl. Etykiety Mainframe, menu i bota: `src/main/labels.js`;
-  kwestie Capri: `src/renderer/js/lines.js`. Sprawdź, że każdy język ma każdy klucz.
+- **Każdy nowy tekst w 2 językach**: en i pl (decyzja użytkownika: fork mówi tylko po polsku i angielsku; fr, es, pt,
+  ru usunięte). Etykiety Mainframe, menu i bota: `src/main/labels.js`; kwestie Capri: `src/renderer/js/lines.js`;
+  aplikacja na Androida: `res/values` (en) i `res/values-pl`. Sprawdź, że oba języki mają każdy klucz.
 - O autorze oryginału (mochiiwuff) i o każdej osobie, której zaimków nie znasz: neutralnie (nie „autorka”, nie „her”),
   np. „oryginalny projekt”.
 - Styl kodu jak w otoczeniu: komentarze opisowe, w głosie projektu („she…”), tam gdzie coś nie jest oczywiste.

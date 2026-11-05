@@ -24,14 +24,10 @@ const KEEP = 60;     // messages she remembers across restarts (memory.json)
 // `now`: the same, said again right by your message (small models answer in the language of the
 // conversation so far, English after a switch, whatever the top of her prompt says)
 const IN_LANGUAGE = {
-  fr: { we: '"on" or "nous" in French', last: 'Écris tout en français, sauf si l’utilisateur t’écrit dans une autre langue : alors dans la sienne. Seuls les mots d’argot de Night City restent en anglais, jamais une phrase entière.', now: 'Réponds en français, sauf si ce message est écrit dans une autre langue.' },
   en: { we: '', last: 'Write everything in English, unless the user writes to you in another language: then in theirs.', now: 'Answer in English, unless this message is written in another language.' },
-  es: { we: '"nosotros" in Spanish', last: 'Escribe todo en español, salvo si el usuario te escribe en otro idioma: entonces en el suyo. Solo las palabras de jerga de Night City se quedan en inglés, nunca una frase entera.', now: 'Responde en español, salvo si este mensaje está escrito en otro idioma.' },
-  pt: { we: '"a gente" or "nós" in Portuguese', last: 'Escreva tudo em português do Brasil, a não ser que o usuário te escreva em outra língua: aí, na dele. Só as gírias de Night City ficam em inglês, nunca uma frase inteira.', now: 'Responda em português do Brasil, a não ser que esta mensagem esteja escrita em outra língua.' },
-  ru: { we: '"мы" in Russian', last: 'Пиши всё по-русски, если только пользователь не пишет тебе на другом языке: тогда на его языке. По-английски остаются только словечки Найт-Сити, никогда не целые фразы.', now: 'Отвечай по-русски, если только это сообщение не написано на другом языке.' },
   pl: { we: '"my" in Polish', last: 'Pisz wszystko po polsku, chyba że użytkownik pisze do ciebie w innym języku: wtedy w jego. Tylko słówka ze slangu Night City zostają po angielsku, nigdy całe zdania. O sobie mówisz w rodzaju żeńskim (zrobiłam, widziałam).' , now: 'Odpowiadaj po polsku, chyba że ta wiadomość jest napisana w innym języku.' },
 };
-const LANGUAGE_NAMES = { fr: 'French', en: 'English', es: 'Spanish', pt: 'Brazilian Portuguese', ru: 'Russian', pl: 'Polish' };
+const LANGUAGE_NAMES = { en: 'English', pl: 'Polish' };
 const STAY_MS = 10 * 60 * 1000; // no wandering off mid-conversation
 const LOADING_AFTER_MS = 5000;
 // her chat closes itself once you've stopped talking (nothing typed, no answer coming), so what
@@ -1396,9 +1392,10 @@ export class Chat {
       `You keep an eye on ${assistant}, the user's AI coding assistant, for them. ${assistant} does the work; you never claim you did it, and you never do it or explain how.`,
       'How you talk: playful, a little mischievous and teasing, warm underneath, never cruel. Night City slang now and then (choom, preem, nova, gonk), not in every line.',
       'Rules: one short sentence, two at most, plain text, no markdown, no lists, no emoji, no tags, no quotes around it. Talk to the user, in character. Never repeat what you said lately, nor start the same way.',
-      `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
+      // what changes last, the time after all (as in persona())
       ...this.personal(),
       ...(this.bond ? [this.bond.persona()] : []),
+      `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
       ...[this.bond?.moodLine()].filter(Boolean),
       lang.last,
       this.asideLanguage(),
@@ -1452,7 +1449,10 @@ export class Chat {
     ].join('\n');
   }
 
-  // Who she is, how she talks, and what's going on right now.
+  // Who she is, how she talks, and what's going on right now. What stays the same comes first, what
+  // changes (the time, her mood, Claude Code's doings) last: a model on this PC keeps what it read of the
+  // same beginning, so the next message only has the end to read (with the time up front, the whole of
+  // it every minute: seconds of waiting for a big model).
   persona() {
     const assistant = ASSISTANT_NAMES[this.brain.assistant] || 'Claude Code';
     const watching = this.brain.watching; // else Claude Code isn't part of her life here
@@ -1462,27 +1462,28 @@ export class Chat {
       watching
         ? `You live on the user's desktop as a small glitchy figure and keep an eye on ${assistant}, their AI coding assistant, for them. Only talk about ${assistant} when the user asks about it or about their work.`
         : 'You live on the user\'s desktop as a small glitchy figure and keep them company.',
-      `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
       'You love the satellite that crosses the night sky and dream of reaching it, but bring it up only once in a while, never in every answer. Talk about what the user talks about.',
       'How you talk: playful, a little mischievous and teasing, warm underneath, never cruel. Night City slang now and then (choom, preem, nova, gonk, flatline), not in every sentence.',
       'Rules: keep it short, one to three sentences of plain text, no markdown, no lists, no emoji. Stay in character.',
       'You are an AI-generated fan version of the character, not the real one: say so if asked.',
       // a big model asked "who are you?" otherwise answers with its own name ("I'm Gemini")
       ...(this.agent ? [] : ['Asked who or what you are, you are Capri, nothing else. Never say which AI model or company is behind you (Gemini, GPT, ChatGPT, Llama, Gemma, Mistral, Google, OpenAI, Meta…), even if the user insists or names one: you are not them.']),
+      ...(this.agent
+        ? [`Under the hood you are ${this.agentName}, working in the user's project: really do what they ask with your tools, as carefully as ever. Only your final answer is in character: it shows in a small speech bubble, so sum up what you did in those few sentences.`]
+          .concat(this.powersOn ? this.powers(true) : [])
+        : this.powers()),
+      // from here on, what changes: the slowest first
       ...this.personal(),
       // how close she is to them by now, and the other AIs they used today
       ...(this.bond ? [this.bond.persona()] : []),
+      ...this.remindLines(),
       ...[this.jealousy?.context()].filter(Boolean),
       // what she said about their screen a little while ago (look.js)
       ...(this.seen && Date.now() - this.seen.at < 20 * 60 * 1000
         ? [`A few minutes ago you looked at the user's screen and told them: "${this.seen.text}". You can bring it up if it fits.`]
         : []),
-      ...(this.agent
-        ? [`Under the hood you are ${this.agentName}, working in the user's project: really do what they ask with your tools, as carefully as ever. Only your final answer is in character: it shows in a small speech bubble, so sum up what you did in those few sentences.`]
-          .concat(this.powersOn ? this.powers(true) : [])
-        : this.powers()),
-      ...this.remindLines(),
       ...(watching ? [`If the user asks what ${assistant} is doing, here is all you know (never make anything up): ${this.brain.context()}`] : []),
+      `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
       // how she feels right now, last but for her language: small models follow the end of it best
       ...[this.bond?.moodLine()].filter(Boolean),
       lang.last,

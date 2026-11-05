@@ -9,40 +9,12 @@ const SESSION = 'demo-session';
 const CWD = 'C:/Users/you/projects/night-city-api';
 
 const TEXT = {
-  fr: {
-    prompt: 'Ajoute un endpoint /gigs avec pagination et des tests',
-    explore: 'Vérifier les autres routes',
-    test: 'Lancer les tests des gigs',
-    push: 'Pousser sur main',
-    reply: "J'ai ajouté **GET /gigs** avec une pagination par curseur, et 6 tests passent. Le push est fait.",
-  },
   en: {
     prompt: 'Add a /gigs endpoint with pagination and tests',
     explore: 'Check the other routes',
     test: 'Run the gigs tests',
     push: 'Push to main',
     reply: 'I added **GET /gigs** with cursor pagination, and 6 tests pass. The push is done.',
-  },
-  es: {
-    prompt: 'Añade un endpoint /gigs con paginación y tests',
-    explore: 'Revisar las otras rutas',
-    test: 'Ejecutar los tests de gigs',
-    push: 'Hacer push a main',
-    reply: 'He añadido **GET /gigs** con paginación por cursor, y pasan 6 tests. El push está hecho.',
-  },
-  pt: {
-    prompt: 'Adicione um endpoint /gigs com paginação e testes',
-    explore: 'Verificar as outras rotas',
-    test: 'Rodar os testes de gigs',
-    push: 'Fazer push na main',
-    reply: 'Adicionei **GET /gigs** com paginação por cursor, e 6 testes passam. O push foi feito.',
-  },
-  ru: {
-    prompt: 'Добавь эндпоинт /gigs с пагинацией и тестами',
-    explore: 'Проверить остальные маршруты',
-    test: 'Запустить тесты gigs',
-    push: 'Запушить в main',
-    reply: 'Готово: **GET /gigs** с пагинацией по курсору, 6 тестов проходят. Пуш сделан.',
   },
   pl: {
     prompt: 'Dodaj endpoint /gigs z paginacją i testami',

@@ -14,7 +14,10 @@ const path = require('node:path');
 
 const DWELL_MS = 2000;     // in front this long before she asks (not every tab you flick past)
 const GAP_MS = 1500;       // between two questions
-const BACKOFF_MS = 60000;  // no model to ask, or it failed: not again before this
+const BACKOFF_MS = 60000;  // no model to ask, or it failed: not again before this (twice as long each time after)
+const BACKOFF_MAX = 30 * 60000;
+const SLOW_MS = 15000;     // an answer that took longer: the model doesn't fit this PC right now (a big one off the
+                           // graphics card, the card full): she leaves it be a while, her list alone meanwhile
 const KEEP = 3000;         // answers kept, the oldest forgotten first
 const SAVE_MS = 5000;
 const VERSION = 2;         // of the answers kept: 2 since the second question
@@ -160,7 +163,10 @@ async function judge(title, browser, ask, known = {}) {
 
 // The spotter: check() for the window in front, each time it changes; the answer once the model gave
 // one (null: not another AI, or not known yet: she asks, and onChange() once she knows).
-function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.now, dwell = DWELL_MS, gap = GAP_MS, backoff = BACKOFF_MS }) {
+function createSpotter({
+  file, ask, known = {}, onChange = () => {}, onHealth = () => {}, now = Date.now,
+  dwell = DWELL_MS, gap = GAP_MS, backoff = BACKOFF_MS, slowMs = SLOW_MS,
+}) {
   const answers = new Map(); // hash -> { key, name, page } or null
   try {
     const kept = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -176,6 +182,15 @@ function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.
   let next = 0;       // not before this
   let timer = null;
   let saveTimer = null;
+  // how the model on this PC is doing: 'ok', 'slow' (answers too late) or 'down' (failed, or none), and since
+  // how many failures in a row
+  let health = 'ok';
+  let fails = 0;
+  const feel = (h) => {
+    if (h === health) return;
+    health = h;
+    onHealth(h);
+  };
 
   const save = () => {
     clearTimeout(saveTimer);
@@ -207,13 +222,24 @@ function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.
     const wait = Math.max(f.since + dwell, next) - now();
     if (wait > 0) return later(wait);
     asking = true;
+    const t0 = now();
     try {
       const v = await judge(f.title, f.browser, ask, known);
       keep(f.h, v);
-      next = now() + gap;
+      fails = 0;
+      if (now() - t0 > slowMs) {
+        next = now() + backoff * 10; // it answered, too late to be of use: not for a while
+        feel('slow');
+      } else {
+        next = now() + gap;
+        feel('ok');
+      }
       if (front?.h === f.h) onChange(v);
     } catch {
-      next = now() + backoff; // no model on this PC, or it failed: the list alone meanwhile
+      // no model on this PC, or it failed: the list alone meanwhile, longer each time
+      next = now() + Math.min(BACKOFF_MAX, backoff * 2 ** fails);
+      fails++;
+      feel('down');
     } finally {
       asking = false;
     }
@@ -221,6 +247,7 @@ function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.
   }
 
   return {
+    health: () => health,
     // The window in front now: its title (empty: none to ask about) and whether it's a browser.
     check(title, browser) {
       const t = clean(title, browser);

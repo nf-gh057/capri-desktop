@@ -10,6 +10,22 @@ function ready(text, said, done) {
   return m ? { text: m[0], upTo: said + m[0].length } : { text: '', upTo: said };
 }
 
+// Her fixed lines, to say ahead of time (tts.js warm): whole sentences with nothing to fill in, those of her chat
+// only when only her chat speaks. Not the words she puts together (verbs, units) nor her buttons.
+const NOT_SAID = new Set(['verbs', 'units', 'stowMenu', 'badge', 'talk']);
+export function fixedLines(labels, mode = 'chat') {
+  const out = [];
+  const walk = (v, key) => {
+    if (NOT_SAID.has(key)) return;
+    if (typeof v === 'string') {
+      if (!/\{\w+\}/.test(v) && /[.!?…]["”»)]*$/.test(v.trim())) out.push(v);
+    } else if (Array.isArray(v)) v.forEach((x) => walk(x, key));
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, k);
+  };
+  walk(mode === 'all' ? labels : labels?.chat, '');
+  return out;
+}
+
 export class Speech {
   constructor({ host, voice }) {
     this.host = host;
@@ -34,13 +50,15 @@ export class Speech {
     });
   }
 
-  configure(cfg) {
+  // labels: her lines in her language (lines.js linesFor), for those to say ahead of time
+  configure(cfg, labels) {
     this.on = Boolean(cfg.voiceOn);
     this.mode = cfg.voiceMode === 'all' ? 'all' : 'chat';
     this.volume = typeof cfg.voiceVolume === 'number' ? cfg.voiceVolume : 0.9;
     this.muted = Boolean(cfg.muted);
     if (this.out) this.out.gain.value = this.volume;
     if (!this.on || this.muted) this.stop();
+    if (this.on && labels) this.host.voiceWarm?.(fixedLines(labels, this.mode));
   }
 
   // speaking, or about to (her bubble's typing blips stay quiet)
@@ -91,8 +109,13 @@ export class Speech {
     if (!ok && this.id === id && !this.sources.length) this.waitUntil = 0; // her voice isn't ready: blips it is
   }
 
-  async play({ id, wav, error }) {
-    if (id !== this.id || error || !wav) return;
+  async play({ id, wav, error, skip }) {
+    if (id !== this.id) return;
+    // nothing to hear (too slow here for a new line, or it failed): her blips, unless audio is still queued
+    if (error || skip || !wav) {
+      if (!this.sources.length) this.waitUntil = 0;
+      return;
+    }
     const ctx = this.voice.ensure();
     if (ctx.state === 'suspended') await ctx.resume();
     const bytes = wav instanceof Uint8Array ? wav : new Uint8Array(wav);

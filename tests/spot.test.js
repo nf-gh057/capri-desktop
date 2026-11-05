@@ -143,6 +143,30 @@ test('she asks once a title stays in front, remembers the answer, and keeps no t
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('a model too slow for this PC: she leaves it be a while, and says so', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'capri-spot-'));
+  const healths = [];
+  let tries = 0;
+  const spot = createSpotter({
+    file: path.join(dir, 'a.json'), dwell: 10, gap: 5, backoff: 100, slowMs: 30,
+    onHealth: (h) => healths.push(h),
+    ask: async () => {
+      tries++;
+      await wait(60); // slower than slowMs
+      return '{"kind":"not_ai","name":""}';
+    },
+  });
+  spot.check('Inbox - Gmail', false);
+  await wait(120);
+  assert.equal(spot.health(), 'slow');
+  spot.check('Allegro', false);
+  await wait(300); // not asked again yet: 10 x backoff
+  assert.equal(tries, 1);
+  assert.deepEqual(healths, ['slow']);
+  spot.idle();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('no model on this PC: she waits a while before asking again, and keeps no answer', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'capri-spot-'));
   let tries = 0;
