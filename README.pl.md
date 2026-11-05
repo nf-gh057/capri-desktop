@@ -412,8 +412,12 @@ Nowe rysunki Capri w stylu z serialu, którymi na ten czas zastępuje swoją ani
   do tytułu okna na wierzchu. Z modelem na tym PC (Ollama) pyta go też o kartę przeglądarki albo aplikację spoza tej
   listy: Poe, Pi, LM Studio, Kimi, stronę do pobrania jakiegoś AI… Trafia ono na jej listę w Mainframe › RELIC jak
   pozostałe, gdzie możesz zostawić jego strony w spokoju albo kliknąć *To nie AI*, jeśli model się pomylił. Tytuł trafia
-  tylko do tego modelu: nigdy do AI w sieci, nigdy do jej nakładki. Bez lokalnego modelu zna tylko swoją listę. Pyta,
-  gdy tytuł jest na wierzchu od 2 sekund, nigdy o grę ani o wyniki wyszukiwarki, i zapamiętuje odpowiedzi (z hashem
+  tylko do tego modelu: nigdy do AI w sieci, nigdy do jej nakładki. Bez lokalnego modelu zna tylko swoją listę. Potem
+  zadaje mu drugie pytanie, o samą nazwę: czy zna ją jako AI (mały model bierze za AI niemal każdą nazwę: dziennik
+  elektroniczny, menedżer haseł, imię znajomego). Nazwa, której nie zna, liczy się tylko z „AI”, „chat” albo
+  „asystent” obok niej w tytule. Pyta, gdy tytuł jest na wierzchu od 2 sekund, nigdy o grę, jej własne okna, wyniki
+  wyszukiwarki ani stronę serwisu od wszystkiego innego (YouTube, Reddit, wiki, GitHub, komunikator, sklep),
+  i zapamiętuje odpowiedzi (z hashem
   tytułu, nie z tytułem), żeby nie pytać dwa razy. Wyłączasz to: *Rozpoznawać inne AI modelem na tym PC*.
 - **Polski**: mówi po polsku i rozumie polski w czacie (przypomnienia, muzyka, pliki…). Także `npm run demo -- pl`.
 - **Jej skrót** (Ctrl+Alt+C) da się zmienić: inny, taki, który naciśniesz, albo żaden. Na polskiej klawiaturze

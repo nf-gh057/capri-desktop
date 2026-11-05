@@ -399,8 +399,11 @@ New drawings of her in the show's style, swapped in for her rigged cut-out while
   that isn't on that list: Poe, Pi, LM Studio, Kimi, an AI's download page… It goes on her list in Mainframe › RELIC
   like the others, where you can leave its pages be, or say it's *Not an AI* if the model got it wrong. The title goes
   to that model alone: never to an AI online, never to her overlay. Without a local model she only knows her list.
-  She asks once a title has been in front for 2 seconds, never about a game or a search engine's results, and keeps
-  the answers (with a hash of the title, not the title) so she doesn't ask twice. Off: *Spot other AIs with a model
+  Then she asks it a second question, about the name alone: whether it knows it as an AI (a small model takes nearly
+  any name for one: an e-register, a password manager, a friend's name). A name it doesn't know counts only with
+  "AI", "chat" or "assistant" beside it in the title. She asks once a title has been in front for 2 seconds, never
+  about a game, her own windows, a search engine's results or a page of a site of everything else (YouTube, Reddit, a
+  wiki, GitHub, a messenger, a shop), and keeps the answers (with a hash of the title, not the title) so she doesn't ask twice. Off: *Spot other AIs with a model
   on this PC*.
 - **Polish**: she speaks it, and understands it in her chat (reminders, music, files…). `npm run demo -- pl` too.
 - **Her shortcut** (Ctrl+Alt+C) can be changed: another one, one you press, or none. On a Polish keyboard Ctrl+Alt+C is

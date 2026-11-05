@@ -4,14 +4,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createSpotter, clean, verdict, prompt } = require('../src/main/spot');
+const { createSpotter, clean, verdict, judge, prompt } = require('../src/main/spot');
 
 const known = { chatgpt: 'chatgpt', lechat: 'lechat', mistralai: 'lechat' };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 test('a title as she asks about it: the page\'s own, without the browser, unread counts or Edge\'s other tabs', () => {
   assert.equal(clean('Poe - Fast, Helpful AI Chat - Google Chrome', true), 'Poe - Fast, Helpful AI Chat');
-  assert.equal(clean('Why Poe is shutting down - YouTube — Mozilla Firefox', true), 'Why Poe is shutting down - YouTube');
+  assert.equal(clean('Why Poe is shutting down — Mozilla Firefox', true), 'Why Poe is shutting down');
   assert.equal(clean('(3) HuggingChat - Personal - Microsoft​ Edge', true), 'HuggingChat - Personal');
   assert.equal(clean('Pi and 3 more pages - Work - Microsoft Edge', true), 'Pi - Work');
   assert.equal(clean('Pi et 2 autres pages - Microsoft Edge', true), 'Pi');
@@ -40,6 +40,57 @@ test('the model\'s answer: another AI only with a name the title has, the same k
   assert.equal(verdict({ kind: 'ai_chat', name: '' }, 'Poe'), null);
 });
 
+test('pages of sites of everything else are never asked about: a video, a friend\'s chat, a repo, a shop', () => {
+  assert.equal(clean('Why Poe is shutting down - YouTube — Mozilla Firefox', true), '');
+  assert.equal(clean('Lidia | Messenger - Google Chrome', true), '');
+  assert.equal(clean('Talia Yang | Cyberpunk Wiki | Fandom - Google Chrome', true), '');
+  assert.equal(clean('ollama/ollama: Get up and running with large language models. - Google Chrome', true), '');
+  assert.equal(clean('Echo Dot (5th Gen) | Amazon.pl - Google Chrome', true), '');
+  // an app may be called that
+  assert.equal(clean('Lidia - WhatsApp', false), 'Lidia - WhatsApp');
+});
+
+test('the second question: another AI only if the model knows the name as one, or the title says AI beside it', async () => {
+  const asker = (kind, name, answer) => {
+    const asked = [];
+    const ask = async (p) => {
+      asked.push(p.startsWith('Is "') ? 'name' : 'kind');
+      return p.startsWith('Is "') ? JSON.stringify({ answer }) : JSON.stringify({ kind, name });
+    };
+    return { ask, asked };
+  };
+  let a = asker('ai_chat', 'Poe', 'yes');
+  assert.deepEqual(await judge('Poe', true, a.ask), { key: 'poe', name: 'Poe', page: 'chat' });
+  assert.deepEqual(a.asked, ['kind', 'name']);
+  // a name it knows as something else, or doesn't know without AI beside it
+  assert.equal(await judge('LIBRUS Synergia', true, asker('ai_chat', 'LIBRUS Synergia', 'no').ask), null);
+  assert.equal(await judge('Lidia', false, asker('ai_chat', 'Lidia', 'unknown').ask), null);
+  assert.equal(await judge('Download Bitwarden', true, asker('ai_download', 'Bitwarden', 'no').ask), null);
+  // unknown, with the title saying what it is
+  assert.equal((await judge('Janitor AI - Character Chat', true, asker('ai_chat', 'Janitor AI', 'unknown').ask)).key, 'janitorai');
+  assert.equal((await judge('Msty - local AI chat', false, asker('ai_chat', 'Msty', 'unknown').ask)).key, 'msty');
+  // one on her list: no second question
+  a = asker('ai_chat', 'Mistral AI', 'no');
+  assert.equal((await judge('Chat | Mistral AI', true, a.ask, known)).key, 'lechat');
+  assert.deepEqual(a.asked, ['kind']);
+  // her own windows
+  a = asker('ai_chat', 'capri-launcher', 'yes');
+  assert.equal(await judge('capri-launcher', false, a.ask), null);
+  assert.deepEqual(a.asked, ['kind']);
+});
+
+test('answers kept before the second question: only the "not another AI"s are taken', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'capri-spot-'));
+  const file = path.join(dir, 'ai-titles.json');
+  const h = (s) => require('node:crypto').createHash('sha256').update(s).digest('hex').slice(0, 20);
+  fs.writeFileSync(file, JSON.stringify({ [h('b|LIBRUS Synergia')]: { key: 'librussynergia', name: 'LIBRUS Synergia', page: 'chat' }, [h('b|Inbox - Gmail')]: null }));
+  const spot = createSpotter({ file, ask: async () => '{"kind":"not_ai","name":""}', dwell: 10000 });
+  assert.equal(spot.check('LIBRUS Synergia - Google Chrome', true), null); // asked again (later), not closed
+  assert.equal(spot.check('Inbox - Gmail - Google Chrome', true), null);
+  spot.idle();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('the prompt has the title, and whether it is a tab or an app', () => {
   const p = prompt('Poe - Fast AI Chat', true);
   assert.match(p, /This window: "Poe - Fast AI Chat" \(browser tab\)$/);
@@ -53,6 +104,7 @@ test('she asks once a title stays in front, remembers the answer, and keeps no t
   const changes = [];
   const answers = { Poe: { kind: 'ai_chat', name: 'Poe' }, 'Kimi chat': { kind: 'ai_chat', name: 'Kimi' } };
   const ask = async (p) => {
+    if (p.startsWith('Is "')) return '{"answer":"yes"}';
     const title = JSON.parse(/This window: (".*") \(/.exec(p)[1]);
     asked.push(title);
     return JSON.stringify(answers[title] || { kind: 'not_ai', name: '' });
@@ -78,7 +130,7 @@ test('she asks once a title stays in front, remembers the answer, and keeps no t
   spot.flush();
   const kept = fs.readFileSync(file, 'utf8');
   assert.doesNotMatch(kept, /Poe - |Kimi chat|Gmail/); // hashes of titles, and the AIs' names
-  assert.equal(Object.keys(JSON.parse(kept)).length, 2);
+  assert.equal(Object.keys(JSON.parse(kept).answers).length, 2);
 
   // the next run knows them
   const again = createSpotter({ file, ask, known, dwell: 60 });

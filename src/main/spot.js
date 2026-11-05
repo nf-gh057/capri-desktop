@@ -2,7 +2,9 @@
 
 // Her jealousy past the names she knows (windows.ps1's list): the title of the window in front, a tab
 // in your browser or an app, goes to a model on this PC, which says whether it's another AI (its chat,
-// its app, a page to download it) and which. The title goes nowhere else: never to an AI online
+// its app, a page to download it) and which, then whether it knows that name as an AI's (a small model
+// takes nearly every name for one: she closed e-registers, password managers and friends' chats). Pages
+// of sites of everything else (YouTube, a messenger, a shop) aren't asked about. The title goes nowhere else: never to an AI online
 // (main.js only asks a local model), never to her overlay, never written down; what's kept is a hash
 // of it with the answer, so she doesn't ask about the same title twice.
 
@@ -15,6 +17,7 @@ const GAP_MS = 1500;       // between two questions
 const BACKOFF_MS = 60000;  // no model to ask, or it failed: not again before this
 const KEEP = 3000;         // answers kept, the oldest forgotten first
 const SAVE_MS = 5000;
+const VERSION = 2;         // of the answers kept: 2 since the second question
 
 // What the model answers: JSON in this shape (Ollama's structured outputs). A kind to pick rather than
 // a yes or no: a small model says yes to nearly anything, and tells these apart far better.
@@ -40,6 +43,15 @@ const EDGE_MORE = /\s+(?:and|et|y|e|i|и|und)(?:\s+\p{L}{1,8})?\s+\d+(?:\s+\p{L}
 // (a small model takes them for the AI searched for).
 const SEARCH = /\s[-\u2013\u2014|]\s(?:Google Search|Recherche Google|Buscar con Google|Pesquisa Google|Поиск в Google|Szukaj w Google|Google Suche|Cerca con Google|Bing|DuckDuckGo|Yandex|Яндекс|Ecosia|Brave Search|Startpage|Qwant|Kagi Search)$/i;
 
+// A page on a site of everything else (a video, a post, a wiki, a repo, a shop, a friend in a messenger):
+// at most about an AI, never its own page. Not asked about either.
+const ELSEWHERE = /\s[-\u2013\u2014|\u00b7\u2022]\s(?:YouTube|Reddit|Wikipedia|Wikip\u00e9dia|Wikipedia, wolna encyklopedia|\u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u044f|Fandom|GitHub|GitLab|Hugging Face|Stack Overflow|Medium|Substack|X|Twitter|Facebook|Messenger|WhatsApp|Instagram|TikTok|LinkedIn|Discord|Twitch|Telegram|Spotify|Netflix|Steam|Amazon(?:\.\w+)*|Allegro(?:\.pl)?|Google Play|App Store|Microsoft Store|Product Hunt|IMDb|Gmail|Outlook)(?:\s.*)?$/i;
+// GitHub's own way: "owner/repo: what it is"
+const REPO = /^[\w.-]+\/[\w.-]+: /;
+
+// Her own windows and the PC's, by name: she's no rival of herself.
+const SELF = /^capri/;
+
 // A title as she asks about it: no unread count in front ("(3) Inbox"), no unsaved mark, no browser.
 // '' for one not to ask about.
 function clean(title, browser) {
@@ -49,10 +61,15 @@ function clean(title, browser) {
     const edge = /Edge\s*$/.test(t);
     t = t.replace(BROWSER_TAIL, '');
     if (edge) t = t.replace(EDGE_MORE, '');
-    if (SEARCH.test(t.trim())) return '';
+    t = t.trim();
+    if (SEARCH.test(t) || ELSEWHERE.test(t) || REPO.test(t)) return '';
   }
   return t.trim().slice(0, 300);
 }
+
+// What gives an AI away in a title, in her languages: "AI", "IA", "\u0418\u0418", chat, an assistant, GPT, LLM.
+// A name the model doesn't know is taken for an AI only with one of these beside it.
+const CUE = /(?:^|[^\p{L}])(?:AI|A\.I\.|IA|\u0418\u0418|GPT\w*|LLMs?)(?:$|[^\p{L}])|chat|czat|\u0447\u0430\u0442|assistant|asystent|asistente|assistente|\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442|\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442\u043a\u0430|chatbot|\bbots?\b/iu;
 
 // a name as a key: lower case, letters and digits only, in any script ("Le Chat" → "lechat")
 const slug = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]/gu, '');
@@ -82,6 +99,26 @@ function prompt(title, browser) {
   ].join('\n');
 }
 
+// The second question, about the name the first one gave: whether the model knows it as an AI. A small
+// model takes nearly any name in a title for one (a school's e-register, a password manager, a friend
+// in Messenger); asked about the name alone, with "don't know" to pick, it far less often says yes.
+const NAME_SCHEMA = {
+  type: 'object',
+  properties: { answer: { type: 'string', enum: ['yes', 'no', 'unknown'] } },
+  required: ['answer'],
+};
+
+function namePrompt(name, title) {
+  return [
+    `Is "${name}" the name of an AI chatbot or AI assistant: software made for chatting with an AI or running AI language models (like ChatGPT, Claude, Poe, Pi, Character.AI, Replika, LM Studio, Jan, GPT4All, SillyTavern)?`,
+    '- yes: you know this name, and that is what it is',
+    '- no: you know this name, and it is something else (a website, shop, bank, school or government service, messenger, password manager, media player, browser, app store, game, translator, writing or grammar tool, office or design app, any tool with only an AI feature)',
+    '- unknown: you don\'t know this name, or it is a person\'s name',
+    '',
+    `It came from this window title: ${JSON.stringify(title)}`,
+  ].join('\n');
+}
+
 // The model's answer as she takes it: { key, name, page: 'chat' or 'download' }, or null (not another
 // AI). A name the title doesn't have is taken for a guess, and turned down. `known`: the keys
 // windows.ps1 gives the AIs on its list, by their names' slugs ("lechat" for Le Chat), so one found by
@@ -102,15 +139,38 @@ function verdict(answer, title, known = {}) {
   return { key: known[key] || key, name, page: a.kind === 'ai_download' ? 'download' : 'chat' };
 }
 
+const parse = (s) => {
+  try {
+    return typeof s === 'string' ? JSON.parse(s) : s;
+  } catch {
+    return null;
+  }
+};
+
+// Both questions for one title: what kind of window it is, then, if another AI's, whether the model
+// knows that name as one. An AI on windows.ps1's list needs no second question.
+async function judge(title, browser, ask, known = {}) {
+  const v = verdict(await ask(prompt(title, browser), SCHEMA), title, known);
+  if (!v || Object.values(known).includes(v.key)) return v;
+  if (SELF.test(v.key)) return null;
+  const a = parse(await ask(namePrompt(v.name, title), NAME_SCHEMA));
+  if (a?.answer === 'yes') return v;
+  return a?.answer === 'unknown' && CUE.test(title.replace(v.name, ' ')) ? v : null;
+}
+
 // The spotter: check() for the window in front, each time it changes; the answer once the model gave
 // one (null: not another AI, or not known yet: she asks, and onChange() once she knows).
 function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.now, dwell = DWELL_MS, gap = GAP_MS, backoff = BACKOFF_MS }) {
   const answers = new Map(); // hash -> { key, name, page } or null
   try {
-    for (const [h, v] of Object.entries(JSON.parse(fs.readFileSync(file, 'utf8')))) answers.set(h, v);
+    const kept = JSON.parse(fs.readFileSync(file, 'utf8'));
+    // before the second question (a flat list): only its "not another AI"s still hold
+    const old = kept.v !== VERSION;
+    for (const [h, v] of Object.entries(old ? kept : kept.answers || {})) if (!old || v === null) answers.set(h, v);
   } catch {
     // nothing asked yet
   }
+  const stored = () => JSON.stringify({ v: VERSION, answers: Object.fromEntries(answers) });
   let front = null;   // { h, title, browser, since }
   let asking = false;
   let next = 0;       // not before this
@@ -122,7 +182,7 @@ function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.
     saveTimer = setTimeout(() => {
       try {
         fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, JSON.stringify(Object.fromEntries(answers)));
+        fs.writeFileSync(file, stored());
       } catch (err) {
         console.error('[capri] could not save her answers about other AIs:', err.message);
       }
@@ -148,7 +208,7 @@ function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.
     if (wait > 0) return later(wait);
     asking = true;
     try {
-      const v = verdict(await ask(prompt(f.title, f.browser), SCHEMA), f.title, known);
+      const v = await judge(f.title, f.browser, ask, known);
       keep(f.h, v);
       next = now() + gap;
       if (front?.h === f.h) onChange(v);
@@ -198,7 +258,7 @@ function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.
       if (!saveTimer) return;
       clearTimeout(saveTimer);
       try {
-        fs.writeFileSync(file, JSON.stringify(Object.fromEntries(answers)));
+        fs.writeFileSync(file, stored());
       } catch {
         // kept in memory only
       }
@@ -206,4 +266,4 @@ function createSpotter({ file, ask, known = {}, onChange = () => {}, now = Date.
   };
 }
 
-module.exports = { createSpotter, clean, verdict, prompt, SCHEMA };
+module.exports = { createSpotter, clean, verdict, judge, prompt, namePrompt, SCHEMA, NAME_SCHEMA };
