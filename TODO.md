@@ -62,6 +62,14 @@ Wspólne dla wszystkich etapów:
 - Capri zaczepia cię na telefonie, gdy nie ma cię przy komputerze: sama z siebie, jak jej uwagi na pulpicie
   (`talk.js`), wiadomość do jej aplikacji (powiadomienie, widżet) albo na Telegram. Z umiarem (kilka razy dziennie
   najwyżej, nie w nocy), ustawiane w Mainframe; wysyła komputer, na którym jest, gdy nie ma cię przy żadnym.
+- Jej głos: brzmienie do dopracowania (użytkownik nie jest jeszcze do końca zadowolony z klonu Chatterboxa).
+- Do przemyślenia: lżejsza droga dla głosu. Szybki polski głos z Piper na procesorze (bez karty graficznej), a na nim
+  zamiana barwy (RVC) wytrenowana na nagraniu Capri. Do sprawdzenia: jakość klonu, szybkość, pamięć karty i czy
+  RVC na procesorze nadąża.
+- Dymek z odtwarzaczem muzyki: to, co gra (tytuł, wykonawca), i przyciski (poprzedni, pauza, następny, głośność)
+  w jej dymku.
+- Przeciąganie Capri myszą pomiędzy ekranami.
+- Efekty przemieszczania się: czerwona błyskawica, gdy Capri przenosi się z miejsca na miejsce.
 - Jej aplikacja na Androida (`android/`), co zostało:
   - Zapasowo, opcjonalnie: FCM albo UnifiedPush, dla telefonów, które mimo wyłączonej optymalizacji baterii zabijają
     aplikacje w tle (niektóre Xiaomi, Huawei); treść szyfrowana kluczem telefonu (RFC 8291), więc pośrednik widzi tylko
