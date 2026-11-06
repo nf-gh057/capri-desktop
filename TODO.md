@@ -35,7 +35,6 @@ Wspólne dla wszystkich etapów:
 
 ## Do zrobienia
 
-- [x] Głos klonowany z postaci z anime albo z własnego nagrania. (zrobione w 0.5.1-19)
 - Równoległe monitorowanie różnych AI naraz.
 - Komunikacja z Hermesem.
 - Do decyzji: telefon parowany raz dla całego roju. Komputery same przekazują sobie token bota i sekret TOTP

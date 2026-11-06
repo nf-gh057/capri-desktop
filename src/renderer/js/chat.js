@@ -444,7 +444,9 @@ export class Chat {
     const slow = wait && setTimeout(() => {
       if (this.turn === id && !this.answer) this.panel.stream(wait);
     }, LOADING_AFTER_MS);
-    let res = await this.host.chatSend({ id, messages });
+    // main.js failing outright (a bug, not a model's no): said like any failure, never a chat stuck waiting
+    const failed = (err) => ({ ok: false, error: String(err?.message || err).replace(/^Error invoking remote method '[^']+': /, '') });
+    let res = await this.host.chatSend({ id, messages }).catch(failed);
     // No network, and her brain lives online: a model on this PC answers instead, as her (no agent,
     // no tools of its own), and she says so under her answer.
     let elsewhere = ''; // the line under her answer, when a model on this PC gave it
@@ -454,7 +456,7 @@ export class Chat {
       this.agent = false;
       const local = this.messages(REMEMBER_LOCAL);
       this.agent = agent;
-      res = await this.host.chatSend({ id, messages: local, local: res.local });
+      res = await this.host.chatSend({ id, messages: local, local: res.local }).catch(failed);
       if (res.ok) elsewhere = fmt(this.t.offlineLocal, { model: short(res.local) });
     }
     // her header and note follow: the model on this PC while it answers, hers again once it's back
@@ -520,10 +522,10 @@ export class Chat {
       return messages;
     };
     this.history.push(note('user', text));
-    let res = await this.host.chatSend({ id, messages: away(this.messages()) });
+    let res = await this.host.chatSend({ id, messages: away(this.messages()) }).catch((err) => ({ ok: false, error: err.message }));
     if (!res.ok && res.code === 'offline' && res.local) {
       this.agent = false;
-      res = await this.host.chatSend({ id, messages: away(this.messages(REMEMBER_LOCAL)), local: res.local });
+      res = await this.host.chatSend({ id, messages: away(this.messages(REMEMBER_LOCAL)), local: res.local }).catch((err) => ({ ok: false, error: err.message }));
     }
     this.agent = agent;
     this.agentName = name;
@@ -576,10 +578,10 @@ export class Chat {
       messages[messages.length - 1] = { ...last, content: `${last.content}\n\n(${ORDER_NOTE})` };
       return messages;
     };
-    let res = await this.host.chatSend({ id, messages: told(this.messages()) });
+    let res = await this.host.chatSend({ id, messages: told(this.messages()) }).catch((err) => ({ ok: false, error: err.message }));
     if (!res.ok && res.code === 'offline' && res.local) {
       this.agent = false;
-      res = await this.host.chatSend({ id, messages: told(this.messages(REMEMBER_LOCAL)), local: res.local });
+      res = await this.host.chatSend({ id, messages: told(this.messages(REMEMBER_LOCAL)), local: res.local }).catch((err) => ({ ok: false, error: err.message }));
     }
     Object.assign(this, { agent, agentName, powersOn });
     if (!res.ok) {

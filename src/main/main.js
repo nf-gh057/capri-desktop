@@ -1974,7 +1974,8 @@ function registerIpc() {
     let streamed = false;
     // from your phone: Claude Code or Codex only read, whatever Mainframe says for the desktop
     // an order from her app (after your fingerprint): Claude Code or Codex change files in their folder, nothing more
-    const cfg = id.startsWith('order-') ? { ...config.load(), claudeMode: 'acceptEdits', order: true }
+    // (her desktop chat's turns are numbers, her app's and Telegram's strings)
+    const cfg = String(id).startsWith('order-') ? { ...config.load(), claudeMode: 'acceptEdits', order: true }
       : phoneTurns.has(id) ? { ...config.load(), claudeMode: 'default', readOnly: true } : config.load();
     try {
       const send = (text) => {
