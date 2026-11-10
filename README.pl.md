@@ -344,6 +344,8 @@ NVIDIA (na samym procesorze też działa, ale wolno).
 - **Kiedy mówi**: tylko odpowiedzi w czacie albo każda kwestia w dymku. Głośność, który głos (domyślnie ten zrobiony
   w jej języku) i jak bardzo *elektronicznie* brzmi: na sklonowany głos nakłada cień oktawę niżej, trochę blachy
   i cyfrowego ziarna, jak konstrukt. *Posłuchaj* odtwarza kwestię.
+- **Liczby i litery jako słowa**: godziny, liczby, procenty, wersje i pojedyncze litery są zamieniane na słowa w jej
+  języku, zanim je powie („o 7:05” to „o siódmej zero pięć”, „L” to „El”, „PC” to „pe ce”).
 - **Bez czekania na długie odpowiedzi**: to, co mówi, idzie zdanie po zdaniu, najpierw krótkie. Każde zdanie powstaje,
   gdy poprzednie gra, a odpowiedź z czatu, która jeszcze spływa, wypowiada w miarę, jak przychodzą zdania. Na laptopowym
   RTX 3060 zdanie powstaje w mniej więcej połowę czasu, jaki trwa, a to, co już mówiła, wraca od razu.

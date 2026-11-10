@@ -61,7 +61,18 @@ Wspólne dla wszystkich etapów:
 - Capri zaczepia cię na telefonie, gdy nie ma cię przy komputerze: sama z siebie, jak jej uwagi na pulpicie
   (`talk.js`), wiadomość do jej aplikacji (powiadomienie, widżet) albo na Telegram. Z umiarem (kilka razy dziennie
   najwyżej, nie w nocy), ustawiane w Mainframe; wysyła komputer, na którym jest, gdy nie ma cię przy żadnym.
-- Jej głos: brzmienie do dopracowania (użytkownik nie jest jeszcze do końca zadowolony z klonu Chatterboxa).
+- Jej głos: brzmienie do dopracowania (użytkownik nie jest jeszcze do końca zadowolony z klonu Chatterboxa: brzmi
+  dziecięco, a powinien jak szalona postać z anime; żaden efekt jeszcze nie pasuje). Wszystko poza repo,
+  w `%USERPROFILE%\.capri\voice`:
+  - Obecna próbka (klipy 00 + 05 + 14) to najwyższe fragmenty nagrania (370–445 Hz): stąd dziecięcość. Nowe klony
+    w `listen\reclone`: G (klipy 12 + 17 + 10), H (17 + 11 + 21), I (obecna o 2 półtony niżej), J (jak G o półton
+    niżej, 273 Hz, najbardziej skacząca intonacja); referencje `ref-g…j-*.wav`, skrypt `reclone.py`, pomiary
+    klipów `clipstats.py`. Do wyboru i wstawienia jako `profiles\pl-dub\ref.wav`.
+  - Efekty w `listen\holo` (skrypt `holo.py`), według opisu „light, bright, buoyant… holographic… glitches”: jaśniej,
+    warstwa oktawę wyżej, syntetyczne zdwojenie, metaliczne alikwoty, krótkie jasne echa, ziarno, usterki (zacięcia,
+    skoki wysokości, trzaski). Obecny efekt (cień oktawę niżej) jest sprzeczny z „light, bright”.
+  - Gdy to nie wystarczy: głos zaprojektowany z opisu w chmurze (ElevenLabs Voice Design, głos Gemini; oba mówią po
+    polsku, wymagają konta użytkownika), raz kilkanaście sekund, potem klonowany lokalnie zamiast dubbingu.
 - Do przemyślenia: lżejsza droga dla głosu. Szybki polski głos z Piper na procesorze (bez karty graficznej), a na nim
   zamiana barwy (RVC) wytrenowana na nagraniu Capri. Do sprawdzenia: jakość klonu, szybkość, pamięć karty i czy
   RVC na procesorze nadąża.

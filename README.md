@@ -330,6 +330,8 @@ NVIDIA card (on the processor alone it works, slowly).
 - **When she speaks**: her chat's answers only, or every line in her bubble. Volume, which voice (by default the one
   made in her language), and how *electronic* she sounds: on top of the cloned voice, a shadow an octave down, a hint
   of tin and some digital grain, like a construct. *Listen* plays a line.
+- **Numbers and letters as words**: times, numbers, percentages, versions and lone letters are written out in her
+  language before she says them ("o 7:05" is "o siódmej zero pięć", "L" is "El", "PC" is "pe ce").
 - **No waiting for long answers**: what she says goes out a sentence at a time, a short one first. Each sentence is
   made while the one before plays, and an answer still coming in from her chat is said as its sentences arrive. On an
   RTX 3060 laptop a sentence takes about half as long to make as to say, and what she's said before comes back at once.

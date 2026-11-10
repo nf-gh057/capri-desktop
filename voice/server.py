@@ -23,7 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-VERSION = 2            # part of every cache key: bump when the sound changes for the same text
+VERSION = 3            # part of every cache key: bump when the sound changes for the same text (3: numbers as words)
 CACHE_MB = 300
 # words her languages read wrong (Chatterbox reads "choom" as "hom" in Polish)
 SPELL = {
@@ -126,6 +126,8 @@ def synth(home, p, text, lang):
     import numpy as np
     import torch
     from fast_t3 import TooLong
+    from words import spoken
+    text = spoken(text, lang)  # numbers, times and letters as words
     for word, said in SPELL.get(lang, {}).items():
         text = re.sub(rf'\b{word}\b', said, text)
     cond_for(home, p)
