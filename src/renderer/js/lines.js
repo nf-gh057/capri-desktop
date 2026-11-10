@@ -487,6 +487,26 @@ export const LINES = {
       paused: ['Go on. I’ve got this.', 'Take your time, I’ll mind the shop.'],
       laterLine: 'Fine, I’ll remind you in half an hour.',
     },
+    // the world past your desktop (world.js): the facts as they are, under her line; her line when her model
+    // has none (`open`)
+    world: {
+      sky: {
+        0: 'clear sky', 1: 'mostly clear', 2: 'partly cloudy', 3: 'overcast', 45: 'fog', 51: 'drizzle', 61: 'light rain',
+        63: 'rain', 65: 'heavy rain', 66: 'freezing rain', 71: 'light snow', 73: 'snow', 75: 'heavy snow', 77: 'snow grains',
+        80: 'rain showers', 85: 'snow showers', 95: 'a thunderstorm', 96: 'a thunderstorm with hail',
+      },
+      weather: '{place}: {now}°C now, {sky}. Today {min} to {max}°C, {day}.', rain: ' Chance of rain: {rain}%.',
+      nameday: 'Name day: {names}.', holiday: 'Today: {holiday}.', tomorrow: 'Tomorrow: {holiday}.',
+      news: '“{title}” ({source})',
+      release: '{name}: {when} on Steam ({genres}).', out: 'out now',
+      fact: '{game}: {fact}',
+      open: {
+        day: ['Hey, choom. A new day.', 'Rise and shine, choom.'],
+        news: ['Fresh off the Net, choom:', 'Get this:'],
+        release: ['New on Steam, your kind of thing:', 'Something for you on Steam:'],
+        game: ['Fun fact, choom.', 'Did you know?'],
+      },
+    },
     status: 'Claude has been working on {project} for {time}.',
     last: 'Last action: {action}',
     sessions: '{count} active sessions',
@@ -1000,6 +1020,26 @@ export const LINES = {
       pause: 'Robię przerwę', later: 'Później',
       paused: ['Idź. Ogarnę to.', 'Nie spiesz się, popilnuję interesu.'],
       laterLine: 'Dobra, przypomnę ci za pół godziny.',
+    },
+    // świat poza twoim pulpitem (world.js): fakty tak, jak są, pod jej kwestią; jej kwestia, gdy model nic nie
+    // napisze (`open`)
+    world: {
+      sky: {
+        0: 'bezchmurnie', 1: 'prawie bezchmurnie', 2: 'częściowe zachmurzenie', 3: 'pochmurno', 45: 'mgła', 51: 'mżawka',
+        61: 'słaby deszcz', 63: 'deszcz', 65: 'ulewa', 66: 'marznący deszcz', 71: 'słaby śnieg', 73: 'śnieg', 75: 'mocny śnieg',
+        77: 'krupa śnieżna', 80: 'przelotny deszcz', 85: 'przelotny śnieg', 95: 'burza', 96: 'burza z gradem',
+      },
+      weather: '{place}: teraz {now}°C, {sky}. Dziś od {min} do {max}°C, {day}.', rain: ' Szansa na deszcz: {rain}%.',
+      nameday: 'Imieniny: {names}.', holiday: 'Dziś: {holiday}.', tomorrow: 'Jutro: {holiday}.',
+      news: '„{title}” ({source})',
+      release: '{name}: {when} na Steamie ({genres}).', out: 'już jest',
+      fact: '{game}: {fact}',
+      open: {
+        day: ['Hej, choom. Nowy dzień.', 'Pobudka, choom.'],
+        news: ['Prosto z sieci, choom:', 'Słuchaj tego:'],
+        release: ['Nowość na Steamie, w twoim stylu:', 'Coś dla ciebie na Steamie:'],
+        game: ['Ciekawostka, choom.', 'Wiesz co?'],
+      },
     },
     status: 'Claude pracuje nad {project} od {time}.',
     last: 'Ostatnia akcja: {action}',

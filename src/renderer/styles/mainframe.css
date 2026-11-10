@@ -542,6 +542,12 @@ body {
   margin-top: 10px;
   cursor: pointer;
 }
+/* one of a source's own (a news feed): under it, a step in */
+.check--sub {
+  margin-top: 6px;
+  padding-left: 24px;
+  font-size: 0.92em;
+}
 .check input {
   position: absolute;
   inset: 0 auto auto 0;

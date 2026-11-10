@@ -317,6 +317,25 @@ was on all of them.
 Pair the Telegram bot on one PC, and the others send their messages through it. "Away" then means away from all of them,
 and her chat on Telegram locks when you're back at any of them.
 
+### Her world
+
+She talks about more than your desktop, each source turned on in Mainframe › RELIC › WORLD (off until you do: each
+one asks the internet). What goes out is only a game's name, your city and the feeds' addresses.
+
+- **The game you just played**: back from it after a while, a fact or a tip about it, from its Steam page and its
+  Wikipedia article (in her language if there's one). Her model tells it in its words; if it lost the fact's names and
+  numbers on the way, she says the fact itself. Each one once, a game's whole lot again a week later at the earliest.
+  The game is found by Steam's own files on your PC, else by the store's search.
+- **Games coming out on Steam** like the ones you play (their genres), each once.
+- **News**: a headline from the feeds you pick (GRYOnline.pl, CD-Action, Eurogamer.pl, Benchmark.pl, PC Gamer, Rock
+  Paper Shotgun, or your own RSS address), the freshest she hasn't told you.
+- **The day's greeting**: the weather where you live (Open-Meteo), whose name day it is (abalin.net) and a public
+  holiday today or tomorrow (Nager.Date).
+- **How often**: rarely, normal or often (a game's fact after 45, 20 or 5 minutes of it, one to eight a day;
+  headlines one to four a day; releases one to seven a week), always within how chatty she is, at a quiet moment
+  and never in the middle of a game. The facts themselves (the weather, the headline, the release) are shown as
+  they are under her line: a small model on this PC gets them wrong when it tells them.
+
 ### Her voice
 
 She can speak her lines out loud, in a voice cloned from 10 to 15 seconds of a clean recording. Her voice runs on
@@ -607,11 +626,13 @@ android/                 her app (Kotlin, no libraries): her key in Android Keys
   update.js              her own updates: what's new on her branch at GitHub, fast-forward, her packages if they changed
   screengrab.js / .ps1   bits of the screen in a few ms, for her teleports to tear open (a PowerShell helper, GDI)
   spot.js                whether the window in front is another AI, past her list: asked of a model on this PC, remembered
+  world.js               her world: what she knows of your games (Steam, Wikipedia), releases, news feeds, the day
   tts.js                 her voice: its server started and stopped, her lines cut into sentences and sent a piece at a time
 src/renderer/js/
   mainframe.js           Mainframe's page: its tabs, HOLO
   talk.js                what she says of her own, in her words: when, how often, and kept in her chat
   speech.js              her voice out loud: each piece queued behind the one before, an answer said as it comes in
+  world.js               when she brings up the world past your desktop, how often, and the facts under her line
 tools/build-ninepatch.py her chat's frames for Android (bubbles, HUD bar) as 9-patch images, cut corners drawn whole
 tools/build-poses.py     her pose drawings from generated pictures: keyed, her colours, placed on her sprite (POSES)
 voice/                   her voice (Python, its own environment in ~/.capri/voice): server.py (127.0.0.1, a token),
@@ -620,7 +641,7 @@ voice/                   her voice (Python, its own environment in ~/.capri/voic
 ```
 
 Tests: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
-`test:pocket`, `test:spot`, `test:voice`.
+`test:pocket`, `test:spot`, `test:voice`, `test:world`.
 
 `npm run dev` turns on her debug routes:
 

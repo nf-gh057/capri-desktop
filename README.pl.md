@@ -332,6 +332,25 @@ zmieniło, i daje **Cofnij**. Cofnij przywraca poprzedni stan na wszystkich.
 Sparuj bota Telegrama na jednym komputerze, a pozostałe wysyłają swoje wiadomości przez niego. „Nie ma cię” znaczy wtedy:
 nie ma cię przy żadnym z nich, a rozmowa przez Telegram blokuje się, gdy wrócisz do któregokolwiek.
 
+### Jej świat
+
+Mówi o czymś więcej niż o twoim pulpicie. Każde źródło włączasz w Mainframe › RELIC › ŚWIAT (do tego czasu są
+wyłączone, bo każde pyta internet). Wychodzi tylko nazwa gry, twoje miasto i adresy kanałów.
+
+- **Gra, w którą grałeś**: gdy z niej wrócisz po dłuższej chwili, ciekawostka albo porada o niej z jej strony na Steamie
+  i artykułu w Wikipedii (w jej języku, jeśli jest). Jej model opowiada ją po swojemu; jeśli po drodze zgubi nazwy
+  i liczby, Capri mówi samą ciekawostkę. Każda raz, a cały zestaw o grze najwcześniej po tygodniu. Grę rozpoznaje po
+  plikach Steama na twoim PC, a jeśli ich nie ma, przez wyszukiwarkę sklepu.
+- **Premiery na Steamie** w stylu gier, w które grasz (po gatunkach), każda raz.
+- **Wiadomości**: nagłówek z kanałów, które wybierzesz (GRYOnline.pl, CD-Action, Eurogamer.pl, Benchmark.pl, PC Gamer,
+  Rock Paper Shotgun albo twój adres RSS), najświeższy, którego jeszcze nie mówiła.
+- **Powitanie dnia**: pogoda tam, gdzie mieszkasz (Open-Meteo), czyje są imieniny (abalin.net) i święto dziś albo jutro
+  (Nager.Date).
+- **Jak często**: rzadko, normalnie albo często (ciekawostka o grze po 45, 20 albo 5 minutach grania, od jednej do
+  ośmiu dziennie; nagłówki od jednego do czterech dziennie; premiery od jednej do siedmiu w tygodniu), zawsze w ramach
+  jej gadatliwości, w spokojnej chwili i nigdy w środku gry. Same fakty (pogoda, nagłówek, premiera) pokazuje dosłownie
+  pod swoją kwestią: mały model na tym PC przekręca je, gdy je opowiada.
+
 ### Jej głos
 
 Może mówić swoje kwestie na głos, głosem sklonowanym z 10–15 sekund czystego nagrania. Jej głos działa na twoim PC:
@@ -624,11 +643,13 @@ android/                 jej aplikacja (Kotlin, bez bibliotek): klucz w Android 
   update.js              jej aktualizacje: co nowego na jej gałęzi na GitHubie, przewinięcie, pakiety, jeśli się zmieniły
   screengrab.js / .ps1   kawałki ekranu w kilka ms, do rozdarcia przy teleporcie (pomocnik w PowerShellu, GDI)
   spot.js                czy okno na wierzchu to inne AI spoza jej listy: pytanie do modelu na tym PC, zapamiętane
+  world.js               jej świat: co wie o twoich grach (Steam, Wikipedia), premiery, kanały z wiadomościami, dzień
   tts.js                 jej głos: uruchamianie i zatrzymywanie serwera, kwestie cięte na zdania i wysyłane kawałkami
 src/renderer/js/
   mainframe.js           strona Mainframe: zakładki, HOLO
   talk.js                to, co mówi sama, własnymi słowami: kiedy, jak często, zapisane w jej czacie
   speech.js              jej głos na głos: każdy kawałek w kolejce za poprzednim, odpowiedź mówiona w miarę, jak spływa
+  world.js               kiedy mówi o świecie poza pulpitem, jak często, i fakty pod jej kwestią
 tools/build-ninepatch.py ramki jej czatu dla Androida (dymki, listwa HUD) jako obrazy 9-patch, z całymi ściętymi rogami
 tools/build-poses.py     jej pozy z wygenerowanych obrazków: wycięte, w jej kolorach, ułożone na jej sprite (POSES)
 voice/                   jej głos (Python, własne środowisko w ~/.capri/voice): server.py (127.0.0.1, token),
@@ -637,7 +658,7 @@ voice/                   jej głos (Python, własne środowisko w ~/.capri/voice
 ```
 
 Testy: `npm run test:hooks`, `test:phone`, `test:swarm`, `test:update`, `test:mind`, `test:llm`, `test:apps`,
-`test:pocket`, `test:spot`, `test:voice`.
+`test:pocket`, `test:spot`, `test:voice`, `test:world`.
 
 `npm run dev` włącza jej trasy debugowania:
 

@@ -25,7 +25,7 @@ const KEEP = 60;     // messages she remembers across restarts (memory.json)
 // conversation so far, English after a switch, whatever the top of her prompt says)
 const IN_LANGUAGE = {
   en: { we: '', last: 'Write everything in English, unless the user writes to you in another language: then in theirs.', now: 'Answer in English, unless this message is written in another language.' },
-  pl: { we: '"my" in Polish', last: 'Pisz wszystko po polsku, chyba że użytkownik pisze do ciebie w innym języku: wtedy w jego. Tylko słówka ze slangu Night City zostają po angielsku, nigdy całe zdania. O sobie mówisz w rodzaju żeńskim (zrobiłam, widziałam).' , now: 'Odpowiadaj po polsku, chyba że ta wiadomość jest napisana w innym języku.' },
+  pl: { we: '"my" in Polish', last: 'Pisz wszystko po polsku, chyba że użytkownik pisze do ciebie w innym języku: wtedy w jego. Tylko słówka ze slangu Night City zostają po angielsku i bez odmiany (choom, preem, nova: nie „chomi”, nie „choomie”), nigdy całe zdania. O sobie mówisz w rodzaju żeńskim (zrobiłam, widziałam).' , now: 'Odpowiadaj po polsku, chyba że ta wiadomość jest napisana w innym języku.' },
 };
 const LANGUAGE_NAMES = { en: 'English', pl: 'Polish' };
 const STAY_MS = 10 * 60 * 1000; // no wandering off mid-conversation

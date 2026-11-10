@@ -19,6 +19,7 @@ import { Talk } from './talk.js';
 import { Speech } from './speech.js';
 import { Care } from './care.js';
 import { Breaks } from './breaks.js';
+import { World } from './world.js';
 import { linesFor } from './lines.js';
 import { pick, fmt, reducedMotion, sleep } from './util.js';
 
@@ -574,6 +575,21 @@ async function boot() {
     capri.perform('hop');
     panel.say({ kind: 'info', face: 'look', line, hold: 9000, inChat: true });
   }, 60 * 1000);
+  // the world past your desktop (world.js): the day's greeting, a release, a headline at a quiet minute with you
+  // at your PC (not mid-typing), and a fact about the game you're back from
+  const world = new World({ host, talk, brain });
+  world.configure(config);
+  pc.gameStarted = (name) => world.gameStarted(name);
+  pc.afterGame = (name, ms) => world.afterGame(name, ms);
+  setInterval(async () => {
+    if (!quiet() || brain.busySessions.length || talk.hush()) return;
+    const idle = await host.idleSeconds().catch(() => 0);
+    if (idle < 20 || idle * 1000 > AWAY_MS) return;
+    const line = await world.tick();
+    if (!line || !quiet()) return;
+    capri.perform('hop');
+    panel.say({ kind: 'info', face: 'look', line, hold: 10000, inChat: true });
+  }, 60 * 1000);
 
   // A reminder due: she comes and finds you (on whichever screen you're on), and holds it up until
   // you say it's done or ask for ten more minutes. One that came due while she was off, she brings
@@ -720,7 +736,7 @@ async function boot() {
   };
 
   // what's in here, for --dev scripts (debug route `eval`)
-  window.dev = { capri, brain, panel, chat, guide, fx, voice, speech, bond, jealousy, reminders, look, pc, setup, breaks, screens: () => screens, hit: () => ({ interactive, mouse }) };
+  window.dev = { capri, brain, panel, chat, guide, fx, voice, speech, bond, jealousy, reminders, look, pc, setup, breaks, world, screens: () => screens, hit: () => ({ interactive, mouse }) };
 
   host.onClaudeEvent((evt) => brain.handle(evt));
   host.onWindows((data) => {
@@ -831,6 +847,7 @@ async function boot() {
   host.onConfig((cfg) => {
     chatShows(cfg);
     talk.configure(cfg);
+    world.configure(cfg);
     voice.configure(cfg);
     speech.configure(cfg, linesFor(cfg.lang, cfg.assistant, cfg.stowKey));
     jealousy.enabled = cfg.jealous !== false;

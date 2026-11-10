@@ -49,6 +49,11 @@ contextBridge.exposeInMainWorld('host', {
   voiceSpeak: (id, text) => ipcRenderer.invoke('voice:speak', { id, text }),
   voiceHush: (id) => ipcRenderer.send('voice:hush', id),
   voiceWarm: (lines) => ipcRenderer.send('voice:warm', lines),
+  // her world past your desktop (world.js): a fact about a game, a release, a headline, the day
+  worldGame: (folder, fact = true) => ipcRenderer.invoke('world:game', { folder, fact }),
+  worldRelease: () => ipcRenderer.invoke('world:release'),
+  worldNews: () => ipcRenderer.invoke('world:news'),
+  worldToday: () => ipcRenderer.invoke('world:today'),
   onVoicePiece: on('voice:piece'),
   lookSnap: () => ipcRenderer.invoke('look:snap'),
   screenBits: (rects) => ipcRenderer.invoke('fx:screen', rects),

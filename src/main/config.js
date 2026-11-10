@@ -84,6 +84,14 @@ const DEFAULTS = {
   talk: 'normal',    // how often she says things of her own, in her words (talk.js): 'quiet', 'normal' or 'chatty'
   talkCloud: false,  // and she may write them with an AI online (what you send Claude or Codex goes there too)
   breaks: true,      // after two hours at your PC without a real break, she tells you to take one (breaks.js)
+  // her world past your desktop (world.js), each source off until you turn it on (it asks the internet)
+  worldTalk: 'normal', // how often: 'rare', 'normal' or 'often'
+  gameFacts: false,  // facts and tips about the game you just played (Steam, Wikipedia)
+  releases: false,   // games coming out on Steam like the ones you play
+  news: false,       // a headline from your news feeds
+  newsFeeds: ['https://www.gry-online.pl/rss/news.xml', 'https://www.eurogamer.pl/feed'],
+  dayInfo: false,    // the day's greeting: weather where you live, name days, public holidays
+  city: '',          // where you live, for the weather
   setups: {},        // your setups, by name: the apps you had open and where (setups.js)
   gameClose: [],     // the apps game mode closes, as you named them
   gameMode: null,    // game mode on: { plan, closed, since }, to put everything back after

@@ -195,8 +195,32 @@ function cyberware(s, t) {
       check(t.mute, c.muted, 'muted'),
       check(t.lookAuto, c.lookAuto, 'lookAuto'),
       row(null, button(t.lookNow, 'lookNow', null, { class: 'grow' }))),
+    world(c.world, t),
     voice(s.voice, t),
   ];
+}
+
+// Her world past your desktop (world.js): how often, then each source, its feeds and your city when it's on
+function world(w, t) {
+  return section(t.secWorld,
+    el('div', { class: 'row', 'data-tip': t.worldTip },
+      el('span', { class: 'row__label' }, t.worldTalk),
+      choice('trio grow', [['rare', t.worldRare], ['normal', t.worldNormal], ['often', t.worldOften]], w.talk, 'worldTalk')),
+    check(t.gameFacts, w.gameFacts, 'gameFacts'),
+    check(t.releasesOn, w.releases, 'releases'),
+    check(t.newsOn, w.news, 'news'),
+    w.news && [
+      ...w.feeds.map((f) => el('label', { class: 'check check--sub' },
+        el('input', { type: 'checkbox', checked: f.on, onchange: (e) => act('newsFeed', { url: f.url, on: e.target.checked }) }),
+        el('span'),
+        f.label)),
+      field('newsUrl', t.newsUrl, t.newsAdd, 'newsFeedAdd', 'url'),
+    ],
+    check(t.dayInfo, w.dayInfo, 'dayInfo'),
+    w.dayInfo && [
+      el('p', { class: 'note' }, w.cityNote),
+      field('city', w.city || t.cityLabel, t.citySave, 'city'),
+    ]);
 }
 
 // Her voice out loud, cloned from a recording, on this PC (tts.js): set up here first

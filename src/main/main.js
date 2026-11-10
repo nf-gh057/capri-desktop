@@ -33,6 +33,7 @@ const attest = require('./attest');
 const update = require('./update');
 const { createMind } = require('./mind');
 const { createSpotter } = require('./spot');
+const { createWorld, FEEDS } = require('./world');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
 const demoSteps = require('../../scripts/demo-sequence');
@@ -56,6 +57,8 @@ let windowWatch = null;
 let spot = null;      // her jealousy with a model on this PC: whether the window in front is another AI (spot.js)
 let spotFront = null; // the window in front, as the model took it: { id, key, title } (the title stays here)
 let spotModel = null; // the model on this PC it asked last
+let world = null;     // her world past your desktop: games, releases, news, the day (world.js)
+let cityNote = null;  // what came of the city you gave for the weather, for Mainframe
 let screenGrab = null; // bits of the screen for her teleports to tear (screengrab.js)
 let mainframe = null; // her settings window (mainframe.js)
 let voice = null;     // her voice: the local text-to-speech server (tts.js, voice/server.py)
@@ -820,6 +823,26 @@ function syncVoice() {
 
 const VOICE_FX = [0, 0.5, 1, 1.5];
 
+// Her world past your desktop for Mainframe (world.js): how often, each source, the feeds, your city
+function worldState(cfg, t) {
+  const on = new Set(cfg.newsFeeds || []);
+  const own = [...on].filter((url) => !FEEDS.some((f) => f.url === url));
+  const lang = resolveLang(cfg.lang);
+  return {
+    talk: ['rare', 'normal', 'often'].includes(cfg.worldTalk) ? cfg.worldTalk : 'normal',
+    gameFacts: Boolean(cfg.gameFacts),
+    releases: Boolean(cfg.releases),
+    news: Boolean(cfg.news),
+    dayInfo: Boolean(cfg.dayInfo),
+    city: cfg.city || '',
+    cityNote: cityNote || (cfg.city ? t.cityFound(cfg.city) : t.cityNone),
+    // the feeds in her language first, then the others, then yours
+    feeds: [...FEEDS.filter((f) => f.lang === lang), ...FEEDS.filter((f) => f.lang !== lang)]
+      .map((f) => ({ url: f.url, label: f.label, on: on.has(f.url) }))
+      .concat(own.map((url) => ({ url, label: url.replace(/^https?:\/\/(www\.)?/, ''), on: true }))),
+  };
+}
+
 function voiceState(cfg, t) {
   const v = voice?.status() || { installed: false, profiles: [] };
   const note = typeof v.installing === 'string' ? t.voiceInstalling(v.installing)
@@ -929,6 +952,7 @@ function mainframeState() {
       pcReact: cfg.pcReact !== false,
       breaks: cfg.breaks !== false,
       lookAuto: Boolean(cfg.watchScreen),
+      world: worldState(cfg, t),
       sync: syncLabel(cfg, t),
       reminders: reminderList(cfg),
       memories: memoryList(cfg, t),
@@ -1046,6 +1070,27 @@ async function mainframeAct(name, value) {
       break;
     }
     case 'talk': if (one(['quiet', 'normal', 'chatty'])) updateConfig({ talk: value }); break;
+    case 'worldTalk': if (one(['rare', 'normal', 'often'])) updateConfig({ worldTalk: value }); break;
+    case 'gameFacts': case 'releases': case 'news': case 'dayInfo': updateConfig({ [name]: Boolean(value) }); break;
+    case 'newsFeed': { // a feed on or off: { url, on }
+      const url = String(value?.url || '');
+      const feeds = config.load().newsFeeds || [];
+      if (/^https?:\/\//.test(url)) updateConfig({ newsFeeds: value.on ? [...new Set([...feeds, url])] : feeds.filter((u) => u !== url) });
+      break;
+    }
+    case 'newsFeedAdd': {
+      const url = String(value || '').trim();
+      if (/^https?:\/\/\S+$/.test(url)) updateConfig({ newsFeeds: [...new Set([...(config.load().newsFeeds || []), url])] });
+      break;
+    }
+    case 'city': {
+      const city = String(value || '').trim().slice(0, 60);
+      const t = trayLabels();
+      const found = city && (await world?.checkCity(city, resolveLang(config.load().lang)).catch(() => null));
+      cityNote = !city ? null : found ? t.cityFound(found) : t.cityUnknown(city);
+      updateConfig({ city: found ? city : '' });
+      break;
+    }
     case 'lookNow': sendCommand('look'); break;
     case 'voiceOn': updateConfig({ voiceOn: Boolean(value) && voice?.installed() }); break;
     case 'voiceMode': if (one(['chat', 'all'])) updateConfig({ voiceMode: value }); break;
@@ -2267,6 +2312,25 @@ function registerIpc() {
     return voice?.speak({ id: String(id), text, lang: resolveLang(cfg.lang), profile: cfg.voiceProfile, fx: cfg.voiceFx ?? 1 },
       ({ id: pieceId, wav, error, skip }) => overlay?.webContents.send('voice:piece', { id: pieceId, wav, error, skip })) || false;
   });
+  // her world past your desktop (world.js), each source only when you turned it on in Mainframe
+  ipcMain.handle('world:game', (_e, { folder, fact = true } = {}) => {
+    const cfg = config.load();
+    if (!cfg.gameFacts || typeof folder !== 'string' || !world) return null;
+    const lang = resolveLang(cfg.lang);
+    return (fact ? world.gameFact(folder, lang) : world.game(folder, lang).then(() => null)).catch(() => null);
+  });
+  ipcMain.handle('world:release', () => {
+    const cfg = config.load();
+    return cfg.releases && world ? world.release(resolveLang(cfg.lang)).catch(() => null) : null;
+  });
+  ipcMain.handle('world:news', () => {
+    const cfg = config.load();
+    return cfg.news && world ? world.headline(cfg.newsFeeds || []).catch(() => null) : null;
+  });
+  ipcMain.handle('world:today', () => {
+    const cfg = config.load();
+    return cfg.dayInfo && world ? world.today(cfg.city, resolveLang(cfg.lang), { weather: Boolean(cfg.city) }).catch(() => null) : null;
+  });
   ipcMain.on('voice:hush', (_e, id) => voice?.hush(id ? String(id) : null));
   // her fixed lines in her language, to say ahead of time (tts.js warm)
   ipcMain.on('voice:warm', (_e, lines) => {
@@ -3083,6 +3147,7 @@ function main() {
     });
     // the model's answer about the window in front: the windows again, with it
     spot = createSpotter({ file: path.join(app.getPath('userData'), 'ai-titles.json'), ask: spotAsk, known: LISTED_AI, onChange: () => windowWatch?.refresh(), onHealth: () => mainframe?.refresh?.() });
+    world = createWorld({ file: path.join(app.getPath('userData'), 'world.json'), log: (line) => DEV && console.log(line) });
     syncSpot();
     voice = createVoice({
       log: (line) => DEV && console.log(line),
@@ -3156,6 +3221,7 @@ function main() {
     globalShortcut.unregisterAll();
     windowWatch?.stop();
     spot?.flush();
+    world?.flush();
     voice?.stop();
     screenGrab?.stop();
   });

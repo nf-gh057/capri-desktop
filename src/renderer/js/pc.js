@@ -204,6 +204,7 @@ export class Pc {
     // you're playing: a word about it, then she gets out of the way (she's always on top)
     if (!g.said && !g.gone && now - g.since >= GAME_AFTER) {
       g.said = true;
+      this.gameStarted?.(g.name); // what she knows of it, fetched meanwhile (world.js)
       if (this.capri.stowed || this.capri.mode === 'alert') return;
       this.capri.wake();
       this.say(fmt(pick(this.t.game), { game: g.name }), 'smug', 3000);
@@ -217,7 +218,11 @@ export class Pc {
     if (g.gone && now - g.gone >= GAME_OVER) {
       this.game = null;
       if (g.put && this.capri.stowed && this.wantsOut()) {
-        this.capri.unstow().then(() => this.say(pick(this.t.gameBack), 'look', 5000));
+        // a fact or a tip about it in her words (world.js), else her usual line
+        this.capri.unstow().then(async () => {
+          const own = await this.afterGame?.(g.name, g.gone - g.since).catch(() => null);
+          this.say(own || pick(this.t.gameBack), 'look', own ? 9000 : 5000);
+        });
       }
     }
   }
