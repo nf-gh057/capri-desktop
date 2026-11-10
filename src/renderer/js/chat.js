@@ -277,6 +277,7 @@ export class Chat {
     this.showNote = true;  // the line under her chat saying an AI answers, not her (same)
     this.onSetup = null; // (status) => void: she can't answer yet (app.js hands it to setup.js)
     this.onBetterModel = null; // () => void: a bigger model than the tiny one she's on (setup.js)
+    this.care = null;          // care.js: taking care of your PC (app.js sets it)
     this.reminders = null; // the reminders she keeps (reminders.js, from app.js)
     this.bond = null;      // how close she is to you (bond.js)
     this.jealousy = null;  // and how she takes your other AIs
@@ -416,6 +417,7 @@ export class Chat {
     // things on the PC its own way, unless her powers are on for them too)
     const asked = this.asked(text);
     if (asked?.kind === 'look') return this.sendLook(text, id);
+    if (asked?.kind === 'care') return this.sendCare(asked, id);
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
     // a window she looked for herself: what she found is her whole answer (her AI would only guess)
     const found = asked?.kind === 'window' && (await early.catch(() => null));
@@ -598,6 +600,41 @@ export class Chat {
     return { ok: true, text: order ? all : said }; // to your phone: what she did too ("Chrome: on it.")
   }
 
+  // Taking care of your PC (care.js): done without her AI (quicker, and it works with the internet
+  // down), her line about it as her answer, with its buttons.
+  async sendCare(asked, id) {
+    const slow = setTimeout(() => {
+      if (this.turn === id) this.panel.stream(this.care.t.working);
+    }, 1500);
+    const done = await this.care.now(asked).catch(() => null);
+    clearTimeout(slow);
+    if (this.turn !== id) return;
+    this.turn = 0;
+    const line = done?.line || this.care.t.failed;
+    this.remember({ role: 'assistant', content: line });
+    this.panel.stream(line, { done: true });
+    this.panel.setFace(done?.face || 'aside');
+    this.panel.setChatBusy(false);
+    if (done?.buttons?.length) this.offer(done, line);
+  }
+
+  // Her buttons for what she found: each click does its part, its line under hers, then its own
+  // buttons, the others left if it says so (again), and a line for later when it's a long job.
+  offer(done, answer) {
+    this.panel.setActions(done.buttons, async (id) => {
+      this.panel.setActions([]);
+      const next = await Promise.resolve(done.onButton(id)).catch(() => null);
+      if (next?.line) this.addLine(answer, next.line, next.face);
+      const said = next?.line ? `${answer}\n${next.line}` : answer;
+      if (next?.buttons?.length) this.offer(next, said);
+      else if (next?.again) {
+        const rest = done.buttons.filter((b) => b.id !== id);
+        if (rest.length) this.offer({ ...done, buttons: rest.map((b, i) => ({ ...b, primary: i === 0 })) }, said);
+      }
+      next?.later?.then((last) => last && this.care.tell(last.line, last.face));
+    });
+  }
+
   // "Look at my screen" in her chat: she looks (asking you first, the first time) and answers here,
   // the conversation so far in mind.
   async sendLook(text, id) {
@@ -750,6 +787,8 @@ export class Chat {
 
   // Something to do to your PC itself (system.js), read off your message: { kind: 'pc', what, ... }
   askedPc(text, count) {
+    const care = this.care?.asked(text, count);
+    if (care) return care;
     const pc = (what, more = {}) => ({ kind: 'pc', what, ...more });
     const power = POWER_ASK.find(([, re]) => re.test(text))?.[0];
     if (power === 'cancel') return pc('power', { power });
@@ -1315,9 +1354,10 @@ export class Chat {
     const res = await this.host.closeApp(app.name, force);
     if (!this.open) return;
     let line;
+    const name = app.label || app.name;
     if (res.error) line = `${t.failed} ${res.error}`;
-    else if (!res.running) line = fmt(force ? t.forced : t.closed, { app: app.name });
-    else line = fmt(force ? t.unkillable : t.stillOpen, { app: app.name });
+    else if (!res.running) line = fmt(force ? t.forced : t.closed, { app: name });
+    else line = fmt(force ? t.unkillable : t.stillOpen, { app: name });
     this.panel.setFace(res.running || res.error ? 'aside' : 'laugh');
     this.panel.stream(line, { done: true });
     this.remember({ role: 'assistant', content: line });
@@ -1352,6 +1392,7 @@ export class Chat {
       lines.push(`You can also close an app that's open, only when they ask you to: end your answer with [[close: NAME]], NAME being the exact name from this list (the part before the parentheses). They get a button to confirm it. Apps open right now: ${open}.`);
     }
     lines.push('Your system also searches the user\'s files when they ask you to find one, searches the web when they ask, takes screenshots, and starts Roblox games by name: what it did shows under your answer, so never make up file names or results.');
+    lines.push('When the user asks in plain words, your system also takes care of their PC (a reply of yours with buttons comes from it): what slows it down, freeing space, what starts with Windows, updating their apps, duplicate photos, where the sound comes out (headset or speakers), their microphone, Wi-Fi and Bluetooth, ejecting a USB stick, the screen\'s brightness, clipping or recording a game, a window lost off screen or moved to the other screen, setups (their apps and windows kept by name and opened again), game mode, and why the internet is down. If they ask what you can do on their PC, tell them they can just ask you that.');
     if (agent) lines.push('For opening, closing or playing these, always use these tags, never your own tools or commands.');
     else lines.push('Apart from that, you can\'t see the user\'s screen or files, and you can\'t touch anything else on their PC (settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.');
     return lines;

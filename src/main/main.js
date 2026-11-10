@@ -719,6 +719,7 @@ function rebuildTray() {
       check(t.closePages, cfg.closePages !== false, (closePages) => updateConfig({ closePages })),
       check(t.lieBack, cfg.lieBack !== false, (lieBack) => updateConfig({ lieBack })),
       check(t.pcReact, cfg.pcReact !== false, (pcReact) => updateConfig({ pcReact })),
+      check(t.breaks, cfg.breaks !== false, (breaks) => updateConfig({ breaks })),
     ]),
     // her system: language, how she's drawn, her menu, starting with Windows, and showing what she does
     part('cyberdeck', 'CYBERDECK', [
@@ -926,6 +927,7 @@ function mainframeState() {
         .map(([key, ai]) => ({ key, name: ai.name || key, spared: (cfg.aiSpared || []).includes(key), found: Boolean(ai.found) })),
       erebus: cfg.erebus !== false,
       pcReact: cfg.pcReact !== false,
+      breaks: cfg.breaks !== false,
       lookAuto: Boolean(cfg.watchScreen),
       sync: syncLabel(cfg, t),
       reminders: reminderList(cfg),
@@ -1032,7 +1034,7 @@ async function mainframeAct(name, value) {
     case 'userName': if (typeof value === 'string') updateConfig({ userName: value.trim().slice(0, 24) }); break;
     case 'help': sendCommand('welcome'); break;
     case 'size': { const size = SIZES.find(([id]) => id === value); if (size) updateConfig({ scale: size[1] }); break; }
-    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'closePages': case 'lieBack': case 'erebus': case 'pcReact': case 'talkCloud': case 'aiSpot': updateConfig({ [name]: Boolean(value) }); break;
+    case 'wander': case 'possess': case 'muted': case 'follow': case 'jealous': case 'closePages': case 'lieBack': case 'erebus': case 'pcReact': case 'breaks': case 'talkCloud': case 'aiSpot': updateConfig({ [name]: Boolean(value) }); break;
     case 'aiNot': {
       // { key }: one the model took for another AI isn't: off her list, and never taken for one again
       const key = String(value?.key || '');
@@ -2001,7 +2003,8 @@ function registerIpc() {
     }
   });
   ipcMain.on('chat:stop', (_e, id) => chats.get(id)?.abort());
-  // how long since a key or the mouse anywhere (talk.js: not while you're typing), in seconds
+  // how long since a key or the mouse anywhere, in seconds (talk.js: not while you're typing; breaks.js: a
+  // real break)
   ipcMain.handle('pc:idle', () => powerMonitor.getSystemIdleTime());
   // something she says of her own (talk.js), written by an AI: { ok, text } or { ok: false }
   ipcMain.handle('talk:line', async (_e, { messages } = {}) => {
@@ -2215,8 +2218,12 @@ function registerIpc() {
   });
   ipcMain.handle('apps:launch', (_e, item) => launch.launch(item).then(() => ({ ok: true }), (err) => ({ ok: false, error: err.message })));
   ipcMain.handle('apps:media', (_e, action) => launch.media(action));
-  // your PC itself, from her chat: settings, what's left, sound, snip, windows, theme, power
-  ipcMain.handle('pc:do', (_e, req) => Promise.resolve(system.act(req, { display: targetDisplay() })).catch(() => null));
+  // your PC itself, from her chat: settings, what's left, sound, snip, windows, theme, power, and
+  // taking care of it (what slows it, space, startup, updates, devices, setups, game mode, internet)
+  ipcMain.handle('pc:do', (_e, req) => Promise.resolve(system.act(req, {
+    display: targetDisplay(),
+    progress: (p) => overlay?.webContents.send('pc:progress', p), // what takes a while: in her ticker
+  })).catch(() => null));
   ipcMain.handle('apps:music', (_e, query) => launch.music(query).catch(() => false));
   ipcMain.handle('apps:site', (_e, address) => launch.site(address).catch(() => false));
   // typing to her: the overlay takes the keyboard while the chat is open, and gives it back after

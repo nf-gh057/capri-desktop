@@ -191,6 +191,7 @@ function cyberware(s, t) {
       c.jealous && rivals(c, t),
       check(t.erebus, c.erebus, 'erebus'),
       check(t.pcReact, c.pcReact, 'pcReact'),
+      check(t.breaks, c.breaks, 'breaks'),
       check(t.mute, c.muted, 'muted'),
       check(t.lookAuto, c.lookAuto, 'lookAuto'),
       row(null, button(t.lookNow, 'lookNow', null, { class: 'grow' }))),

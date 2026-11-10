@@ -17,6 +17,8 @@ import { Look } from './look.js';
 import { Pc } from './pc.js';
 import { Talk } from './talk.js';
 import { Speech } from './speech.js';
+import { Care } from './care.js';
+import { Breaks } from './breaks.js';
 import { linesFor } from './lines.js';
 import { pick, fmt, reducedMotion, sleep } from './util.js';
 
@@ -318,6 +320,9 @@ async function boot() {
     chat.showNote = cfg.chatShowNote !== false;
   };
   chatShows(config);
+  // taking care of your PC from her chat (care.js): what slows it, room, startup, updates, sound,
+  // devices, windows, setups, game mode, the internet
+  chat.care = new Care({ chat, host, panel, brain, capri });
   setup.onReady = () => chat.start();
   // What another PC of her swarm changed in her head (main.js mindTell): she says so, with "Undo". Not
   // shown yet (put away, her chat open…), or pushed off within moments by something more important: it
@@ -521,6 +526,9 @@ async function boot() {
   };
   const quiet = () => !capri.busy && !capri.act && !capri.dragging && !capri.stowed && !capri.dormant && !capri.hidden
     && capri.mode !== 'alert' && !chat.open && !guide.running && !panel.visible && ['stand', 'sit'].includes(capri.stance);
+  // two hours at your PC without a real break: she tells you to get up (breaks.js)
+  const breaks = new Breaks({ host, panel, brain, capri, pc, quiet });
+  breaks.enabled = config.breaks !== false;
   setInterval(async () => {
     if (!newStage || !quiet()) return;
     const stage = newStage;
@@ -712,7 +720,7 @@ async function boot() {
   };
 
   // what's in here, for --dev scripts (debug route `eval`)
-  window.dev = { capri, brain, panel, chat, guide, fx, voice, speech, bond, jealousy, reminders, look, pc, setup, screens: () => screens, hit: () => ({ interactive, mouse }) };
+  window.dev = { capri, brain, panel, chat, guide, fx, voice, speech, bond, jealousy, reminders, look, pc, setup, breaks, screens: () => screens, hit: () => ({ interactive, mouse }) };
 
   host.onClaudeEvent((evt) => brain.handle(evt));
   host.onWindows((data) => {
@@ -836,6 +844,7 @@ async function boot() {
     capri.follows = followOn;
     look.configure(cfg);
     pc.enabled = cfg.pcReact !== false;
+    breaks.enabled = cfg.breaks !== false;
     wantsOut = cfg.visible !== false;
     reminders.sync(cfg.reminders); // one may have been cancelled from her menu, or on another PC
     reminders.elsewhere = Boolean(cfg.hiveAway);

@@ -83,6 +83,10 @@ const DEFAULTS = {
   lookAsked: false,  // she told you what looking means (where the picture goes) and you said yes
   talk: 'normal',    // how often she says things of her own, in her words (talk.js): 'quiet', 'normal' or 'chatty'
   talkCloud: false,  // and she may write them with an AI online (what you send Claude or Codex goes there too)
+  breaks: true,      // after two hours at your PC without a real break, she tells you to take one (breaks.js)
+  setups: {},        // your setups, by name: the apps you had open and where (setups.js)
+  gameClose: [],     // the apps game mode closes, as you named them
+  gameMode: null,    // game mode on: { plan, closed, since }, to put everything back after
 };
 
 let cache = null;

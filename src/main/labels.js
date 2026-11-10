@@ -180,6 +180,7 @@ const TRAY = {
     lookNow: 'Look at my screen', lookAuto: 'Look at my screen now and then',
     chatShowModel: 'Show the model at the top of her chat', chatShowNote: 'Show the "AI" line under her chat',
     pcReact: 'React to my PC',
+    breaks: 'Health breaks',
     cloudFree: 'free, online', cloudSignin: 'Sign in to Ollama (free cloud models)…',
   },
   pl: {
@@ -356,7 +357,7 @@ const TRAY = {
     aiOwn: (names) => `Zawsze w spokoju: ${names} (AI jej czatu i to, które obserwuje)`,
     lookNow: 'Popatrz na mój ekran', lookAuto: 'Zerkaj czasem na mój ekran',
     chatShowModel: 'Pokazuj model w nagłówku czatu', chatShowNote: 'Pokazuj linijkę „AI” pod czatem',
-    pcReact: 'Reaguj na mój PC', cloudFree: 'za darmo, w sieci', cloudSignin: 'Zaloguj się do Ollamy (darmowe modele w chmurze)…',
+    pcReact: 'Reaguj na mój PC', breaks: 'Przerwy dla zdrowia', cloudFree: 'za darmo, w sieci', cloudSignin: 'Zaloguj się do Ollamy (darmowe modele w chmurze)…',
   },
 };
 

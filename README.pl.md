@@ -854,6 +854,31 @@ co robi. W tym ostatnim tryb uprawnień `default` pozwala tylko czytać (nikogo 
   (zmiata je, „przywróć okna” je oddaje); „ustaw Discorda po lewej i Chrome po prawej”; tryb ciemny albo jasny.
   Blokada, uśpienie, wyłączenie i restart („wyłącz komputer za godzinę”) zawsze czekają na twoje kliknięcie jej
   przycisku, a „anuluj wyłączenie” je zatrzymuje.
+- **Dbanie o twój PC** (odpowiedź od razu, bez jej AI, więc działa też bez internetu):
+  - „czemu mój komputer muli?”: trzy aplikacje, które najbardziej go obciążają, z przyciskiem zamknięcia każdej.
+  - „zwolnij trochę miejsca”: stare pliki tymczasowe i kosz (rozmiar na przycisku) oraz trzy największe pobrane pliki,
+    każdy z przyciskiem wyrzucenia do kosza.
+  - „co się uruchamia z Windowsem?”: lista, z przyciskiem do usunięcia z niej („wyłącz Discorda przy starcie”, „włącz
+    Steama przy starcie” też działa). To, co ustawione dla całego PC, otwiera kartę autostartu w Menedżerze zadań.
+  - „zaktualizuj moje aplikacje”: co ma aktualizację (przez winget) i jeden przycisk, który aktualizuje wszystko.
+  - „znajdź duplikaty zdjęć” (albo w pobranych, filmach, dokumentach, na pulpicie): kopie, najstarsza zostaje, do kosza
+    jednym przyciskiem.
+  - „przełącz dźwięk na słuchawki”, „…na głośniki”, „…na Yeti”: skąd leci dźwięk Windowsa; „zmień wyjście dźwięku”
+    pokazuje przycisk dla każdego urządzenia (bez wirtualnych).
+  - „wycisz mikrofon” / „włącz mikrofon”; „wyłącz Bluetooth”, „włącz Wi-Fi” (naprawdę, nie tylko strona ustawień);
+    „wysuń pendrive” (bezpiecznie, jak Eksplorator); „zmniejsz jasność”, „jasność na 50%” (ekran laptopa).
+  - „zrób klip” (ostatnie 30 sekund) i „nagraj ekran” przez pasek gry Xbox: jej czat najpierw schodzi z drogi, żeby gra
+    miała fokus. Klipy wymagają włączonego „Nagrywaj, co się wydarzyło”: mówi o tym, z przyciskiem.
+  - „zgubiłem okno”: okna, które utknęły poza ekranami, wracają; „przenieś Discorda na drugi ekran”.
+  - Setupy: „zapisz mój setup do grania” zapamiętuje otwarte aplikacje i miejsce każdego okna; „odpal mój setup do
+    grania” otwiera je znowu (po twoim kliknięciu) i ustawia każde okno z powrotem, z głośnością, jaka była.
+  - „tryb gry”: plan zasilania Windowsa Wysoka wydajność, zamknięte aplikacje, które wskazałeś („tryb gry, zamknij
+    Chrome”), a ona się chowa; „wyłącz tryb gry” przywraca wszystko, łącznie z zamkniętymi aplikacjami.
+  - „nie działa internet”: sprawdza twoją sieć, router, internet za nim, nazwy (DNS: czyści go, jeśli to on) i stronę
+    logowania Wi-Fi, i mówi ci w jednym zdaniu, co zrobić.
+- **Przerwy dla zdrowia**: po dwóch godzinach przy PC bez prawdziwej przerwy (pięć minut z dala od klawiatury i myszy)
+  mówi ci, żebyś wstał i napił się wody, w spokojnej chwili i nigdy w środku gry. „Później” przypomina za pół godziny;
+  jej menu › *Przerwy dla zdrowia* to wyłącza.
 - **Muzyka**: „pauza”, „następny”, „głośniej”, „wycisz”… naciska klawisze multimedialne, więc działa ze Spotify i większością
   odtwarzaczy, od razu po wysłaniu. „Puść Bohemian Rhapsody” albo „puść mi Daft Punk na youtube” otwiera właściwy
   teledysk na YouTube, od razu (nie wyszukiwanie). „Puść co chcesz”: wybiera sama. „Puść Daft Punk na Spotify” otwiera
